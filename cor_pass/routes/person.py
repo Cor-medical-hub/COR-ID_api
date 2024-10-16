@@ -283,9 +283,7 @@ async def delete_my_account(
     """
     **Delete user account and all data. / Удаление пользовательского аккаунта и всех его данных**\n
 
-=
     """
-    # user = await person.get_user_by_email(email, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     else:
