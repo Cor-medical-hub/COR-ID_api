@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from cor_pass.database.db import get_db
 from cor_pass.services.auth import auth_service
 from cor_pass.database.models import User, Status
-from cor_pass.services.access import user_access
+from cor_pass.services.access import user_access, admin_access
 from cor_pass.schemas import UserDb
 from cor_pass.repository import person
 from pydantic import EmailStr
@@ -13,11 +13,7 @@ from pydantic import EmailStr
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
-
-
-
-
-@router.get("/get_all", response_model=list[UserDb])
+@router.get("/get_all", response_model=list[UserDb], dependencies=[Depends(admin_access)])
 async def get_all_users(
     skip: int = 0,
     limit: int = 10,
@@ -40,7 +36,7 @@ async def get_all_users(
     return list_users
 
 
-@router.patch("/asign_status/{account_status}", dependencies=[Depends(user_access)])
+@router.patch("/asign_status/{account_status}", dependencies=[Depends(admin_access)])
 async def assign_status(
     email: EmailStr, account_status: Status, db: Session = Depends(get_db)
 ):
@@ -67,3 +63,20 @@ async def assign_status(
     else:
         await person.make_user_status(email, account_status, db)
         return {"message": f"{email} - {account_status.value}"}
+    
+
+@router.delete("/{email}", dependencies=[Depends(admin_access)])
+async def delete_user(
+    email: EmailStr, db: Session = Depends(get_db)
+):
+    """
+    **Delete user by email. / Удаление пользователя по имейлу**\n
+
+=
+    """
+    user = await person.get_user_by_email(email, db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    else:
+        await person.delete_user_by_email(db=db, email=email)
+        return {"message": f" user {email} - was deleted"}

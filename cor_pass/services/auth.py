@@ -148,7 +148,7 @@ class Auth:
             payload = jwt.decode(token, key=self.SECRET_KEY, algorithms=self.ALGORITHM)
 
             if payload["scp"] == "access_token":
-                id = payload["oid"]
+                cor_id = payload["oid"]
                 if id is None:
                     raise credentials_exception
             else:
@@ -156,7 +156,7 @@ class Auth:
         except JWTError as e:
             raise credentials_exception
 
-        user = await repository_users.get_user_by_uuid(id, db)
+        user = await repository_users.get_user_by_corid(cor_id, db)
         if user is None:
             raise credentials_exception
         return user
@@ -170,11 +170,6 @@ class Auth:
     #     if f"{parsed_url.scheme}://{parsed_url.netloc}" not in allowed_urls:
     #         return False
     #     return True
-
-
-
-
-
 
 
 auth_service = Auth()

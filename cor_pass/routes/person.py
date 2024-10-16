@@ -9,9 +9,16 @@ from cor_pass.services.recovery_file import generate_recovery_file
 from cor_pass.database.models import User, Status
 from cor_pass.services.access import user_access
 from cor_pass.services.logger import logger
-from cor_pass.schemas import UserDb, PasswordStorageSettings, MedicalStorageSettings, EmailSchema, ChangePasswordModel, ResponseCorIdModel
+from cor_pass.schemas import (
+    UserDb,
+    PasswordStorageSettings,
+    MedicalStorageSettings,
+    EmailSchema,
+    ChangePasswordModel,
+    ResponseCorIdModel,
+)
 from cor_pass.repository import person
-from cor_pass.repository import  cor_id as repository_cor_id
+from cor_pass.repository import cor_id as repository_cor_id
 from pydantic import EmailStr
 from io import BytesIO
 from fastapi.responses import StreamingResponse
@@ -19,10 +26,9 @@ from fastapi.responses import StreamingResponse
 router = APIRouter(prefix="/user", tags=["User"])
 
 
-
 @router.get(
     "/my_core_id",
-    response_model=ResponseCorIdModel,
+    # response_model=ResponseCorIdModel,
     dependencies=[Depends(user_access)],
 )
 async def read_cor_id(
@@ -40,9 +46,6 @@ async def read_cor_id(
             status_code=status.HTTP_404_NOT_FOUND, detail="COR-Id not found"
         )
     return cor_id
-
-
-
 
 
 @router.get("/account_status", dependencies=[Depends(user_access)])
@@ -160,7 +163,6 @@ async def change_email(
             )
 
 
-
 @router.post("/add_backup_email")
 async def add_backup_email(
     email: EmailSchema,
@@ -189,7 +191,6 @@ async def add_backup_email(
             )
 
 
-
 @router.patch("/change_password")
 async def change_password(body: ChangePasswordModel, db: Session = Depends(get_db)):
     """
@@ -213,9 +214,6 @@ async def change_password(body: ChangePasswordModel, db: Session = Depends(get_d
                 status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 detail="Incorrect password input",
             )
-
-
-
 
 
 @router.get("/get_recovery_code")
@@ -276,3 +274,21 @@ async def get_recovery_file(
         media_type="application/octet-stream",
         headers={"Content-Disposition": "attachment; filename=recovery_key.bin"},
     )
+
+
+@router.delete("/delete_my_account")
+async def delete_my_account(
+     db: Session = Depends(get_db), user: User = Depends(auth_service.get_current_user)
+):
+    """
+    **Delete user account and all data. / Удаление пользовательского аккаунта и всех его данных**\n
+
+=
+    """
+    # user = await person.get_user_by_email(email, db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    else:
+        await person.delete_user_by_email(db=db, email=user.email)
+        logger.info("Account was deleted")
+        return {"message": f" user {user.email} - was deleted"}
