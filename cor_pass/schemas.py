@@ -31,7 +31,7 @@ class UserDb(BaseModel):
 
 class ResponseUser(BaseModel):
     user: UserDb
-    detatil: str = "User successfully created"
+    detail: str = "User successfully created"
 
 
 class TokenModel(BaseModel):
