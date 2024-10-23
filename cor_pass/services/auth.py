@@ -131,7 +131,7 @@ class Auth:
     ):
         """
         The get_current_user function is a dependency that will be used in the protected routes.
-        It takes an access token as input and returns the user object if it's valid. 
+        It takes an access token as input and returns the user object if it's valid.
         If the token is expired, it raises token_expired exception.
 
         :param self: Represent the instance of the class
@@ -144,20 +144,22 @@ class Auth:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
+
         token_expired_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired. Please refresh the token.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
+
         try:
-            payload = jwt.decode(token, key=self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            payload = jwt.decode(
+                token, key=self.SECRET_KEY, algorithms=[self.ALGORITHM]
+            )
             # Проверяем, есть ли время истечения
             exp = payload.get("exp")
             if exp is None:
                 raise credentials_exception
-                
+
             # Сравниваем текущее время с временем истечения токена
             if datetime.fromtimestamp(exp) < datetime.now():
                 raise token_expired_exception

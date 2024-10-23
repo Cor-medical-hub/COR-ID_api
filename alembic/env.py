@@ -20,7 +20,6 @@ load_dotenv(env_file)
 config = context.config
 
 
-
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -28,8 +27,10 @@ if config.config_file_name is not None:
 
 
 config.set_main_option(
-    'sqlalchemy.url', 
-    os.getenv('SQLALCHEMY_DATABASE_URL', 'sqlite:///default.db')  # Установите значение по умолчанию
+    "sqlalchemy.url",
+    os.getenv(
+        "SQLALCHEMY_DATABASE_URL", "sqlite:///default.db"
+    ),  # Установите значение по умолчанию
 )
 # add your model's MetaData object here
 # for 'autogenerate' support
@@ -81,9 +82,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
