@@ -60,7 +60,7 @@
             const token = localStorage.getItem('access_token'); // Получаем токен из localStorage
 
             const accessToken = new URLSearchParams(window.location.search).get('access_token');
-            const url = `http://127.0.0.1:8000/api/admin/get_all?skip=${skip}&limit=${limit}`;
+            const url = `/api/admin/get_all?skip=${skip}&limit=${limit}`;
 
 
             try {
