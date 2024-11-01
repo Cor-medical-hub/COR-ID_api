@@ -53,7 +53,7 @@ class User(Base):
     user_index = Column(
         Integer, unique=True
     )  # индекс пользователя, используется в создании cor_id
-
+    created_at = Column(DateTime, nullable=False, default=func.now())
     user_records = relationship(
         "Record", back_populates="user", cascade="all, delete-orphan"
     )
