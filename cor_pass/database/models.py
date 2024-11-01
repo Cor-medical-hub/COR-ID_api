@@ -34,7 +34,7 @@ class User(Base):
     backup_email = Column(String(250), unique=True, nullable=True)
     password = Column(String(250), nullable=False)
     last_password_change = Column(
-        DateTime, server_default=func.now(), onupdate=func.now()
+        DateTime, server_default=func.now()
     )
     access_token = Column(String(250), nullable=True)
     refresh_token = Column(String(250), nullable=True)
