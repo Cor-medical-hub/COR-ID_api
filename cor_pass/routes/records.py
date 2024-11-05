@@ -143,6 +143,35 @@ async def update_record(
         )
     return record
 
+@router.put(
+    "/make_favorite/{record_id}", response_model=RecordResponse, dependencies=[Depends(user_access)]
+)
+async def make_favorite(
+    record_id: int,
+    is_favorite: bool,
+    db: Session = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user),
+):
+    """
+    **Make favorite an existing record. / Отметить запись как избранную** \n
+
+    :param record_id: The ID of the record to update.
+    :type record_id: int
+    :param is_favorite: bool value.
+    :type is_favorite: bool
+    :param db: The database session. Dependency on get_db.
+    :type db: Session, optional
+    :return: The updated ResponseRecord object representing the updated record.
+    :rtype: ResponseRecord
+    :raises HTTPException 404: If the record with the specified ID does not exist.
+    """
+    record = await repository_record.make_favorite(record_id, is_favorite, user, db)
+    if record is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Record not found"
+        )
+    return record
+
 
 @router.delete("/{record_id}", response_model=RecordResponse)
 async def remove_record(
