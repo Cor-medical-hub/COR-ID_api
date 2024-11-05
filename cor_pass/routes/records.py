@@ -4,7 +4,7 @@ from typing import List
 
 from cor_pass.repository import records as repository_record
 from cor_pass.database.db import get_db
-from cor_pass.schemas import CreateRecordModel, RecordResponse
+from cor_pass.schemas import CreateRecordModel, RecordResponse, UpdateRecordModel
 from cor_pass.database.models import User
 from cor_pass.config.config import settings
 from cor_pass.services.auth import auth_service
@@ -119,7 +119,7 @@ async def create_record(
 )
 async def update_record(
     record_id: int,
-    body: CreateRecordModel,
+    body: UpdateRecordModel,
     db: Session = Depends(get_db),
     user: User = Depends(auth_service.get_current_user),
 ):

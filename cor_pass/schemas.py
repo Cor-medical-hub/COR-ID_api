@@ -117,12 +117,22 @@ class RecordResponse(BaseModel):
     edited_at: datetime
     notes: str
     user_id: str
+    is_favorite: bool
 
     tags: List[TagModel]
 
     class Config:
         from_attributes = True
 
+
+class UpdateRecordModel(BaseModel):
+    record_name: str = Field(max_length=25)
+    website: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    notes: Optional[str] = None
+    tag_names: List[str] = []
+    is_favorite: Optional[bool] = False
 
 # PASS-GENERATOR MODELS
 
