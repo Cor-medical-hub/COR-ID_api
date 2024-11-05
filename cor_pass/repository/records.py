@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 
 from cor_pass.database.models import User, Record, Tag
-from cor_pass.schemas import CreateRecordModel
+from cor_pass.schemas import CreateRecordModel, UpdateRecordModel
 from cor_pass.repository.person import get_user_by_uuid
 from cor_pass.config.config import settings
 from cor_pass.services.cipher import encrypt_data, decrypt_data, decrypt_user_key
@@ -70,7 +70,7 @@ async def get_all_user_records(db: Session, user_id: str, skip: int, limit: int)
 
 
 async def update_record(
-    record_id: int, body: CreateRecordModel, user: User, db: Session
+    record_id: int, body: UpdateRecordModel, user: User, db: Session
 ):
     record = (
         db.query(Record)
@@ -88,6 +88,7 @@ async def update_record(
             data=body.password, key=await decrypt_user_key(user.unique_cipher_key)
         )
         record.notes = body.notes
+        record.is_favorite = body.is_favorite
         tags_copy = list(record.tags)
 
         for tag in tags_copy:

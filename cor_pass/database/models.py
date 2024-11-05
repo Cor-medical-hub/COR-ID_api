@@ -85,6 +85,7 @@ class Record(Base):
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
     notes = Column(Text, nullable=True)
+    is_favorite = Column(Boolean, default=False)
 
     user = relationship("User", back_populates="user_records")
     tags = relationship("Tag", secondary="records_tags")
