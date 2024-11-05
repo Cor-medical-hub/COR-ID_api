@@ -132,7 +132,7 @@ class UpdateRecordModel(BaseModel):
     password: Optional[str] = None
     notes: Optional[str] = None
     tag_names: List[str] = []
-    is_favorite: Optional[bool] = False
+
 
 # PASS-GENERATOR MODELS
 

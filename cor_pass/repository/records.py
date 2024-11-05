@@ -88,7 +88,6 @@ async def update_record(
             data=body.password, key=await decrypt_user_key(user.unique_cipher_key)
         )
         record.notes = body.notes
-        record.is_favorite = body.is_favorite
         tags_copy = list(record.tags)
 
         for tag in tags_copy:
@@ -100,6 +99,23 @@ async def update_record(
                 if not tag:
                     tag = Tag(name=tag_name)
                 record.tags.append(tag)
+        db.commit()
+        db.refresh(record)
+    return record
+
+
+
+async def make_favorite(
+    record_id: int, is_favorite: bool, user: User, db: Session
+):
+    record = (
+        db.query(Record)
+        .join(User, Record.user_id == User.id)
+        .filter(and_(Record.record_id == record_id, User.id == user.id))
+        .first()
+    )
+    if record:
+        record.is_favorite = is_favorite
         db.commit()
         db.refresh(record)
     return record
