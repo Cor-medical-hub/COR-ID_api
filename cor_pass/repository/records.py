@@ -62,10 +62,6 @@ async def get_all_user_records(db: Session, user_id: str, skip: int, limit: int)
     records = (
         db.query(Record).filter_by(user_id=user_id).offset(skip).limit(limit).all()
     )
-    # current_user = await get_user_by_uuid(uuid=user_id, db=db)
-    # for record in records:
-    #     print(record)
-    #     # record.username = await decrypt_data(encrypted_data=record.username, key=await decrypt_user_key(current_user.unique_cipher_key))
     return records
 
 
