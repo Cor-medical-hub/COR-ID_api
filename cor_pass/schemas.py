@@ -136,6 +136,7 @@ class MainscreenRecordResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class UpdateRecordModel(BaseModel):
     record_name: str = Field(max_length=25)
     website: Optional[str] = None

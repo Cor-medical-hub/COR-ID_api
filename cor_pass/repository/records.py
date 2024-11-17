@@ -100,10 +100,7 @@ async def update_record(
     return record
 
 
-
-async def make_favorite(
-    record_id: int, is_favorite: bool, user: User, db: Session
-):
+async def make_favorite(record_id: int, is_favorite: bool, user: User, db: Session):
     record = (
         db.query(Record)
         .join(User, Record.user_id == User.id)
