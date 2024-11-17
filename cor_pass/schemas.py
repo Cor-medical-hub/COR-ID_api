@@ -125,6 +125,18 @@ class RecordResponse(BaseModel):
         from_attributes = True
 
 
+class MainscreenRecordResponse(BaseModel):
+    record_id: int
+    record_name: str
+    website: str
+    username: str
+    password: str
+    is_favorite: bool
+
+    class Config:
+        from_attributes = True
+
+
 class UpdateRecordModel(BaseModel):
     record_name: str = Field(max_length=25)
     website: Optional[str] = None
