@@ -22,7 +22,7 @@
         }
         .container {
             width: 90%;
-            max-width: 800px;
+            max-width: 850px;
             background-color: #fff;
             padding: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -39,8 +39,8 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px; /* Уменьшенный шрифт */
-            margin-top: 10px;
+            font-size: 10px; /* Уменьшенный шрифт */
+            margin-top: 8px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -73,6 +73,19 @@
             margin: 0 5px;
             padding: 5px 10px;
         }
+                /* Стили для ячеек с COR-ID */
+        .cor-id-cell {
+            cursor: pointer; /* Указатель мыши при наведении */
+            text-decoration: none; /* Убираем подчеркивание по умолчанию */
+        }
+
+        /* Подчеркивание при наведении */
+        .cor-id-cell:hover {
+            text-decoration: underline; /* Подчеркивание при наведении */
+            color: blue; /* Можно изменить цвет текста на синий, если нужно */
+        }
+
+
     </style>
 </head>
 <body>
@@ -88,19 +101,42 @@
             <input type="text" id="searchEmail" placeholder="Введите Email" oninput="filterTable()">
         </div>
         <!-- Модальное окно -->
-<div id="columnSelectModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border: 1px solid #ccc; padding: 20px; z-index: 1000;">
-    <h3>Выберите поля для отображения:</h3>
-    <label><input type="checkbox" onchange="toggleColumn('user_index')" checked>Индекс</label><br>
-    <label><input type="checkbox" onchange="toggleColumn('id')" checked>ID</label><br>
-    <label><input type="checkbox" onchange="toggleColumn('cor_id')" checked>COR-ID</label><br>
-    <label><input type="checkbox" onchange="toggleColumn('user_sex')" checked>Пол</label><br>
-    <label><input type="checkbox" onchange="toggleColumn('birth')" checked>Год рождения</label><br>
-    <label><input type="checkbox" onchange="toggleColumn('email')" checked>Email</label><br>
-    <label><input type="checkbox" onchange="toggleColumn('created_at')" checked>Дата регистрации</label><br>
-    <label><input type="checkbox" onchange="toggleColumn('last_password_change')" checked>Последнее изменение пароля</label><br>
+            
+<div id="columnSelectModal" style="display: none; position: fixed; font-size: 12px;top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgb(249, 249, 249); border: 1px solid #979292; border-radius: 5px; padding: 20px; z-index: 1000;">
+      <div class="modal-header"> 
+        <h3>Выберите поля для отображения:</h3>
    
-    <button onclick="closeModal()">Закрыть</button>
+    <label><input type="checkbox" onchange="toggleColumn('user_index')" id="checkbox-user_index" checked >Индекс</label><br>
+    <label><input type="checkbox" onchange="toggleColumn('id')" id="checkbox-id" checked >ID</label><br>
+    <label><input type="checkbox" onchange="toggleColumn('cor_id')" id="checkbox-cor_id" checked >COR-ID</label><br>
+    <label><input type="checkbox" onchange="toggleColumn('user_sex')" id="checkbox-user_sex" checked >Пол</label><br>
+    <label><input type="checkbox" onchange="toggleColumn('birth')" id="checkbox-birth" checked >Год рождения</label><br>
+    <label><input type="checkbox" onchange="toggleColumn('email')" id="checkbox-email" checked >Email</label><br>
+    <label><input type="checkbox" onchange="toggleColumn('created_at')" id="checkbox-created_at" checked >Дата регистрации</label><br>
+    <label><input type="checkbox" onchange="toggleColumn('last_password_change')" id="checkbox-last_password_change" checked >Последнее изменение пароля</label><br>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="closeModal()">Закрыть</button>
+                </div> 
+      </div>         
 </div>
+        <!-- Модальное окно для отображения информации о COR-ID -->
+        <div id="corIdModal" class="modal"style="display: none; position: fixed;font-size: 12px; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgb(249, 249, 249); border: 1px solid #ccc; border-radius: 5px; padding: 20px; z-index: 1000;">
+            <div class="modal-content">
+             <div class="modal-header">
+                <div style="text-align: center; margin-top: 20px;">
+                <h3>Информация о COR-ID:<br> <span id="corIdValue"></span></h3> <!-- Место для вывода COR-ID --></div>
+                    <div id="corIdInfo">
+                        <!-- Здесь информация о COR-ID -->
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="closeCorIdModal()">Закрыть</button>
+                    </div>
+             </div>
+            </div>
+        </div>
+     
+
 <button id="openModalBtn">Выбрать вывод</button>
         <!-- Таблица для отображения пользователей -->
         <table id="userTable">
@@ -147,9 +183,8 @@
 
     <script> function goBack() { window.history.back();  } </script>
 
-   
-
-    <script>
+    
+    <script> 
 
         let currentPage = 1;
         let rowsPerPage = 5;
@@ -169,7 +204,7 @@
                 row.innerHTML = `
                 ${document.getElementById('header-user_index').style.display !== 'none' ? `<td>${user.user_index}</td>` : ''}
                 ${document.getElementById('header-id').style.display !== 'none' ? `<td>${user.id}</td>` : ''}
-                ${document.getElementById('header-cor_id').style.display !== 'none' ? `<td>${user.cor_id}</td>` : ''}
+                ${document.getElementById('header-cor_id').style.display !== 'none' ? `<td class="cor-id-cell">${user.cor_id}</td>` : ''}
                 ${document.getElementById('header-user_sex').style.display !== 'none' ? `<td>${user.user_sex}</td>` : ''}
                 ${document.getElementById('header-birth').style.display !== 'none' ? `<td>${user.birth}</td>` : ''}
                 ${document.getElementById('header-email').style.display !== 'none' ? `<td>${user.email}</td>` : ''}
@@ -441,43 +476,179 @@ async function getAllUsers(skip = 0, limit = rowsPerPage) {
             getAllUsers(skip, rowsPerPage);
         }
 
+                // Функции для открытия и закрытия модального окна
+            function openModal() {
+                document.getElementById("corIdModal").style.display = "block";
+            }
+
+            function closeCorIdModal() {
+                document.getElementById("corIdModal").style.display = "none";
+            }
+
             // Функция для закрытия модального окна
             function closeModal() {
                 document.getElementById('columnSelectModal').style.display = 'none';
             }
 
+            document.addEventListener('DOMContentLoaded', function () {
+           const tableBody = document.querySelector("#userTable tbody");
+
+                // Пример добавления обработчика события на ячейки с COR-ID
+                tableBody.addEventListener('click', function (event) {
+                    if (event.target && event.target.classList.contains('cor-id-cell')) {
+                        const corId = event.target.textContent;
+                        showCorIdInfo(corId);
+                    }
+                });
+            });
+
+            function showCorIdInfo(corId) {
+            const accessToken = new URLSearchParams(window.location.search).get('access_token');
+            if (!accessToken) {
+                console.error('Токен не найден!');
+                return;
+            }
+
+                fetch("/api/medical/cor_id/show_corid_info", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({ cor_id: corId })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Ошибка на сервере:', response.statusText);
+                        throw new Error("COR-Id не найден");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Отображение данных в модальном окне
+                    document.getElementById("corIdValue").textContent = corId;
+                    const corIdInfo = `
+                        <p>Дней с 1 января 2024: ${data.n_days_since_first_jan_2024}</p>
+                        <p>Номер учреждения: ${data.n_facility}</p>
+                        <p>Номер пациента: ${data.n_patient}</p>
+                        <p>Год рождения: ${data.birth_year}</p>
+                        <p>Пол: ${data.sex}</p>
+                    `;
+                    document.getElementById("corIdInfo").innerHTML = corIdInfo;
+                    openModal();
+                })
+                .catch(error => {
+                    console.error("Ошибка:", error);
+                    alert("Ошибка при загрузке информации о COR-ID");
+                });}
+
             // Функция для переключения отображения колонок
             function toggleColumn(column) {
                 const header = document.getElementById(`header-${column}`);
-                header.style.display = header.style.display === 'none' ? '' : 'none';
+                const isVisible = header.style.display !== 'none';
+                
+                // Переключение видимости колонки
+                header.style.display = isVisible ? 'none' : '';
+                
+                // Сохранение состояния в localStorage
+                const columnState = JSON.parse(localStorage.getItem('columnsState') || '{}');
+                columnState[column] = !isVisible; // Сохраняем новое состояние видимости колонки
+                localStorage.setItem('columnsState', JSON.stringify(columnState));
+                console.log('Записываем состояние в localStorage:', columnState);
+                initializeCheckboxes();
+                // Обновление видимости ячеек на основе нового состояния
                 const cells = document.querySelectorAll(`tbody td:nth-child(${Array.from(header.parentNode.children).indexOf(header) + 1})`);
                 cells.forEach(cell => {
                     cell.style.display = header.style.display;
                 });
-                 loadPage();
+
+                loadPage(); // Загружаем страницу, если нужно
+            }
+                    
+           // Функция для инициализации видимости колонок из localStorage
+            function initializeColumns() {
+                const columnState = JSON.parse(localStorage.getItem('columnsState') || '{}');
+
+                // Применяем состояние для каждой колонки
+                Object.keys(columnState).forEach(column => {
+                    const header = document.getElementById(`header-${column}`);
+                    if (header) {
+                        const isVisible = columnState[column];
+                        header.style.display = isVisible ? '' : 'none'; // Устанавливаем видимость
+
+                        // Обновляем видимость ячеек в таблице
+                        const cells = document.querySelectorAll(`tbody td:nth-child(${Array.from(header.parentNode.children).indexOf(header) + 1})`);
+                        cells.forEach(cell => {
+                            cell.style.display = header.style.display;
+                        });
+                    }
+                });
             }
 
-           // Функция для переключения отображения колонок и обновления таблицы
-           /*
-    function toggleColumn(column, isChecked) {
-        const header = document.getElementById(`header-${column}`);
-        header.style.display = isChecked ? '' : 'none';
-        loadPage(); // Обновить таблицу при изменении состояния чекбокса
-    }
-*/
+  
+function initializeCheckboxes() {
+    const columnState = JSON.parse(localStorage.getItem('columnsState') || '{}');
+    console.log('Состояние колонок из localStorage:', columnState);
 
+    // Пробегаемся по всем чекбоксам и обновляем их состояние
+    const checkboxes = document.querySelectorAll('#columnSelectModal input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        const columnId = checkbox.id.replace('checkbox-', ''); // Извлекаем ID колонки без префикса
+        console.log('ID колонки:', columnId);
+
+        // Проверяем и устанавливаем состояние чекбокса
+        if (columnState[columnId] !== undefined) {
+            checkbox.checked = columnState[columnId];
+            console.log(`Состояние для ${columnId}: ${columnState[columnId]}`);
+        } else {
+            console.log(`Нет состояния для ${columnId}, устанавливаем по умолчанию`);
+        }
+    });
+}
+
+
+        function makeModalDraggable(modalId) {
+            const modal = document.getElementById(modalId);
+            const header = modal.querySelector('.modal-header');
+            let isDragging = false;
+            let offsetX = 0, offsetY = 0;
+
+            header.onmousedown = function(e) {
+                isDragging = true;
+                // Вычисляем начальное смещение курсора относительно модального окна
+                offsetX = e.clientX - modal.offsetLeft;
+                offsetY = e.clientY - modal.offsetTop;
+
+                // Добавляем события перемещения и отпускания мыши
+                document.onmousemove = function(e) {
+                    if (isDragging) {
+                        modal.style.left = `${e.clientX - offsetX}px`;
+                        modal.style.top = `${e.clientY - offsetY}px`;
+                    }
+                };
+
+                document.onmouseup = function() {
+                    isDragging = false;
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                };
+            };
+        }
         // Запуск функции после загрузки страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Страница загружена. Запуск процесса загрузки пользователей...');
+             document.addEventListener('DOMContentLoaded', function() {
+             console.log('Страница загружена. Запуск процесса загрузки пользователей...');
+             initializeColumns();
+             initializeCheckboxes();
+             makeModalDraggable('columnSelectModal');
+             makeModalDraggable('corIdModal');
              // Функция для отображения модального окна
-    document.getElementById('openModalBtn').onclick = function() {
-        document.getElementById('columnSelectModal').style.display = 'block';
-    };
-
-    
-
-            getAllUsers(); // По умолчанию загружаем 10 пользователей, начиная с 0
-        });
+             document.getElementById('openModalBtn').onclick = function() {
+             initializeCheckboxes();
+             document.getElementById('columnSelectModal').style.display = 'block';
+             //document.getElementById('columnSelectModal').addEventListener('show', initializeCheckboxes);
+             };
+              getAllUsers(); // По умолчанию загружаем 5 пользователей, начиная с 0
+             });
     </script>
 </body>
 </html>
