@@ -31,6 +31,7 @@ class UserDb(BaseModel):
     birth: int
     user_index: int
     created_at: datetime
+    last_active: Optional[float] = None
 
     class Config:
         from_attributes = True
