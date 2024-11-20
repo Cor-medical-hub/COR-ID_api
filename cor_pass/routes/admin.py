@@ -10,7 +10,7 @@ from cor_pass.schemas import UserDb
 from cor_pass.repository import person
 from pydantic import EmailStr
 from cor_pass.database.redis_db import redis_client
-
+from datetime import datetime
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
@@ -88,7 +88,7 @@ async def get_all_users(
     # active_time_threshold = time.time() - 600  # 10 минут
     active_users_dict = {}
     for key in redis_client.keys():
-        last_active = float(redis_client.get(key))
+        last_active = redis_client.get(key)
         # if last_active > active_time_threshold:
         if last_active:
             token = key.decode("utf-8")
@@ -268,4 +268,19 @@ async def activate_user(email: EmailStr, db: Session = Depends(get_db)):
         return {"message": f"{user.email} - account is activated"}
 
 
+@router.patch("/kickout/{email}", dependencies=[Depends(admin_access)])
+async def kickout_user(
+    email: EmailStr, db: Session = Depends(get_db)
+):
+    """
+    **Kickout user by email (delete refresh token). / Удаление рефрещ токена пользователя**\n
+
+    """
+    user = await person.get_user_by_email(email, db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    else:
+        new_token = None
+        await person.update_token(user = user, token = new_token, db = db)
+        return {"message": f"{email} - delete refresh token"}
 
