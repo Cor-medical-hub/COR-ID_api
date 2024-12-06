@@ -27,10 +27,11 @@ from cor_pass.routes import (
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger
+from cor_pass.services.auth import auth_service
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from collections import defaultdict
-
+from jose import JWTError, jwt
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="cor_pass/static"), name="static")
@@ -132,9 +133,22 @@ async def add_process_time_header(request: Request, call_next):
 # Middleware для фиксирования активных пользователей
 @app.middleware("http")
 async def track_active_users(request: Request, call_next):
-    user_id = request.headers.get("Authorization")
-    if user_id:
-        redis_client.set(user_id, time.time())
+    user_token = request.headers.get("Authorization")
+    if user_token:
+        token_parts = user_token.split(" ")
+        if len(token_parts) <= 2: 
+            logger.warning(f"Token not valid: {user_token}")
+            try:
+                decoded_token = jwt.decode(
+                    token_parts[1],
+                    options={"verify_signature": False},
+                    key=auth_service.SECRET_KEY,
+                    algorithms=[auth_service.ALGORITHM],
+                )
+                cor_id = decoded_token.get("oid")
+                redis_client.set(cor_id, time.time())
+            except JWTError:
+                pass
     response = await call_next(request)
     return response
 
