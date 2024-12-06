@@ -115,7 +115,7 @@ async def login(
             print(f"IP-адрес {client_ip} заблокирован")
             raise HTTPException(status_code=429, detail="IP-адрес заблокирован")
 
-        if len(auth_attempts[client_ip]) >= 5 and auth_attempts[client_ip][
+        if len(auth_attempts[client_ip]) >= 15 and auth_attempts[client_ip][
             -1
         ] - auth_attempts[client_ip][0] <= timedelta(minutes=15):
 
