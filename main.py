@@ -137,7 +137,6 @@ async def track_active_users(request: Request, call_next):
     if user_token:
         token_parts = user_token.split(" ")
         if len(token_parts) <= 2: 
-            logger.warning(f"Token not valid: {user_token}")
             try:
                 decoded_token = jwt.decode(
                     token_parts[1],
@@ -145,7 +144,7 @@ async def track_active_users(request: Request, call_next):
                     key=auth_service.SECRET_KEY,
                     algorithms=[auth_service.ALGORITHM],
                 )
-                cor_id = decoded_token.get("oid")
+                cor_id = decoded_token.get("corid")
                 redis_client.set(cor_id, time.time())
             except JWTError:
                 pass

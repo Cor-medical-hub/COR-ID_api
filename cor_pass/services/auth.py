@@ -165,7 +165,7 @@ class Auth:
                 raise token_expired_exception
 
             if payload["scp"] == "access_token":
-                cor_id = payload["oid"]
+                cor_id = payload["corid"]
                 if cor_id is None:
                     raise credentials_exception
             else:
