@@ -10,6 +10,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="/static/modal.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Подключаем стили flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Подключаем скрипт flatpickr -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>      
     <title>Admin Page</title>
     <style>
         /* Основные стили для контейнера и таблицы */
@@ -22,14 +26,18 @@
             align-items: center;
             height: 100vh;
         }
+      
         .container {
-            width: 90%;
-            max-width: 850px;
+            width: auto; /* Автоматическая ширина контейнера */
+            min-width: 400px; /* Минимальная ширина, если все столбцы скрыты */
+            max-width: 80%; /* Ограничение по ширине */
             background-color: #fff;
             padding: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
+            overflow-x: auto; /* Добавляет горизонтальную прокрутку, если таблица выходит за пределы контейнера */
         }
+
         h1 {
             font-size: 20px;
             margin-bottom: 10px;
@@ -44,8 +52,10 @@
             border-collapse: collapse;
             font-size: 10px; /* Уменьшенный шрифт */
             margin-top: 8px;
-            table-layout: auto; /* Динамическая ширина колонок */
+          
+           /* table-layout: auto; /* Динамическая ширина колонок */
         }
+
 
         th, td {
             border: 1px solid #ddd;
@@ -56,10 +66,28 @@
 
         thead input[type="text"] {
             width: calc(100% - 8px); /* Поля ввода занимают ширину данных с учётом отступов */
+            max-width: 210px; /* Ограничиваем максимальную ширину */
             box-sizing: border-box; /* Учитываем padding и border */
-            padding: 2px; /* Минимальные отступы для компактности */
+            padding: 4px; /* Минимальные отступы для компактности */
             font-size: 10px; /* Размер текста для компактности */
             margin: 0; /* Убираем внешние отступы */
+        }
+
+
+        /* Для конкретных колонок */
+        #header-user_index,
+        #header-user_sex,
+        #header-account_status, 
+        #header-birth {
+            max-width: 65px; /* Ограничение максимальной ширины */
+        }
+
+        /* Для конкретных полей поиска */
+        thead input[data-column="user_index"],
+        thead input[data-column="user_sex"],
+        thead input[data-column="account_status"],
+        thead input[data-column="birth"] {
+            max-width: 60px; /* Максимальная ширина для компактности */
         }
 
         thead th {
@@ -76,6 +104,22 @@
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
+
+
+
+        .date-range {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .date-range input[type="date"] {
+        width: 150px;
+    }
+
+    .date-range span {
+        margin: 0 5px;
+    }
 
         .delete-icon, .toggle-status-icon  {
             cursor: pointer;
@@ -136,7 +180,7 @@
         <label><input type="checkbox" onchange="toggleColumn('id')" id="checkbox-id" checked >ID</label><br>
         <label><input type="checkbox" onchange="toggleColumn('cor_id')" id="checkbox-cor_id" checked >COR-ID</label><br>
         <label><input type="checkbox" onchange="toggleColumn('user_sex')" id="checkbox-user_sex" checked >Пол</label><br>
-        <label><input type="checkbox" onchange="toggleColumn('birth')" id="checkbox-birth" checked >Год рождения</label><br>
+        <label><input type="checkbox" onchange="toggleColumn('birth')" id="checkbox-birth" checked >Год рож.</label><br>
         <label><input type="checkbox" onchange="toggleColumn('email')" id="checkbox-email" checked >Email</label><br>
         <label><input type="checkbox" onchange="toggleColumn('created_at')" id="checkbox-created_at" checked >Дата регистрации</label><br>
         <label><input type="checkbox" onchange="toggleColumn('last_password_change')" id="checkbox-last_password_change" checked >Последнее изменение пароля</label><br>
@@ -171,6 +215,12 @@
             </div>
         </div>
  
+        <div id="tokenExpiredModal" class="modal" style="display: none;">
+            <h2>Срок действия сессии истёк</h2>
+            <p>Пожалуйста, войдите снова, чтобы продолжить.</p>
+            <button id="loginRedirectButton">Перейти на страницу входа</button>
+        </div>
+
 
 <button id="openModalBtn">Выбрать вывод</button>
         <!-- Таблица для отображения пользователей -->
@@ -181,11 +231,17 @@
                     <th id="header-id">ID<br><input type="text" oninput="filterTable()" data-column="id"></th>
                     <th id="header-cor_id">COR-ID<br><input type="text" oninput="filterTable()" data-column="cor_id"></th>
                     <th id="header-user_sex">Пол<br><input type="text" oninput="filterTable()" data-column="user_sex"></th>
-                    <th id="header-birth">Год рождения<br><input type="text" oninput="filterTable()" data-column="birth"></th>
+                    <th id="header-birth">Год рожд.<br><input type="text" oninput="filterTable()" data-column="birth"></th>
                     <th id="header-email">Email<br><input type="text" oninput="filterTable()" data-column="email"></th>
                     <th id="header-created_at">Дата регистрации<br><input type="text" oninput="filterTable()" data-column="created_at"></th>
-                    <th id="header-last_password_change">Последнее изменение пароля<br><input type="text" oninput="filterTable()" data-column="last_password_change"></th>
-                    <th id="header-last_active">Последняя активность<br><input type="text" oninput="filterTable()" data-column="last_active"></th>
+                    <th id="header-last_password_change">Последнее изм. пароля<br><input type="text" oninput="filterTable()" data-column="last_password_change"></th>
+                 <!--   <th id="header-last_active">Последняя активность<br><input type="text" oninput="filterTable()" data-column="last_active"></th> -->
+                 <th id="header-last_active">
+                    Последняя активность<br>
+                    <div class="date-range">
+                        <input type="text" id="dateRangeActive" onchange="filterByDateRange()" placeholder="Выберите диапазон дат">
+                    </div>
+                </th> 
                     <th id="header-account_status">Статус аккаунта<br><input type="text" oninput="filterTable()" data-column="account_status"></th>
                     <th>Действия</th>
                    
@@ -239,7 +295,7 @@
                 ? (timeDiff >= 1 
                     ? `${Math.floor(timeDiff)} ч ${Math.floor((timeDiff % 1) * 60)} мин назад` // Часы и минуты
                     : `${Math.floor(timeDiff * 60)} минут назад`) // Только минуты
-                : 'Неактивен';
+                    : 'Неактивен';
 
                 let activityColor = 'gray'; // По умолчанию - серый
 
@@ -283,6 +339,10 @@
 
                 tbody.appendChild(row);
             });
+
+             // Подгонка размеров после заполнения
+            adjustContainerWidth();
+          //  adjustColumnWidths();
         }
 
         
@@ -320,6 +380,8 @@ async function getAllUsers(skip = 0, limit = rowsPerPage) {
         if (users.length > 0) {
             console.log('Полученные пользователи:', users); // Логируем массив пользователей
             populateTable(users); // Передаём массив пользователей
+            adjustContainerWidth(); // Убедитесь, что размеры обновлены
+           // adjustColumnWidths();
             return users; // Данные успешно получены
         } else {
             console.log('Пользователи отсутствуют.');
@@ -604,12 +666,12 @@ async function filterTable() {
                     return response.json();
                 })
                 .then(data => {
-                    // Преобразуем количество дней в дату
+                    // Преобразование дней в дату
                     const baseDate = new Date(2024, 0, 1); // 1 января 2024 года
                     const registrationDate = new Date(baseDate);
-                    registrationDate.setDate(baseDate.getDate() + data.n_days_since_first_jan_2024);
+                    registrationDate.setDate(baseDate.getDate() + data.n_days_since);
 
-                    // Форматируем дату для отображения
+                    // Форматирование даты
                     const options = { year: 'numeric', month: 'long', day: 'numeric' };
                     const formattedDate = registrationDate.toLocaleDateString('ru-RU', options);
 
@@ -617,23 +679,25 @@ async function filterTable() {
                     document.getElementById("corIdValue").textContent = corId;
                     const corIdInfo = `
                         <p>Дата регистрации: ${formattedDate}</p>
-                     
-                        <p>Номер учреждения: ${data.n_facility}</p>
-                        <p>Номер пациента: ${data.n_patient}</p>
+                        <p>Номер учреждения: ${data.facility_number}</p>
+                        <p>Регистрационный номер пациента за день: ${data.register_per_day}</p>
                         <p>Год рождения: ${data.birth_year}</p>
-                        <p>Пол: ${data.sex}</p>
+                        <p>Пол: ${data.gender}</p>
+                        <p>Версия: ${data.version}</p>
                     `;
                     document.getElementById("corIdInfo").innerHTML = corIdInfo;
                     openModal();
 
-                    // Генерация QR-кода только после открытия модального окна    
+                    // Генерация QR-кода только после открытия модального окна
                     generateQrCodeFromText(corId); // Генерация QR-кода
                 })
                 .catch(error => {
                     console.error("Ошибка:", error);
                     alert("Ошибка при загрузке информации о COR-ID");
-                });}
+                });
+            }
 
+ 
             // Функция для переключения отображения колонок
             function toggleColumn(column) {
                 const header = document.getElementById(`header-${column}`);
@@ -655,6 +719,10 @@ async function filterTable() {
                 });
 
                 loadPage(); // Загружаем страницу, если нужно
+
+                // Подгонка размеров
+                adjustContainerWidth();
+              //  adjustColumnWidths();
             }
                     
            // Функция для инициализации видимости колонок из localStorage
@@ -678,25 +746,25 @@ async function filterTable() {
             }
 
   
-function initializeCheckboxes() {
-    const columnState = JSON.parse(localStorage.getItem('columnsState') || '{}');
-    console.log('Состояние колонок из localStorage:', columnState);
+                function initializeCheckboxes() {
+                    const columnState = JSON.parse(localStorage.getItem('columnsState') || '{}');
+                    console.log('Состояние колонок из localStorage:', columnState);
 
-    // Пробегаемся по всем чекбоксам и обновляем их состояние
-    const checkboxes = document.querySelectorAll('#columnSelectModal input[type="checkbox"]');
-    checkboxes.forEach(checkbox => {
-        const columnId = checkbox.id.replace('checkbox-', ''); // Извлекаем ID колонки без префикса
-        console.log('ID колонки:', columnId);
+                    // Пробегаемся по всем чекбоксам и обновляем их состояние
+                    const checkboxes = document.querySelectorAll('#columnSelectModal input[type="checkbox"]');
+                    checkboxes.forEach(checkbox => {
+                        const columnId = checkbox.id.replace('checkbox-', ''); // Извлекаем ID колонки без префикса
+                        console.log('ID колонки:', columnId);
 
-        // Проверяем и устанавливаем состояние чекбокса
-        if (columnState[columnId] !== undefined) {
-            checkbox.checked = columnState[columnId];
-            console.log(`Состояние для ${columnId}: ${columnState[columnId]}`);
-        } else {
-            console.log(`Нет состояния для ${columnId}, устанавливаем по умолчанию`);
-        }
-    });
-}
+                        // Проверяем и устанавливаем состояние чекбокса
+                        if (columnState[columnId] !== undefined) {
+                            checkbox.checked = columnState[columnId];
+                            console.log(`Состояние для ${columnId}: ${columnState[columnId]}`);
+                        } else {
+                            console.log(`Нет состояния для ${columnId}, устанавливаем по умолчанию`);
+                        }
+                    });
+                }
 
        
                 function generateQrCodeFromText(corId) {
@@ -714,22 +782,191 @@ function initializeCheckboxes() {
                         height: 200
                     });
                 }
+
+                function adjustContainerWidth() {
+                const table = document.querySelector('table');
+                const container = document.querySelector('.container');
+                if (table && container) {
+                    container.style.minWidth = `${table.offsetWidth}px`;
+                }
+            }
+
+            function adjustColumnWidths() {
+                const columnsToAdjust = ["user_index", "user_sex", "birth"];
+                columnsToAdjust.forEach(column => {
+                    const header = document.getElementById(`header-${column}`);
+                    if (header) {
+                        const cells = Array.from(document.querySelectorAll(`tbody td:nth-child(${Array.from(header.parentNode.children).indexOf(header) + 1})`));
+                        const maxWidth = Math.max(
+                            header.offsetWidth,
+                            ...cells.map(cell => cell.scrollWidth)
+                        );
+
+                        header.style.width = `${maxWidth}px`; // Подгоняем ширину заголовка
+                        header.style.maxWidth = `${maxWidth}px`; // Ограничиваем максимальную ширину
+                        cells.forEach(cell => {
+                            cell.style.width = `${maxWidth}px`; // Применяем к ячейкам
+                            cell.style.maxWidth = `${maxWidth}px`; // Применяем ограничение
+                        });
+                    }
+                });
+            }
+
+
+            function decodeToken(token) {
+                try {
+                    const payloadBase64 = token.split('.')[1]; // Вторая часть JWT — это payload
+                    const payload = atob(payloadBase64); // Декодируем из base64
+                    return JSON.parse(payload); // Преобразуем JSON-строку в объект
+                } catch (error) {
+                    console.error("Ошибка декодирования токена:", error);
+                    return null;
+                }
+            }
+
+            function isTokenExpired(token) {
+                const payload = decodeToken(token);
+                if (payload && payload.exp) {
+                    const currentTime = Math.floor(Date.now() / 1000); // Текущее время в секундах
+                    return currentTime > payload.exp; // Сравниваем с временем истечения
+                }
+                return true; // Если нет exp или ошибка, считаем токен истёкшим
+            }
+
+
+            function showTokenExpiredModal() {
+                const modal = document.getElementById('tokenExpiredModal');
+                modal.style.display = 'block';
+            }
+
+            // Инициализация для выбора диапазона дат (календарик)
+                document.addEventListener('DOMContentLoaded', () => {
+                    const dateInputs = document.querySelectorAll('input[id*="Range"]');
+                    dateInputs.forEach(input => {
+                        input.addEventListener('focus', () => {
+                            // Открытие календаря, чтобы пользователь мог выбрать диапазон дат
+                            const datePicker = new flatpickr(input, {
+                                mode: "range", 
+                                dateFormat: "Y-m-d",
+                                onClose: function(selectedDates) {
+                                    // После выбора диапазона дат отображаем его в поле ввода
+                                    if (selectedDates.length === 2) {
+                                        input.value = `${selectedDates[0].toLocaleDateString()} - ${selectedDates[1].toLocaleDateString()}`;
+                                    }
+                                }
+                            });
+                        });
+                    });
+                });
+
+
         // Запуск функции после загрузки страницы
              document.addEventListener('DOMContentLoaded', function() {
              console.log('Страница загружена. Запуск процесса загрузки пользователей...');
              initializeColumns();
              initializeCheckboxes();
+             adjustContainerWidth(); // Установить начальную ширину контейнера
+          //   adjustColumnWidths();
              makeModalDraggable('columnSelectModal');
              makeModalDraggable('corIdModal');
          
+
+             const accessToken = new URLSearchParams(window.location.search).get('access_token');
+
+            if (!accessToken || isTokenExpired(accessToken)) {
+                showTokenExpiredModal();
+
+            }
+
+
+            const originalFetch = window.fetch;
+            window.fetch = async function (...args) {
+                // Печатаем аргументы вызова fetch для отладки
+                console.log("Fetch arguments:", args);
+
+                // Проверяем наличие токена в заголовках
+                const requestOptions = args[1] || {};
+                const headers = requestOptions.headers || {};
+
+                if (headers.Authorization) {
+                    const token = headers.Authorization.replace("Bearer ", ""); // Убираем "Bearer"
+                    console.log("Extracted token:", token);
+
+                    // Парсим токен и выводим его в консоль
+                    const decodedToken = decodeToken(token);
+                    if (decodedToken) {
+                        console.log("Decoded token:", decodedToken);
+
+                        // Вычисляем оставшееся время жизни токена
+                        const remainingTime = calculateTokenLifetime(decodedToken);
+                        if (remainingTime !== null) {
+                            console.log(`Оставшееся время жизни токена: ${remainingTime} секунд`);
+                            console.log(`Форматированное время: ${formatTime(remainingTime)}`);
+                        }
+                    } else {
+                        console.error("Failed to decode token.");
+                    }
+                } else {
+                    console.warn("Authorization header is missing.");
+                }
+
+                // Выполняем оригинальный запрос
+                const response = await originalFetch(...args);
+
+                // Обрабатываем ошибки 401
+                if (response.status === 401) { // Неавторизован
+                    console.warn("Unauthorized: Token might be expired.");
+                    showTokenExpiredModal();
+                }
+
+                return response;
+            };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Функция вычисления оставшегося времени жизни токена
+function calculateTokenLifetime(decodedToken) {
+    if (!decodedToken.exp) {
+        console.warn("Token does not have an 'exp' field.");
+        return null;
+    }
+
+    const currentTime = Math.floor(Date.now() / 1000); // Текущее время в секундах
+    const remainingTime = decodedToken.exp - currentTime;
+
+    if (remainingTime <= 0) {
+        console.warn("Token has already expired.");
+        return 0;
+    }
+
+    return remainingTime; // В секундах
+}
+
+// Функция форматирования времени
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    return `${hours}ч ${minutes}м ${secs}с`;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            document.getElementById('loginRedirectButton').addEventListener('click', function () {
+                window.location.href = '/login.html';});
+
              // Функция для отображения модального окна
              document.getElementById('openModalBtn').onclick = function() {
              initializeCheckboxes();
              document.getElementById('columnSelectModal').style.display = 'block';
             
              };
-              getAllUsers(); // По умолчанию загружаем 5 пользователей, начиная с 0
+             window.addEventListener('resize', adjustContainerWidth); // Подгонка ширины при изменении размеров окна
+           //   window.addEventListener('resize', adjustColumnWidths); // Перепроверка при изменении размера окна
+              getAllUsers(); // По умолчанию загружаем 5 пользователей, начиная с 0            
+              
              });
+           
+
     </script>
 </body>
 </html>
