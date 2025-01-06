@@ -214,12 +214,22 @@
                 <button class="modal-button" onclick="closeCorIdModal()">Закрыть</button>
             </div>
         </div>
- 
-        <div id="tokenExpiredModal" class="modal" style="display: none;">
-            <h2>Срок действия сессии истёк</h2>
-            <p>Пожалуйста, войдите снова, чтобы продолжить.</p>
-            <button id="loginRedirectButton">Перейти на страницу входа</button>
+
+   <!-- Модальное окно Срок действия сессии истёк -->
+<div id="tokenExpiredModal" class="modal" style="display: none;">
+    <div class="modal-header">
+        <h1>Срок действия сессии истёк</h1>
+        <div class="modal-buttons">
+            <button class="modal-button close" id="closeTokenExpiredModal">✖</button>
         </div>
+    </div>
+    <div class="modal-content">
+        <p>Пожалуйста, войдите снова, чтобы продолжить.</p>
+    </div>
+    <div class="modal-footer">
+        <button id="loginRedirectButton" class="modal-button">Перейти на страницу входа</button>
+    </div>
+</div>
 
 
 <button id="openModalBtn">Выбрать вывод</button>
