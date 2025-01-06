@@ -42,9 +42,9 @@ async def get_all_users(
 
     users_list_with_activity = []
     for user in list_users:
-        cor_id = user.cor_id
-        if redis_client.exists(cor_id):
-            users_last_activity = redis_client.get(cor_id)
+        oid = user.id
+        if redis_client.exists(oid):
+            users_last_activity = redis_client.get(oid)
             user_response = UserDb(
                 id=user.id,
                 cor_id=user.cor_id,
