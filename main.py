@@ -39,6 +39,7 @@ app.mount("/static", StaticFiles(directory="cor_pass/static"), name="static")
 
 origins = settings.allowed_redirect_urls
 
+
 @app.get("/metrics")
 async def metrics():
     return Response(generate_latest(), media_type="text/plain")
@@ -130,7 +131,7 @@ async def track_active_users(request: Request, call_next):
     user_token = request.headers.get("Authorization")
     if user_token:
         token_parts = user_token.split(" ")
-        if len(token_parts) >= 2: 
+        if len(token_parts) >= 2:
             try:
                 decoded_token = jwt.decode(
                     token_parts[1],
