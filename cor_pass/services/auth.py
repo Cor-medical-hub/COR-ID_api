@@ -56,7 +56,9 @@ class Auth:
         if expires_delta:
             expire = datetime.now(timezone.utc) + timedelta(hours=expires_delta)
         else:
-            expire = datetime.now(timezone.utc) + timedelta(seconds=settings.access_token_expiration)
+            expire = datetime.now(timezone.utc) + timedelta(
+                seconds=settings.access_token_expiration
+            )
         to_encode.update(
             {"iat": datetime.now(timezone.utc), "exp": expire, "scp": "access_token"}
         )
@@ -85,7 +87,9 @@ class Auth:
         if expires_delta:
             expire = datetime.now(timezone.utc) + timedelta(hours=expires_delta)
         else:
-            expire = datetime.now(timezone.utc) + timedelta(hours=settings.refresh_token_expiration)
+            expire = datetime.now(timezone.utc) + timedelta(
+                hours=settings.refresh_token_expiration
+            )
         to_encode.update(
             {"iat": datetime.now(timezone.utc), "exp": expire, "scp": "refresh_token"}
         )
