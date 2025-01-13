@@ -58,16 +58,16 @@ except Exception as e:
 try:
     logger.debug(f"Starting FirstSession")
     FirstSession = sessionmaker(first_engine, class_=AsyncSession, expire_on_commit=False)
-    logger.debug(f"Starting {FirstSession} success")
+    logger.debug(f"Starting FirstSession success")
 except Exception as e:
-    logger.debug(f"Ошибка создания сессии 1 {FirstSession}  - {e}")
+    logger.debug(f"Ошибка создания сессии 1 FirstSession  - {e}")
 
 try:
     logger.debug(f"Starting SecondSession")
     SecondSession = sessionmaker(second_engine, class_=AsyncSession, expire_on_commit=False)
-    logger.debug(f"Starting {SecondSession} success")
+    logger.debug(f"Starting SecondSession success")
 except Exception as e:
-    logger.debug(f"Ошибка создания сессии 2 {SecondSession}  - {e}")
+    logger.debug(f"Ошибка создания сессии 2 SecondSession  - {e}")
 
 
 
