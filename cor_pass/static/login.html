@@ -492,7 +492,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         if (savedRedirectUrl_rcv) {
                             // Перенаправляем на savedRedirectUrl с access_token и cor_id
-                            window.location.href = `${savedRedirectUrl_rcv}?access_token=${accessToken_rcv}&refresh_token=${refreshToken_rcv}`;
+                            // window.location.href = `${savedRedirectUrl_rcv}?access_token=${accessToken_rcv}&refresh_token=${refreshToken_rcv}`;
+                            window.location.href = `${savedRedirectUrl_rcv}?access_token=${accessToken}&refresh_token=${refreshToken}`;
                         } else {
                            console.log(" Не найдены параметры redirect_url или cor_id.");
 
