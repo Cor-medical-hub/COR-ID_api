@@ -1,4 +1,4 @@
-version: '3'
+name: prod-cor-id_v2
 
 services:
   fastapi:
@@ -7,14 +7,20 @@ services:
       dockerfile: Dockerfile
     image: massivecapybara/corid_api:latest
     ports:
-      - "8000:8000"
+      - "8001:8000"
     # volumes:
     #   - .:/app
     depends_on:
       - prometheus
       - postgres  
     env_file:
-      - development.env
+#      - development.env
+#      - dev-cor-identity.env
+      - prod-corid.cor-medical.ua.env
+#    links:
+#      - postgres
+#    networks:
+#      - backend
 
   redis:
     image: redis:alpine
@@ -25,11 +31,15 @@ services:
   postgres:
     image: postgres:latest
     env_file:
-      - development.env
+#      - development.env
+#      - dev-cor-identity.env
+      - prod-corid.cor-medical.ua.env
     ports:
       - "54322:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data  
+#    networks:
+#      - backend
 
   prometheus:
     image: prom/prometheus:latest
@@ -72,3 +82,6 @@ volumes:
   grafana-storage:
   loki-data:
   compactor-data:
+
+#networks:
+#  backend: {}
