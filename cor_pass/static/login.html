@@ -207,15 +207,11 @@
         document.getElementById('send-recovery-btn').style.display = 'block';
     }
 
-
-
-
-
-    document.getElementById('custom-file-upload-btn').addEventListener('click', function () {
-    document.getElementById('recovery-file').click(); // Открыть окно выбора файла
+        document.getElementById('custom-file-upload-btn').addEventListener('click', function () {
+        document.getElementById('recovery-file').click(); // Открыть окно выбора файла
 });
 
-document.getElementById('recovery-file').addEventListener('change', function () {
+    document.getElementById('recovery-file').addEventListener('change', function () {
     const fileName = this.files[0] ? this.files[0].name : translations[selectedLanguage]["recovery-modal-no-file"];
     document.getElementById('file-name').textContent = fileName;
 });
@@ -489,16 +485,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(() => {
                             const refreshToken = response.refresh_token;
                             const accessToken = response.access_token;
-                            
+
+                            const accessToken_rcv = new URLSearchParams(window.location.search).get('access_token');
+                            const refreshToken_rcv = new URLSearchParams(window.location.search).get('refresh_token');
+                            const savedRedirectUrl_rcv = localStorage.getItem('redirectUrl');
+
+                        if (savedRedirectUrl_rcv) {
+                            // Перенаправляем на savedRedirectUrl с access_token и cor_id
+                            window.location.href = `${savedRedirectUrl_rcv}?access_token=${accessToken_rcv}&refresh_token=${refreshToken_rcv}`;
+                        } else {
+                           console.log(" Не найдены параметры redirect_url или cor_id.");
 
                             urlParams.set('access_token', accessToken);
                             urlParams.set('refresh_token', refreshToken);
-
                             const queryString = urlParams.toString();
                             // const url = `${redirectUrl}/?access_token=${accessToken}&refresh_token=${refreshToken}`;
                             const url = `/static/mainscreen.html/?access_token=${accessToken}&refresh_token=${refreshToken}`;
-
                             window.location.href = url;
+                              }
+
                         }, 500);
 
                     } else {

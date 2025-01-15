@@ -13,7 +13,6 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base
 from redis import Redis
-import time
 
 
 
@@ -32,23 +31,23 @@ redis_client = Redis(
 # Настройки подключения к первой и второй базам
 
 
-FIRST_DB_URL = "cor-identity db url"
-SECOND_DB_URL = "cor-id db url"
+FIRST_DB_URL = "FIRST_DB_URL"
+SECOND_DB_URL = "SECOND_DB_URL"
 
 
 try:
-    logger.debug(f"Connection to FIRST_DB_URL")
+    logger.debug(f"Connection to {FIRST_DB_URL}")
     first_engine = create_async_engine(FIRST_DB_URL, future=True, echo=True)
-    logger.debug(f"Connection to FIRST_DB_URL success")
+    logger.debug(f"Connection to {FIRST_DB_URL} success")
 except Exception as e:
-    logger.debug(f"Ошибка подключения к FIRST_DB_URL- {e}")
+    logger.debug(f"Ошибка подключения к {FIRST_DB_URL}- {e}")
 
 try:
-    logger.debug(f"Connection to SECOND_DB_URL")
+    logger.debug(f"Connection to {SECOND_DB_URL}")
     second_engine = create_async_engine(SECOND_DB_URL, future=True, echo=True)
-    logger.debug(f"Connection to SECOND_DB_URL success")
+    logger.debug(f"Connection to {SECOND_DB_URL} success")
 except Exception as e:
-    logger.debug(f"Ошибка подключения к SECOND_DB_URL  - {e}")
+    logger.debug(f"Ошибка подключения к {SECOND_DB_URL}  - {e}")
 
 
 # FirstSession = sessionmaker(first_engine, class_=AsyncSession, expire_on_commit=False)
@@ -58,16 +57,16 @@ except Exception as e:
 try:
     logger.debug(f"Starting FirstSession")
     FirstSession = sessionmaker(first_engine, class_=AsyncSession, expire_on_commit=False)
-    logger.debug(f"Starting FirstSession success")
+    logger.debug(f"Starting {FirstSession} success")
 except Exception as e:
-    logger.debug(f"Ошибка создания сессии 1 FirstSession  - {e}")
+    logger.debug(f"Ошибка создания сессии 1 {FirstSession}  - {e}")
 
 try:
     logger.debug(f"Starting SecondSession")
     SecondSession = sessionmaker(second_engine, class_=AsyncSession, expire_on_commit=False)
-    logger.debug(f"Starting SecondSession success")
+    logger.debug(f"Starting {SecondSession} success")
 except Exception as e:
-    logger.debug(f"Ошибка создания сессии 2 SecondSession  - {e}")
+    logger.debug(f"Ошибка создания сессии 2 {SecondSession}  - {e}")
 
 
 
@@ -173,11 +172,9 @@ from cor_pass.database.models import User as SecondUser
 from cor_pass.database.models import Base, User, Verification, Record, Tag, RecordTag, UserSettings, OTP  
 
 
-
-
-# Создание всех таблиц в базе данных
 async def setup_database(engine):
     async with engine.begin() as conn:
+        # Создание всех таблиц в базе данных
         await conn.run_sync(Base.metadata.create_all)
 
 
@@ -202,10 +199,10 @@ async def migrate_users():
 
                 # создаем код восстановления
                 recovery_code = await generate_recovery_code()
-                time.sleep(10)
-                await send_email_code_with_qr(
-                        user.email, host=None, recovery_code=recovery_code)
-                time.sleep(10)
+                # time.sleep(10)
+                # await send_email_code_with_qr(
+                #         user.email, host=None, recovery_code=recovery_code)
+                # time.sleep(10)
                 encrypted_recovery_code = await encrypt_data(
                     data=recovery_code, key=unique_cipher_key
                 )
