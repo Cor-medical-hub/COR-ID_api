@@ -179,14 +179,19 @@ async def refresh_token(
     """
     token = credentials.credentials
     id = await auth_service.decode_refresh_token(token)
-    user = await repository_person.get_user_by_uuid(id, db)
-    # cor_id = await auth_service.decode_refresh_token(token)
-    # user = await repository_person.get_user_by_corid(cor_id, db)
-    if user.refresh_token != token:
-        await repository_person.update_token(user, None, db)
+    if not id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
+    user = await repository_person.get_user_by_uuid(id, db)
+    # cor_id = await auth_service.decode_refresh_token(token)
+    # user = await repository_person.get_user_by_corid(cor_id, db)
+    
+    # if user.refresh_token != token:
+    #     await repository_person.update_token(user, None, db)
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+    #     )
 
     if user.email in settings.eternal_accounts:
         access_token = await auth_service.create_access_token(
