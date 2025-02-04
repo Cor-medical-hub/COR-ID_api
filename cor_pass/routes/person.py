@@ -192,23 +192,23 @@ async def add_backup_email(
             )
 
 
-@router.patch("/change_password")
-async def change_password(body: ChangePasswordModel, db: Session = Depends(get_db)):
+@router.patch("/change_password", dependencies=[Depends(user_access)])
+async def change_password(body: ChangePasswordModel, user: User = Depends(auth_service.get_current_user), db: Session = Depends(get_db)):
     """
     **Смена пароля** \n
 
     """
 
-    user = await person.get_user_by_email(body.email, db)
+    # user = await person.get_user_by_email(body.email, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     else:
         if body.password:
-            await person.change_user_password(body.email, body.password, db)
-            logger.debug(f"{body.email} - changed his password")
-            return {"message": f"User '{body.email}' changed his password"}
+            await person.change_user_password(user.email, body.password, db)
+            logger.debug(f"{user.email} - changed his password")
+            return {"message": f"User '{user.email}' changed his password"}
         else:
             print("Incorrect password input")
             raise HTTPException(
