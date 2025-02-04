@@ -17,6 +17,7 @@ from cor_pass.schemas import (
     EmailSchema,
     ChangePasswordModel,
     ResponseCorIdModel,
+    ChangeMyPasswordModel
 )
 from cor_pass.repository import person
 from cor_pass.repository import cor_id as repository_cor_id
@@ -192,23 +193,45 @@ async def add_backup_email(
             )
 
 
-@router.patch("/change_password")
-async def change_password(body: ChangePasswordModel, db: Session = Depends(get_db)):
+@router.patch("/change_password", dependencies=[Depends(user_access)])
+async def change_password(body: ChangePasswordModel, user: User = Depends(auth_service.get_current_user), db: Session = Depends(get_db)):
     """
-    **Смена пароля** \n
+    **Смена пароля в сценарии "Забыли пароль"** \n
 
     """
 
-    user = await person.get_user_by_email(body.email, db)
+    # user = await person.get_user_by_email(body.email, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     else:
         if body.password:
-            await person.change_user_password(body.email, body.password, db)
-            logger.debug(f"{body.email} - changed his password")
-            return {"message": f"User '{body.email}' changed his password"}
+            await person.change_user_password(user.email, body.password, db)
+            logger.debug(f"{user.email} - changed his password")
+            return {"message": f"User '{user.email}' changed his password"}
+        else:
+            print("Incorrect password input")
+            raise HTTPException(
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                detail="Incorrect password input",
+            )
+        
+@router.patch("/change_my_password", dependencies=[Depends(user_access)])
+async def change_my_password(body: ChangeMyPasswordModel, user: User = Depends(auth_service.get_current_user), db: Session = Depends(get_db)):
+    """
+    **Смена пароля в сценарии "Изменить свой пароль"** \n
+    """
+
+    if not auth_service.verify_password(body.old_password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid old password"
+        )
+    else:
+        if body.new_password:
+            await person.change_user_password(user.email, body.new_password, db)
+            logger.debug(f"{user.email} - changed his password")
+            return {"message": f"User '{user.email}' changed his password"}
         else:
             print("Incorrect password input")
             raise HTTPException(
