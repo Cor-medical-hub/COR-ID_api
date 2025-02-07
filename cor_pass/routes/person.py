@@ -257,13 +257,34 @@ async def get_recovery_code(
     return {"users recovery code": recovery_code}
 
 
+# @router.get("/get_recovery_qr_code")
+# async def get_recovery_qr_code(
+#     user: User = Depends(auth_service.get_current_user),
+#     db: Session = Depends(get_db),
+# ):
+#     """
+#     **Получения QR с кодом восстановления авторизированного пользователя**\n
+#     Level of Access:
+#     - Current authorized user
+#     """
+
+#     recovery_code = await decrypt_data(
+#         encrypted_data=user.recovery_code,
+#         key=await decrypt_user_key(user.unique_cipher_key),
+#     )
+#     recovery_qr_bytes = generate_qr_code(recovery_code)
+#     recovery_qr = BytesIO(recovery_qr_bytes)
+#     return StreamingResponse(recovery_qr, media_type="image/png")
+
+import base64
+from fastapi.responses import JSONResponse
 @router.get("/get_recovery_qr_code")
 async def get_recovery_qr_code(
     user: User = Depends(auth_service.get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    **Получения QR с кодом восстановления авторизированного пользователя**\n
+    **Получение QR с кодом восстановления авторизированного пользователя**\n
     Level of Access:
     - Current authorized user
     """
@@ -273,8 +294,12 @@ async def get_recovery_qr_code(
         key=await decrypt_user_key(user.unique_cipher_key),
     )
     recovery_qr_bytes = generate_qr_code(recovery_code)
-    recovery_qr = BytesIO(recovery_qr_bytes)
-    return StreamingResponse(recovery_qr, media_type="image/png")
+
+    # Конвертация QR-кода в Base64
+    encoded_qr = base64.b64encode(recovery_qr_bytes).decode('utf-8')
+    qr_code_data_url = f"data:image/png;base64,{encoded_qr}"
+
+    return JSONResponse(content={"qr_code_url": qr_code_data_url})
 
 
 @router.get("/get_recovery_file")
