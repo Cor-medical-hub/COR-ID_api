@@ -62,6 +62,7 @@
             .modal {
                 display: none;
                 position: fixed;
+                
                 z-index: 1;
                 left: 0;
                 top: 0;
@@ -81,7 +82,7 @@
                 padding: 20px;
                 border: 1px solid #888;
                 width: 30%;
-                border-radius: 5px;
+                border-radius: 30px;
             }
 
             .close-btn {
@@ -109,6 +110,7 @@
 <div class="container">
     
     <script src="static/translation.js"></script>
+    <script src="static/general_fun.js"></script>
 
     <div class="logo">
    
@@ -141,19 +143,28 @@
             <rect width="140.091" height="46" fill="white" transform="translate(0.95459)"/>
             </clipPath>
             </defs>
-            </svg>
+            </svg> <br>
             
 
 
     </div>    
-    <h1 data-translate="title"  style=" color:#291161;font-size: 24px; ">Authorization and Registration</h1>
+    <h1 data-translate="title">Authorization and Registration</h1>
     <form id="login-form">
-        <label for="email" data-translate="email-label">Email:</label>
+        <label for="email" data-translate="email-label"   style=" color:#7f69bd;font-size:14px;">Email:</label>
         <input type="email" id="email" name="username" required>
-        <label for="password" data-translate="password-label">Password:</label>
-        <input type="password" id="password" name="password" required>
-        <button onclick="window.location.href='/static/forgot-password.html' + '?redirectUrl=' + redirectUrl;"style="text-align: left; display: block;  font-size: 12px;  margin: 0px;"  class="link-button"><span data-translate="forgot-password-button">Forgot password?</span>
+    
+        <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Password:</label>
+        <div class="password-container">
+            <input type="password" id="password" name="password" data-translate="password_placeholder" required>
+            <span id="eyeIcon" class="eye-icon" onclick="togglePassword('password', 'eyeIcon')"></span>
+        </div>
+    
+        <button onclick="window.location.href='/static/forgot-password.html' + '?redirectUrl=' + redirectUrl;" 
+            style="text-align: left; display: block; font-size: 12px; margin: 0px;"  
+            class="link-button">
+            <span data-translate="forgot-password-button">Forgot password?</span>
         </button>
+        
         <button type="submit" data-translate="login-button">Login</button>
     </form>
     <div id="message"></div>
@@ -191,7 +202,7 @@
 <div id="recovery-modal" class="modal">
     <div class="modal-content">
         <span class="close-btn" id="close-modal">&times;</span>
-        <h2 data-translate="recovery-modal-title">Восстановление доступа</h2>
+        <h1 data-translate="recovery-modal-title">Восстановление доступа</h1>
         <p data-translate="recovery-modal-select-method">Выберите способ восстановления:</p>
         <button id="super-password-btn" data-translate="recovery-modal-super-password-btn">Ввести супер-пароль</button><br>
         <button id="file-upload-btn" data-translate="recovery-modal-file-upload-btn">Прикрепить файл восстановления</button>
@@ -215,6 +226,7 @@
         <button id="send-recovery-btn" data-translate="recovery-modal-send-btn">Отправить</button>
     </div>
 </div>
+
 
 <script>
     // Открытие модального окна
@@ -253,7 +265,8 @@
 
         document.getElementById('custom-file-upload-btn').addEventListener('click', function () {
         document.getElementById('recovery-file').click(); // Открыть окно выбора файла
-});
+         });
+
 
     document.getElementById('recovery-file').addEventListener('change', function () {
     const fileName = this.files[0] ? this.files[0].name : translations[selectedLanguage]["recovery-modal-no-file"];
@@ -400,6 +413,13 @@ document.addEventListener('DOMContentLoaded', function() {
      const langSelect = document.getElementById('lang-select');
     langSelect.value = defaultLang;
 
+    const eyeIcon = document.getElementById('eyeIcon');
+    updateEyeIcon(eyeIcon, false); // false = закрытый глаз
+    const modal = document.querySelector('.modal');
+    if (modal) {
+        modal.addEventListener('show', () => setLanguage(savedLanguage));
+    }
+
         // Инициализация Select2 для выпадающего списка языка
         $('#lang-select').select2({
             templateResult: formatState,
@@ -411,6 +431,25 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('DOMContentLoaded', function() {
         const GoogleBtn = document.getElementById('google-btn');
         const FaceBookBtn = document.getElementById('facebook-btn');
+
+        const emailField = document.getElementById('email');
+        const passwordField = document.getElementById('password');
+        const loginButton = document.querySelector('button[type="submit"]');
+
+        function checkFormValidity() {
+                if (emailField.value && passwordField.value) {
+                    loginButton.disabled = false;
+                    loginButton.classList.add('active'); // активируем стиль
+                } else {
+                    loginButton.disabled = true;
+                    loginButton.classList.remove('active'); // убираем активный стиль
+                }
+            }
+
+            emailField.addEventListener('input', checkFormValidity);
+            passwordField.addEventListener('input', checkFormValidity);
+
+            checkFormValidity(); 
         
         console.log('DOM fully loaded and parsed');
         
@@ -471,6 +510,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Получаем значения redirect_url и cor-id
             const redirectUrl = searchParams.get('redirectUrl'); // Указываем ключ 'redirectUrl'
             const corId = searchParams.get('corId'); // Указываем ключ 'cor_id'
+
+
 
             // Сохраняем их в localStorage
             if (redirectUrl) {
