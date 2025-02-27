@@ -275,15 +275,19 @@ async def confirm_email(body: VerificationModel, db: Session = Depends(get_db)):
         confirmation = True
         logger.debug(f"Your {body.email} is confirmed")
         return {
-            "message": "Your email is confirmed",  # Сообщение для JS о том что имейл подтвержден
+            "message": "Your email is confirmed",
+            "detail": "Confirmation sucess",  # Сообщение для JS о том что имейл подтвержден
             "confirmation": confirmation,
             "access_token" : access_token
+            
         }
     if ver_code:
         confirmation = True
         logger.debug(f"Your {body.email} is confirmed")
+        status.HTTP_200_OK
         return {
-            "message": "Your email is confirmed",  # Сообщение для JS о том что имейл подтвержден
+            "message": "Your email is confirmed",
+            "detail": "Confirmation sucess",  # Сообщение для JS о том что имейл подтвержден
             "confirmation": confirmation,
         }
     else:
