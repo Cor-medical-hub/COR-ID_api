@@ -74,6 +74,22 @@ input[type="text"] {
     user-select: none;
     }
 
+/* Основной цвет placeholder */
+::placeholder {
+    color: #B1A1DA; /* Фиолетовый оттенок */
+    opacity: 1; /* Убирает полупрозрачность */
+}
+
+/* Для браузеров, использующих `:-ms-input-placeholder` */
+:-ms-input-placeholder {
+    color: #B1A1DA;
+}
+
+/* Для Edge */
+::-ms-input-placeholder {
+    color: #B1A1DA;
+}
+
 
 #message {
     color: red;
@@ -275,36 +291,6 @@ input[type="button"].registration-button:hover {
     background-color: #dc56a8;
 }
 
-/*
-.custom-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-    margin: 10px auto;
-    width: 220px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    background-color: #4285f4;
-    font-family: Arial, sans-serif;
-}
-.google-btn {
-    background-color: #4285F4;
-    color: white;
-}
-.google-btn img {
-    margin-right: 10px;
-}
-.facebook-btn {
-    background-color:  #4285F4;
-    color: white;
-}
-.facebook-btn img {
-    margin-right: 10px;
-} 
-*/
 a:hover {
     color: blue; 
 } 
