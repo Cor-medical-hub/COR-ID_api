@@ -3,12 +3,10 @@ import time
 import uvicorn
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from fastapi import FastAPI, Request, Depends, HTTPException, status, Request, Query
+from fastapi import FastAPI, Request, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-import hashlib
-import hmac
 from prometheus_client import Counter, Histogram
 from prometheus_client import generate_latest
 from starlette.responses import Response
@@ -174,42 +172,6 @@ async def startup():
 
 auth_attempts = defaultdict(list)
 blocked_ips = {}
-
-
-# @app.middleware("http")
-# async def auth_attempt_middleware(request: Request, call_next):
-#     # Получите IP-адрес клиента
-#     client_ip = request.client.host
-
-#     try:
-#         # Выполните авторизацию
-#         response = await call_next(request)
-#     except HTTPException as e:
-#         if e.status_code == 401:  # Неудачная авторизация
-#             # Добавьте попытку авторизации в словарь
-#             auth_attempts[client_ip].append(datetime.now())
-#             print(client_ip)
-#             print("client_ip")
-#             # Проверьте, не заблокирован ли этот IP-адрес
-#             if client_ip in blocked_ips and blocked_ips[client_ip] > datetime.now():
-#                 raise HTTPException(status_code=429, detail="IP-адрес заблокирован")
-
-#             # Проверьте, если было 5 неудачных попыток за последние 15 минут
-#             if len(auth_attempts[client_ip]) >= 5 and auth_attempts[client_ip][
-#                 -1
-#             ] - auth_attempts[client_ip][0] <= timedelta(minutes=15):
-#                 # Заблокируйте IP-адрес на 15 минут
-#                 blocked_ips[client_ip] = datetime.now() + timedelta(minutes=15)
-#                 raise HTTPException(
-#                     status_code=429,
-#                     detail="Слишком много попыток авторизации, IP-адрес заблокирован на 15 минут",
-#                 )
-
-#         # Если произошло что-то другое, просто вернем исключение
-#         raise e
-
-#     return response
-
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr, conint, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional
 from datetime import datetime
 from cor_pass.database.models import Status

@@ -22,7 +22,6 @@ from cor_pass.schemas import (
 from cor_pass.repository import person
 from cor_pass.repository import cor_id as repository_cor_id
 from pydantic import EmailStr
-from io import BytesIO
 from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/user", tags=["User"])
