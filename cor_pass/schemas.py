@@ -52,8 +52,11 @@ class TokenModel(BaseModel):
 class LoginResponseModel(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
-    is_admin: bool = "False"
+    token_type: str
+    is_admin: bool
+    session_id: Optional[str] = None
+    requires_master_key: bool = False
+    message: Optional[str] = None
 
 
 class EmailSchema(BaseModel):
@@ -88,6 +91,26 @@ class MedicalStorageSettings(BaseModel):
     local_medical_storage: bool
     cloud_medical_storage: bool
 
+
+class UserSessionModel(BaseModel):
+    cor_id: Optional[str] = Field(None, max_length=15)
+    device_type: str
+    device_info: str
+    ip_address: str
+    device_os: str
+    refresh_token: str
+
+
+class UserSessionDBModel(BaseModel):
+    id: str
+    cor_id: Optional[str] = Field(None, max_length=15)
+    device_type: str
+    device_info: str
+    ip_address: str
+    device_os: str
+    refresh_token: str
+    created_at: datetime
+    updated_at: datetime
 
 # PASS-MANAGER MODELS
 

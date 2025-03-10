@@ -1,10 +1,11 @@
+from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy.future import select
 from sqlalchemy import func
 import uuid
 from datetime import datetime
-from cor_pass.database.models import User, Status, Verification, UserSettings
-from cor_pass.schemas import UserModel, PasswordStorageSettings, MedicalStorageSettings
+from cor_pass.database.models import User, Status, Verification, UserSettings, UserSession
+from cor_pass.schemas import UserModel, PasswordStorageSettings, MedicalStorageSettings, UserSessionDBModel, UserSessionModel
 from cor_pass.services.auth import auth_service
 from cor_pass.services.logger import logger
 from cor_pass.services.cipher import (
@@ -12,6 +13,7 @@ from cor_pass.services.cipher import (
     encrypt_user_key,
     generate_recovery_code,
     encrypt_data,
+    decrypt_user_key
 )
 from cor_pass.services.email import send_email_code_with_qr
 from sqlalchemy.exc import NoResultFound
@@ -392,3 +394,61 @@ async def get_last_password_change(email: str, db: Session):
     user = await get_user_by_email(email, db)
     last_password_change = user.last_password_change
     return last_password_change
+
+
+
+async def create_user_session(body: UserSessionModel, user: User, db: Session) -> UserSessionModel:
+    # Ищем существующую сессию для данного пользователя и устройства
+    existing_session = db.query(UserSession).filter(
+        UserSession.user_id == user.cor_id,
+        UserSession.device_info == body.device_info,
+    ).first()
+
+    if existing_session:
+        encrypded_refresh_token = await encrypt_data(
+            data=body.refresh_token, key=await decrypt_user_key(user.unique_cipher_key)
+        )
+        # Если сессия существует, обновляем refresh_token
+        existing_session.refresh_token = encrypded_refresh_token
+        existing_session.updated_at = func.now()
+        try:  
+            db.add(existing_session)
+            db.commit()
+            db.refresh(existing_session)
+            return existing_session
+        except Exception as e:
+            db.rollback()
+            raise e
+    else:
+        encrypded_refresh_token = await encrypt_data(
+                data=body.refresh_token, key=await decrypt_user_key(user.unique_cipher_key)
+            )
+        new_session = UserSession(
+            user_id=user.cor_id,
+            device_type=body.device_type,
+            device_info=body.device_info,
+            ip_address=body.ip_address,
+            device_os=body.device_os,
+            refresh_token=encrypded_refresh_token,
+        )
+        try:
+            db.add(new_session)
+            db.commit()
+            db.refresh(new_session)
+            return new_session
+        except Exception as e:
+            db.rollback()
+            raise e
+
+
+
+async def get_user_sessions_by_device_info(
+    user_id: str, device_info: str, db: Session
+) -> List[UserSession]:
+    """
+    Получает все сессии пользователя на указанном устройстве.
+    """
+    return db.query(UserSession).filter(
+        UserSession.user_id == user_id,
+        UserSession.device_info == device_info,
+    ).all()
