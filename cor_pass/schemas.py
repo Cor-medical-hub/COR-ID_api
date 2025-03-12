@@ -100,6 +100,17 @@ class UserSessionModel(BaseModel):
     device_os: str
     refresh_token: str
 
+class UserSessionResponseModel(BaseModel):
+    id: str
+    user_id: str
+    device_type: str
+    device_info: str
+    ip_address: str
+    device_os: str
+    created_at: datetime
+    updated_at: datetime
+
+
 
 class UserSessionDBModel(BaseModel):
     id: str

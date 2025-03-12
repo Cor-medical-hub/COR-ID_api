@@ -32,6 +32,7 @@ from cor_pass.schemas import (
 )
 from cor_pass.database.models import User, UserSession
 from cor_pass.repository import person as repository_person
+from cor_pass.repository import user_session as repository_session
 from cor_pass.repository import cor_id as repository_cor_id
 from cor_pass.services.auth import auth_service
 from cor_pass.services import device_info as di
@@ -89,9 +90,6 @@ async def signup(
     return {"user": new_user, "detail": "User successfully created"}
 
 
-MOBILE_USER_AGENT_PATTERN = re.compile(
-    r"(Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone)", re.IGNORECASE
-)
 
 @router.post(
     "/login",
@@ -147,7 +145,7 @@ async def login(
 
     # Если устройство мобильное, проверяем, есть ли у пользователя сессии на этом устройстве
     if device_information["device_type"] =="Mobile":
-        existing_sessions = await repository_person.get_user_sessions_by_device_info(
+        existing_sessions = await repository_session.get_user_sessions_by_device_info(
             user.cor_id, device_information["device_info"], db
         )
         if not existing_sessions:
@@ -175,7 +173,9 @@ async def login(
         )
 
     # Обновляем refresh_token в базе данных
-    await repository_person.update_token(user, refresh_token, db)
+    # await repository_person.update_token(user, refresh_token, db)
+    # await repository_person.update_session_token(user, refresh_token, device_info["device_info"], db)
+
 
     # Создаём новую сессию
     session_data = {
@@ -186,7 +186,7 @@ async def login(
         "ip_address": device_information["ip_address"],  # IP-адрес
         "device_os": device_information["device_os"],  # Операционная система
     }
-    new_session = await repository_person.create_user_session(
+    new_session = await repository_session.create_user_session(
         body=UserSessionModel(**session_data),  # Передаём данные для сессии
         user=user,
         db=db,
@@ -214,8 +214,10 @@ async def login(
     response_model=TokenModel,
 )
 async def refresh_token(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db),
+    device_info: dict = Depends(di.get_device_header),
 ):
     """
     **The refresh_token function is used to refresh the access token. / Маршрут для рефреш токена, обновление токенов по рефрешу **\n
@@ -258,9 +260,10 @@ async def refresh_token(
         refresh_token = await auth_service.create_refresh_token(
             data={"oid": user.id, "corid": user.cor_id}
         )
-    user.refresh_token = refresh_token
-    db.commit()
-    await repository_person.update_token(user, refresh_token, db)
+    # user.refresh_token = refresh_token
+    await repository_session.update_session_token(user, refresh_token, device_info["device_info"], db)
+    # db.commit()
+    # await repository_person.update_token(user, refresh_token, db)
     logger.debug(f"{user.email}'s refresh token updated")
     return {
         "access_token": access_token,
@@ -423,7 +426,7 @@ async def restore_account_by_text(
     )
 
     # Обновляем refresh_token в базе данных
-    await repository_person.update_token(user, refresh_token, db)
+    # await repository_person.update_token(user, refresh_token, db)
 
     # Создаём новую сессию
     device_information = di.get_device_info(request)
@@ -435,7 +438,7 @@ async def restore_account_by_text(
         "ip_address": device_information["ip_address"],  # IP-адрес
         "device_os": device_information["device_os"],  # Операционная система
     }
-    new_session = await repository_person.create_user_session(
+    new_session = await repository_session.create_user_session(
         body=UserSession(**session_data),  # Передаём данные для сессии
         user=user,
         db=db,
@@ -457,9 +460,12 @@ async def restore_account_by_text(
 
 @router.post("/restore_account_by_recovery_file")
 async def upload_recovery_file(
+    request: Request,
     file: UploadFile = File(...),
     email: str = Form(...),
     db: Session = Depends(get_db),
+    device_info: dict = Depends(di.get_device_header)
+    
 ):
     """
     **Загрузка и проверка файла восстановления**\n
@@ -489,14 +495,30 @@ async def upload_recovery_file(
         refresh_token = await auth_service.create_refresh_token(
             data={"oid": user.cor_id}
         )
-        await repository_person.update_token(user, refresh_token, db)
+        # await repository_person.update_token(user, refresh_token, db)
+        # Создаём новую сессию
+        device_information = di.get_device_info(request)
+        session_data = {
+            "user_id": user.cor_id,
+            "refresh_token": refresh_token,
+            "device_type": device_information["device_type"],  # Тип устройства
+            "device_info": device_information["device_info"],  # Информация об устройстве
+            "ip_address": device_information["ip_address"],  # IP-адрес
+            "device_os": device_information["device_os"],  # Операционная система
+        }
+        new_session = await repository_session.create_user_session(
+            body=UserSession(**session_data),  # Передаём данные для сессии
+            user=user,
+            db=db,
+        )
         logger.debug(f"{user.email}  login success")
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer",
-            "message": "Recovery file is correct",  # Сообщение для JS о том что файл востановления верный
+            "message": "Recovery code is correct",  # Сообщение для JS о том что код восстановления верный
             "confirmation": confirmation,
+            "session_id": new_session.id,  # Добавляем ID сессии в ответ
         }
     else:
         logger.debug(f"{email} - Invalid recovery code")

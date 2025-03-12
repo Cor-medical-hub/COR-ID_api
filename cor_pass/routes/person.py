@@ -17,12 +17,15 @@ from cor_pass.schemas import (
     EmailSchema,
     ChangePasswordModel,
     ResponseCorIdModel,
-    ChangeMyPasswordModel
+    ChangeMyPasswordModel, 
+    UserSessionResponseModel
 )
 from cor_pass.repository import person
 from cor_pass.repository import cor_id as repository_cor_id
+from cor_pass.repository import user_session as repository_session
 from pydantic import EmailStr
 from fastapi.responses import StreamingResponse
+from typing import List
 
 router = APIRouter(prefix="/user", tags=["User"])
 
@@ -386,3 +389,95 @@ async def send_recovery_keys_email(
         user.email, host=None, recovery_code=recovery_code
     )
     return {f"sending keys to {user.email} done."}
+
+
+
+
+@router.get(
+    "/sessions/all",
+    response_model=List[UserSessionResponseModel],
+    dependencies=[Depends(user_access)],
+)
+async def read_sessions(
+    skip: int = 0,
+    limit: int = 150,
+    user: User = Depends(auth_service.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    **Get a list of user_sessions. / Получение всех сессий пользователя** \n
+
+    :param skip: The number of sessions to skip (for pagination). Default is 0.
+    :type skip: int
+    :param limit: The maximum number of sessions to retrieve. Default is 50.
+    :type limit: int
+    :param db: The database session. Dependency on get_db.
+    :type db: Session, optional
+    :return: A list of UserSessionModel objects representing the sessions.
+    :rtype: List[UserSessionModel]
+    """
+    try:
+        sessions = await repository_session.get_all_user_sessions(db, user.cor_id, skip, limit)
+    except Exception as e:
+        logger.error(f"Database query failed: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+    return sessions
+
+
+@router.get(
+    "/sessions/{session_id}", 
+    response_model=UserSessionResponseModel, 
+    dependencies=[Depends(user_access)]
+)
+async def read_session_info(
+    session_id: str,
+    user: User = Depends(auth_service.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    **Get a specific session by ID. / Получение данных одной конкретной сессии пользователя** \n
+
+    :param session_id: The ID of the session.
+    :type session_id: str
+    :param db: The database session. Dependency on get_db.
+    :type db: Session, optional
+    :return: The UserSessionModel object representing the session.
+    :rtype: UserSessionModel
+    :raises HTTPException 404: If the session with the specified ID does not exist.
+    """
+    user_session = await repository_session.get_session_by_id(user, db, session_id)
+    if user_session is None:
+        logger.exception("Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
+    return user_session
+
+
+
+@router.delete("/sessions/{session_id}", 
+               response_model=UserSessionResponseModel
+               )
+async def remove_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user),
+):
+    """
+    **Remove a session. / Удаление сессии** \n
+
+    :param session_id: The ID of the session to remove.
+    :type session_id: str
+    :param db: The database session. Dependency on get_db.
+    :type db: Session, optional
+    :return: The removed UserSessionModel object representing the removed session.
+    :rtype: UserSessionModel
+    :raises HTTPException 404: If the session with the specified ID does not exist.
+    """
+    session = await repository_session.delete_session(user, db, session_id)
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
+    return session
