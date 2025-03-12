@@ -72,6 +72,7 @@ class ChangePasswordModel(BaseModel):
     email: Optional[str]
     password: str = Field(min_length=6, max_length=20)
 
+
 class ChangeMyPasswordModel(BaseModel):
     old_password: str = Field(min_length=6, max_length=20)
     new_password: str = Field(min_length=6, max_length=20)
@@ -100,6 +101,7 @@ class UserSessionModel(BaseModel):
     device_os: str
     refresh_token: str
 
+
 class UserSessionResponseModel(BaseModel):
     id: str
     user_id: str
@@ -109,7 +111,6 @@ class UserSessionResponseModel(BaseModel):
     device_os: str
     created_at: datetime
     updated_at: datetime
-
 
 
 class UserSessionDBModel(BaseModel):
@@ -122,6 +123,7 @@ class UserSessionDBModel(BaseModel):
     refresh_token: str
     created_at: datetime
     updated_at: datetime
+
 
 # PASS-MANAGER MODELS
 

@@ -28,7 +28,6 @@ async def get_cor_id(user: User, db: Session):
         return None
 
 
-
 """
 Алгоритм Юры
 

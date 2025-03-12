@@ -17,8 +17,8 @@ from cor_pass.schemas import (
     EmailSchema,
     ChangePasswordModel,
     ResponseCorIdModel,
-    ChangeMyPasswordModel, 
-    UserSessionResponseModel
+    ChangeMyPasswordModel,
+    UserSessionResponseModel,
 )
 from cor_pass.repository import person
 from cor_pass.repository import cor_id as repository_cor_id
@@ -196,7 +196,11 @@ async def add_backup_email(
 
 
 @router.patch("/change_password", dependencies=[Depends(user_access)])
-async def change_password(body: ChangePasswordModel, user: User = Depends(auth_service.get_current_user), db: Session = Depends(get_db)):
+async def change_password(
+    body: ChangePasswordModel,
+    user: User = Depends(auth_service.get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     **Смена пароля в сценарии "Забыли пароль"** \n
 
@@ -218,9 +222,14 @@ async def change_password(body: ChangePasswordModel, user: User = Depends(auth_s
                 status_code=status.HTTP_406_NOT_ACCEPTABLE,
                 detail="Incorrect password input",
             )
-        
+
+
 @router.patch("/change_my_password", dependencies=[Depends(user_access)])
-async def change_my_password(body: ChangeMyPasswordModel, user: User = Depends(auth_service.get_current_user), db: Session = Depends(get_db)):
+async def change_my_password(
+    body: ChangeMyPasswordModel,
+    user: User = Depends(auth_service.get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     **Смена пароля в сценарии "Изменить свой пароль"** \n
     """
@@ -280,6 +289,8 @@ async def get_recovery_code(
 
 import base64
 from fastapi.responses import JSONResponse
+
+
 @router.get("/get_recovery_qr_code")
 async def get_recovery_qr_code(
     user: User = Depends(auth_service.get_current_user),
@@ -298,7 +309,7 @@ async def get_recovery_qr_code(
     recovery_qr_bytes = generate_qr_code(recovery_code)
 
     # Конвертация QR-кода в Base64
-    encoded_qr = base64.b64encode(recovery_qr_bytes).decode('utf-8')
+    encoded_qr = base64.b64encode(recovery_qr_bytes).decode("utf-8")
     qr_code_data_url = f"data:image/png;base64,{encoded_qr}"
 
     return JSONResponse(content={"qr_code_url": qr_code_data_url})
@@ -385,12 +396,8 @@ async def send_recovery_keys_email(
         encrypted_data=user.recovery_code,
         key=await decrypt_user_key(user.unique_cipher_key),
     )
-    await send_email_code_with_qr(
-        user.email, host=None, recovery_code=recovery_code
-    )
+    await send_email_code_with_qr(user.email, host=None, recovery_code=recovery_code)
     return {f"sending keys to {user.email} done."}
-
-
 
 
 @router.get(
@@ -417,7 +424,9 @@ async def read_sessions(
     :rtype: List[UserSessionModel]
     """
     try:
-        sessions = await repository_session.get_all_user_sessions(db, user.cor_id, skip, limit)
+        sessions = await repository_session.get_all_user_sessions(
+            db, user.cor_id, skip, limit
+        )
     except Exception as e:
         logger.error(f"Database query failed: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -426,9 +435,9 @@ async def read_sessions(
 
 
 @router.get(
-    "/sessions/{session_id}", 
-    response_model=UserSessionResponseModel, 
-    dependencies=[Depends(user_access)]
+    "/sessions/{session_id}",
+    response_model=UserSessionResponseModel,
+    dependencies=[Depends(user_access)],
 )
 async def read_session_info(
     session_id: str,
@@ -455,10 +464,7 @@ async def read_session_info(
     return user_session
 
 
-
-@router.delete("/sessions/{session_id}", 
-               response_model=UserSessionResponseModel
-               )
+@router.delete("/sessions/{session_id}", response_model=UserSessionResponseModel)
 async def remove_session(
     session_id: str,
     db: Session = Depends(get_db),

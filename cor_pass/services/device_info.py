@@ -1,5 +1,6 @@
 from fastapi import Header, HTTPException, Request, status
 
+
 def get_device_header(
     user_agent: str = Header(None, description="User-Agent header"),
     x_device_type: str = Header(None, description="X-Device-Type header"),
@@ -20,7 +21,6 @@ def get_device_header(
         "device_info": x_device_info or user_agent,  # Информация об устройстве
         "device_os": x_device_os or "Unknown OS",  # Операционная система
     }
-
 
 
 def get_device_info(request: Request) -> dict:

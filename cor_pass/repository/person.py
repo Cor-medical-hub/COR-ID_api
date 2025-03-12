@@ -4,8 +4,20 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 import uuid
 from datetime import datetime
-from cor_pass.database.models import User, Status, Verification, UserSettings, UserSession
-from cor_pass.schemas import UserModel, PasswordStorageSettings, MedicalStorageSettings, UserSessionDBModel, UserSessionModel
+from cor_pass.database.models import (
+    User,
+    Status,
+    Verification,
+    UserSettings,
+    UserSession,
+)
+from cor_pass.schemas import (
+    UserModel,
+    PasswordStorageSettings,
+    MedicalStorageSettings,
+    UserSessionDBModel,
+    UserSessionModel,
+)
 from cor_pass.services.auth import auth_service
 from cor_pass.services.logger import logger
 from cor_pass.services.cipher import (
@@ -13,7 +25,7 @@ from cor_pass.services.cipher import (
     encrypt_user_key,
     generate_recovery_code,
     encrypt_data,
-    decrypt_user_key
+    decrypt_user_key,
 )
 from cor_pass.services.email import send_email_code_with_qr
 from sqlalchemy.exc import NoResultFound
@@ -394,4 +406,3 @@ async def get_last_password_change(email: str, db: Session):
     user = await get_user_by_email(email, db)
     last_password_change = user.last_password_change
     return last_password_change
-

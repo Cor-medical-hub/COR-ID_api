@@ -12,6 +12,7 @@ from Crypto.Util.Padding import pad as crypto_pad
 
 from cor_pass.config.config import settings
 
+
 def pad(data: bytes, block_size: int) -> bytes:
     """
     Эта функция добавляет необходимое количество байтов к данным, чтобы они соответствовали размеру блока. Если данные являются строкой, они сначала кодируются в байты.
@@ -59,7 +60,7 @@ async def decrypt_data(encrypted_data: bytes, key: bytes) -> str:
 
     if len(key) not in [16, 24, 32]:
         raise ValueError("Key must be 16, 24, or 32 bytes long.")
-    
+
     try:
         decoded_data = base64.b64decode(encrypted_data)
         iv = decoded_data[: AES.block_size]
@@ -67,7 +68,7 @@ async def decrypt_data(encrypted_data: bytes, key: bytes) -> str:
 
         cipher = AES.new(key, AES.MODE_CBC, iv)
         decrypted_data = unpad(cipher.decrypt(ciphertext), AES.block_size)
-        return decrypted_data.decode('utf-8')
+        return decrypted_data.decode("utf-8")
     except (ValueError, KeyError):
         raise ValueError("Decryption failed. Invalid key or corrupted data.")
 
@@ -81,13 +82,11 @@ async def generate_aes_key(key_size: int = 16) -> bytes:
     return secrets.token_bytes(key_size)
 
 
-
 async def generate_recovery_code() -> str:
     """
     Генерирует код восстановления.
     """
     return secrets.token_urlsafe(64)
-
 
 
 async def encrypt_user_key(key: bytes) -> str:

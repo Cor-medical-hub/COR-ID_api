@@ -53,7 +53,7 @@ class User(Base):
     )  # индекс пользователя, используется в создании cor_id
     created_at = Column(DateTime, nullable=False, default=func.now())
 
-    #Связи
+    # Связи
     user_records = relationship(
         "Record", back_populates="user", cascade="all, delete-orphan"
     )
@@ -67,9 +67,10 @@ class User(Base):
     )
 
     # Индексы
-    __table_args__ = (Index("idx_users_email", "email"),
-                      Index("idx_users_cor_id", "cor_id"))
-
+    __table_args__ = (
+        Index("idx_users_email", "email"),
+        Index("idx_users_cor_id", "cor_id"),
+    )
 
 
 class UserSession(Base):
@@ -87,7 +88,7 @@ class UserSession(Base):
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
 
-    #Связи
+    # Связи
     user = relationship("User", back_populates="user_sessions")
 
     # Индексы
@@ -121,7 +122,7 @@ class Record(Base):
     notes = Column(Text, nullable=True)
     is_favorite = Column(Boolean, default=False, nullable=True)
 
-    #Связи
+    # Связи
     user = relationship("User", back_populates="user_records")
     tags = relationship("Tag", secondary="records_tags")
 
@@ -157,7 +158,7 @@ class UserSettings(Base):
     local_medical_storage = Column(Boolean, default=False)
     cloud_medical_storage = Column(Boolean, default=True)
 
-    #Связи
+    # Связи
     user = relationship("User", back_populates="user_settings")
 
 
@@ -174,10 +175,11 @@ class OTP(Base):
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
 
-    #Связи
+    # Связи
     user = relationship("User", back_populates="user_otp")
 
     # Индексы
     __table_args__ = (Index("idx_otp_records_user_id", "user_id"),)
+
 
 # Base.metadata.create_all(bind=engine)

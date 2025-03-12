@@ -28,7 +28,7 @@ from cor_pass.schemas import (
     LoginResponseModel,
     RecoveryCodeModel,
     UserSessionDBModel,
-    UserSessionModel
+    UserSessionModel,
 )
 from cor_pass.database.models import User, UserSession
 from cor_pass.repository import person as repository_person
@@ -90,7 +90,6 @@ async def signup(
     return {"user": new_user, "detail": "User successfully created"}
 
 
-
 @router.post(
     "/login",
     response_model=LoginResponseModel,
@@ -144,7 +143,7 @@ async def login(
     device_information = di.get_device_info(request)
 
     # Если устройство мобильное, проверяем, есть ли у пользователя сессии на этом устройстве
-    if device_information["device_type"] =="Mobile":
+    if device_information["device_type"] == "Mobile":
         existing_sessions = await repository_session.get_user_sessions_by_device_info(
             user.cor_id, device_information["device_info"], db
         )
@@ -175,7 +174,6 @@ async def login(
     # Обновляем refresh_token в базе данных
     # await repository_person.update_token(user, refresh_token, db)
     # await repository_person.update_session_token(user, refresh_token, device_info["device_info"], db)
-
 
     # Создаём новую сессию
     session_data = {
@@ -237,7 +235,7 @@ async def refresh_token(
     user = await repository_person.get_user_by_uuid(id, db)
     # cor_id = await auth_service.decode_refresh_token(token)
     # user = await repository_person.get_user_by_corid(cor_id, db)
-    
+
     # if user.refresh_token != token:
     #     await repository_person.update_token(user, None, db)
     #     raise HTTPException(
@@ -261,7 +259,9 @@ async def refresh_token(
             data={"oid": user.id, "corid": user.cor_id}
         )
     # user.refresh_token = refresh_token
-    await repository_session.update_session_token(user, refresh_token, device_info["device_info"], db)
+    await repository_session.update_session_token(
+        user, refresh_token, device_info["device_info"], db
+    )
     # db.commit()
     # await repository_person.update_token(user, refresh_token, db)
     logger.debug(f"{user.email}'s refresh token updated")
@@ -330,8 +330,7 @@ async def confirm_email(body: VerificationModel, db: Session = Depends(get_db)):
             "message": "Your email is confirmed",
             "detail": "Confirmation sucess",  # Сообщение для JS о том что имейл подтвержден
             "confirmation": confirmation,
-            "access_token" : access_token
-            
+            "access_token": access_token,
         }
     if ver_code:
         confirmation = True
@@ -384,7 +383,9 @@ async def forgot_password_send_verification_code(
 async def restore_account_by_text(
     body: RecoveryCodeModel,
     request: Request,
-    device_info: dict = Depends(di.get_device_header),  # Добавляем request для получения User-Agent
+    device_info: dict = Depends(
+        di.get_device_header
+    ),  # Добавляем request для получения User-Agent
     db: Session = Depends(get_db),
 ):
     """
@@ -421,9 +422,7 @@ async def restore_account_by_text(
     access_token = await auth_service.create_access_token(
         data={"oid": user.cor_id}, expires_delta=3600
     )
-    refresh_token = await auth_service.create_refresh_token(
-        data={"oid": user.cor_id}
-    )
+    refresh_token = await auth_service.create_refresh_token(data={"oid": user.cor_id})
 
     # Обновляем refresh_token в базе данных
     # await repository_person.update_token(user, refresh_token, db)
@@ -464,8 +463,7 @@ async def upload_recovery_file(
     file: UploadFile = File(...),
     email: str = Form(...),
     db: Session = Depends(get_db),
-    device_info: dict = Depends(di.get_device_header)
-    
+    device_info: dict = Depends(di.get_device_header),
 ):
     """
     **Загрузка и проверка файла восстановления**\n
@@ -502,7 +500,9 @@ async def upload_recovery_file(
             "user_id": user.cor_id,
             "refresh_token": refresh_token,
             "device_type": device_information["device_type"],  # Тип устройства
-            "device_info": device_information["device_info"],  # Информация об устройстве
+            "device_info": device_information[
+                "device_info"
+            ],  # Информация об устройстве
             "ip_address": device_information["ip_address"],  # IP-адрес
             "device_os": device_information["device_os"],  # Операционная система
         }
