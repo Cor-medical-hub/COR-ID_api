@@ -29,6 +29,23 @@ body, html {
     align-items: center;
 }
 
+.header-container {
+    display: flex; /* Используем flexbox для выравнивания */
+    align-items: center; /* Выравниваем элементы по вертикали */
+    justify-content: space-between; /* Распределяем пространство между элементами */
+    margin-bottom: 20px; /* Отступ снизу для разделения с другими элементами */
+    gap: 40px;
+}
+
+.settings-container {
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 90px;
+}
+
+
 #back-link {
   /*  position: absolute; */
   text-align: left;
@@ -124,6 +141,58 @@ button:disabled {
     color: #ffffff;
 }
 
+
+
+.delete-button {
+    padding: 10px;
+    border: 1px solid #DF1125; 
+    margin: 10px 0;
+    background-color: white; /* Белый фон */
+    color: #DF1125; /* Красный текст */
+    cursor: pointer;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 200px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px; /* Отступ между иконкой и текстом */
+    font-size: 13px; /* Размер текста */
+    transition: background-color 0.3s, color 0.3s, transform 0.2s; /* Плавные переходы */
+}
+
+.delete-button:hover {
+    background-color: #ffffff; /* Красный фон при наведении */
+    color: #830714; 
+    transform: translateY(-2px); /* Слегка поднимаем карточку */
+    cursor: pointer; /* Меняем курсор на указатель */
+}
+
+.delete-button:active {
+    background-color: #ffffff; /* Темно-красный фон при нажатии */
+    transform: translateY(2px); /* Эффект "нажатия" */
+    color: #c22e3d;
+}
+
+.plus-button {
+    background-color: #7527B2; /* Цвет фона кнопки */
+    color: white; /* Цвет текста */
+    border: none; /* Убираем границу */
+    padding: 10px 5px; /* Внутренние отступы */
+    border-radius: 12px; /* Скругление углов */
+    cursor: pointer; /* Курсор в виде руки */
+    font-size: 13px; /* Размер шрифта */
+    transition: background-color 0.3s, transform 0.2s; /* Плавные переходы */
+    max-width: 100px;
+    height: 40px; /* Фиксированная высота кнопки */
+    display: flex; /* Включаем flexbox для выравнивания текста внутри кнопки */
+    align-items: center; /* Выравниваем текст по вертикали внутри кнопки */
+    justify-content: center; /* Выравниваем текст по горизонтали внутри кнопки */
+}
+
+
+
 .button span {
     flex-grow: 1; /* Заставляем текст занимать всю доступную ширину */
     text-align: left;
@@ -148,6 +217,53 @@ button:disabled {
   .icon-button:hover {
     opacity: 0.7; /* Можно добавить эффект при наведении */
   }
+  .custom-button {
+    padding: 10px;
+    border: none;
+    margin: 10px auto;
+    background-color: white;
+    color: #7527B2;
+    cursor: pointer;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 200px;
+    height: 40px;
+    display: flex;
+    align-items: center; /* Выравнивание по вертикали */
+    justify-content: space-between; /* Распределение пространства между элементами */
+    font-size: 14px;
+    font-family: 'Montserrat', sans-serif; /* Подключение шрифта Montserrat */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.icon-left,
+.icon-right {
+    width: 28px; /* Размер иконок */
+    height: 28px;
+    flex-shrink: 0; /* Запрет сжатия иконок */
+}
+
+.button-text {
+    flex-grow: 1; /* Текст занимает всё доступное пространство */
+    text-align: center; /* Центрирование текста */
+    margin: 0 8px; /* Отступы между текстом и иконками */
+}
+
+.custom-button:hover {
+    background-color: #eae8ef;
+}
+
+.custom-button:active {
+    transform: translateY(2px);
+}
+
+.icon-left,
+.icon-right {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
 
 h1 {
     color:#291161;
@@ -193,22 +309,10 @@ input[type="submit"] {
 }
 
 
-input[type="submit"]:hover {
-    background-color: #981666;
-}
-
-.registration-button {
-    background-color: #D2CAE8; 
-  /*  background-color: #981666; */
-    color: white;
-    padding: 10px 20px;
-    margin: 0 auto;
-    display: block;
-}
 
 .password-container {
     position: relative;
-    width: 100%; /* Убедитесь, что контейнер занимает всю ширину */
+    width: 100%; 
 }
 
 .password-input {
@@ -236,48 +340,6 @@ input[type="submit"]:hover {
 .registration-title, .forgot-password-link {
     text-align: center;
 }
-
-
-
-
-/* Кнопка Google */
-.customGPlusSignIn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 200px;
-    height: 50px;
-    background-color: #dd4b39;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-  }
-  
-  .customGPlusSignIn:hover {
-    background-color: #e74b37;
-  }
-
-
-  
-  /* Иконка Google */
-  .icon {
-    width: 18px;
-    height: 18px;
-    margin-right: 5px;
-    background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 533.5 544.3"><path fill="%23FFF" d="M533.5 278.4c0 145.2-117.3 262.5-262.5 262.5s-262.5-117.3-262.5-262.5 117.3-262.5 262.5-262.5S533.5 133.2 533.5 278.4z"/><path fill="%23FFF" d="M213.9 336.3h-133.8V171.8h133.8v164.5z"/><path fill="%23FFF" d="M266.8 336.3h-133.8V196.1h133.8v140.2z"/><path fill="%23FFF" d="M319.6 336.3h-133.8V220.4h133.8v115.9z"/><path fill="%23FFF" d="M213.9 171.8c-14.9 0-27 12.1-27 27v164.5c0 14.9 12.1 27 27 27h133.8c14.9 0 27-12.1 27-27V198.8c0-14.9-12.1-27-27-27h-133.8z"/></svg>');
-    background-repeat: no-repeat;
-    background-position: center;
-  }
-  
-  /* Текст кнопки */
-  .buttonText {
-    font-size: 16px;
-    font-weight: bold;
-  }
-
-
 
 
 #verificationCodeWindow {
@@ -367,10 +429,11 @@ a:hover {
         }  
 
 .link-button {
-     background: none;
-     border: none;
+    background: none;
+    border: none;
     color: #7B43F2;
-            
+    width: 200px;     
+    height:30;
     cursor: pointer;
     font-size: 16px;
     padding: 0;
@@ -413,6 +476,7 @@ a:hover {
     margin-right: 10px;
 }
 
+/* Стили для выпадающих списков */
 select#birth,
 select#user_sex {
     width: 200px;          /* Ширина для обоих полей */
@@ -420,33 +484,32 @@ select#user_sex {
     font-size: 14px;       /* Размер шрифта */
     color: #5B4296;
     border: 1px solid #ccc;/* Рамка вокруг */
-    border-radius: 12px;    /* Скругленные углы */
+    border-radius: 12px;   /* Скругленные углы */
     box-sizing: border-box;/* Учитываем отступы и границы при расчете ширины */
     background-color: white;/* Цвет фона */
     appearance: none;      /* Скрываем стандартный стиль стрелки */
     margin-bottom: 10px;   /* Отступ снизу для разделения полей */
 }
 
+/* Стили для фокуса на выпадающих списках */
 select#birth:focus,
 select#user_sex:focus {
     outline: none;         /* Убираем обводку при фокусе */
-    border-color: #021020; /* Цвет рамки при фокусе */
+    border-color: #7527B2; /* Цвет рамки при фокусе, как у кнопок */
+    background-color: #ffffff; /* Фон при фокусе, как у кнопок */
+    color: #7527B2;          /* Цвет текста при фокусе, как у кнопок */
+    box-shadow: 0 0 5px rgba(117, 39, 178, 0.5); /* Тень для акцента */
+}
+
+/* Стили для выбранной опции в выпадающем списке */
+select#birth option:checked,
+select#user_sex option:checked {
+    background-color: #5B4296; /* Цвет фона выбранной опции */
+    color: white;              /* Цвет текста выбранной опции */
 }
 .hidden {
     display: none;
 }
-
-.star {
-    font-size: 20px; /* Размер звезды */
-    color: gray; /* Цвет неактивной звезды */
-    cursor: pointer; /* Курсор в виде руки */
-    transition: color 0.3s; /* Плавный переход */
-}
-
-.star.favorite {
-    color: gold; /* Цвет активной звезды */
-}
-
 
 #qrCodeContainer {
     display: flex;
@@ -514,4 +577,127 @@ select#user_sex:focus {
     border: 2px solid #5B4296;
     border-color: #a067ff;
     background-color: #fff;
+<<<<<<< Updated upstream
 }
+=======
+}
+
+
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center; /* Выравнивание по центру по горизонтали */
+    align-items: center; /* Выравнивание по центру по вертикали */
+}
+
+.card {
+    border: 1px solid #ffffff;
+    background-color: rgba(255, 255, 255, 0.6); /* Белый фон с прозрачностью 60% */
+    border-radius: 12px;
+    padding: 10px;
+    width: 420px; /* Ширина карточки */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex; /* Используем flexbox для расположения иконки и контента */
+    gap: 10px; /* Отступ между иконкой и контентом */
+    align-items: center; /* Выравнивание по вертикали */
+    position: relative; /* Для позиционирования звездочки */
+}
+
+
+.session-card {
+    border: 1px solid #e0e0e0; /* Цвет границы */
+    background-color: rgba(255, 255, 255, 0.6); /* Белый фон с прозрачностью 60% */
+    border-radius: 8px; /* Скругление углов */
+    padding: 10px; /* Внутренние отступы */
+    width: 300px; /* Ширина карточки */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Тень */
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Уменьшаем расстояние между элементами внутри карточки */
+}
+
+/* Стили для содержимого карточки сессии */
+.session-card .card-content {
+    font-size: 12px; /* Уменьшаем размер шрифта */
+    color: #291161; /* Цвет текста (цвет темы) */
+    line-height: 1.4; /* Уменьшаем высоту строки */
+}
+
+/* Стили для заголовков внутри карточки сессии */
+.session-card .card-content strong {
+    color: #7527B2; /* Цвет заголовков (другой оттенок темы) */
+    font-weight: 600; /* Увеличиваем жирность заголовков */
+}
+
+.card:hover {
+    background-color: rgba(255, 255, 255, 0.8); /* Увеличиваем прозрачность фона */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Увеличиваем тень */
+    transform: translateY(-2px); /* Слегка поднимаем карточку */
+    cursor: pointer; /* Меняем курсор на указатель */
+}
+
+
+.icon-container {
+    display: flex;
+    align-items: center; /* Выравнивание иконки по центру по вертикали */
+    justify-content: center; /* Выравнивание иконки по центру по горизонтали */
+    width: 40px; /* Ширина контейнера для иконки */
+    height: 100%; /* Иконка занимает всю высоту карточки */
+}
+
+.icon-placeholder {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #FFFFFF; /* Цвет фона для заглушки */
+    border-radius: 50%; /* Круглая форма */
+    font-size: 24px;
+    font-weight: bold; /* Жирный шрифт */
+    color: #291161; /* Цвет текста */
+}
+
+.favicon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%; /* Круглая форма для иконки */
+}
+
+.content {
+    flex: 1; /* Контент занимает оставшееся пространство */
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Отступ между заголовком и логином */
+    align-items: flex-start; /* Выравнивание по левому краю */
+}
+
+.card-header h3 {
+    margin: 0;
+    color: #291161;
+    font-size: 17px;
+}
+
+.card-body span {
+    color: #5B4296;
+    font-size: 12px;
+}
+
+.star-container {
+    display: flex;
+    align-items: center; /* Выравнивание звездочки по вертикали */
+    justify-content: flex-end; /* Звездочка справа */
+    margin-left: auto; /* Звездочка прижимается к правому краю */
+}
+
+
+.star svg {
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.star.favorite svg {
+    transform: scale(1.0); /* Увеличение звездочки при активации */
+}
+>>>>>>> Stashed changes
