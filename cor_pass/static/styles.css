@@ -46,23 +46,6 @@ body, html {
 }
 
 
-.header-container {
-    display: flex; /* Используем flexbox для выравнивания */
-    align-items: center; /* Выравниваем элементы по вертикали */
-    justify-content: space-between; /* Распределяем пространство между элементами */
-    margin-bottom: 20px; /* Отступ снизу для разделения с другими элементами */
-    gap: 40px;
-}
-
-.settings-container {
-    display: flex; 
-    align-items: center; 
-    justify-content: space-between;
-    margin-bottom: 20px;
-    gap: 90px;
-}
-
-
 #back-link {
   /*  position: absolute; */
   text-align: left;
@@ -210,58 +193,6 @@ button:disabled {
 
 
 
-
-
-.delete-button {
-    padding: 10px;
-    border: 1px solid #DF1125; 
-    margin: 10px 0;
-    background-color: white; /* Белый фон */
-    color: #DF1125; /* Красный текст */
-    cursor: pointer;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 200px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px; /* Отступ между иконкой и текстом */
-    font-size: 13px; /* Размер текста */
-    transition: background-color 0.3s, color 0.3s, transform 0.2s; /* Плавные переходы */
-}
-
-.delete-button:hover {
-    background-color: #ffffff; /* Красный фон при наведении */
-    color: #830714; 
-    transform: translateY(-2px); /* Слегка поднимаем карточку */
-    cursor: pointer; /* Меняем курсор на указатель */
-}
-
-.delete-button:active {
-    background-color: #ffffff; /* Темно-красный фон при нажатии */
-    transform: translateY(2px); /* Эффект "нажатия" */
-    color: #c22e3d;
-}
-
-.plus-button {
-    background-color: #7527B2; /* Цвет фона кнопки */
-    color: white; /* Цвет текста */
-    border: none; /* Убираем границу */
-    padding: 10px 5px; /* Внутренние отступы */
-    border-radius: 12px; /* Скругление углов */
-    cursor: pointer; /* Курсор в виде руки */
-    font-size: 13px; /* Размер шрифта */
-    transition: background-color 0.3s, transform 0.2s; /* Плавные переходы */
-    max-width: 100px;
-    height: 40px; /* Фиксированная высота кнопки */
-    display: flex; /* Включаем flexbox для выравнивания текста внутри кнопки */
-    align-items: center; /* Выравниваем текст по вертикали внутри кнопки */
-    justify-content: center; /* Выравниваем текст по горизонтали внутри кнопки */
-}
-
-
-
 .button span {
     flex-grow: 1; /* Заставляем текст занимать всю доступную ширину */
     text-align: left;
@@ -286,53 +217,6 @@ button:disabled {
   .icon-button:hover {
     opacity: 0.7; /* Можно добавить эффект при наведении */
   }
-  .custom-button {
-    padding: 10px;
-    border: none;
-    margin: 10px auto;
-    background-color: white;
-    color: #7527B2;
-    cursor: pointer;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 200px;
-    height: 40px;
-    display: flex;
-    align-items: center; /* Выравнивание по вертикали */
-    justify-content: space-between; /* Распределение пространства между элементами */
-    font-size: 14px;
-    font-family: 'Montserrat', sans-serif; /* Подключение шрифта Montserrat */
-    transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.icon-left,
-.icon-right {
-    width: 28px; /* Размер иконок */
-    height: 28px;
-    flex-shrink: 0; /* Запрет сжатия иконок */
-}
-
-.button-text {
-    flex-grow: 1; /* Текст занимает всё доступное пространство */
-    text-align: center; /* Центрирование текста */
-    margin: 0 8px; /* Отступы между текстом и иконками */
-}
-
-.custom-button:hover {
-    background-color: #eae8ef;
-}
-
-.custom-button:active {
-    transform: translateY(2px);
-}
-
-.icon-left,
-.icon-right {
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-}
-
   .custom-button {
     padding: 10px;
     border: none;
@@ -428,7 +312,6 @@ input[type="submit"] {
 
 .password-container {
     position: relative;
-    width: 100%; 
     width: 100%; 
 }
 
@@ -548,11 +431,7 @@ a:hover {
 .link-button {
     background: none;
     border: none;
-    background: none;
-    border: none;
     color: #7B43F2;
-    width: 200px;     
-    height:30;
     width: 200px;     
     height:30;
     cursor: pointer;
@@ -598,7 +477,6 @@ a:hover {
 }
 
 /* Стили для выпадающих списков */
-/* Стили для выпадающих списков */
 select#birth,
 select#user_sex {
     width: 200px;          /* Ширина для обоих полей */
@@ -607,7 +485,6 @@ select#user_sex {
     color: #5B4296;
     border: 1px solid #ccc;/* Рамка вокруг */
     border-radius: 12px;   /* Скругленные углы */
-    border-radius: 12px;   /* Скругленные углы */
     box-sizing: border-box;/* Учитываем отступы и границы при расчете ширины */
     background-color: white;/* Цвет фона */
     appearance: none;      /* Скрываем стандартный стиль стрелки */
@@ -615,21 +492,9 @@ select#user_sex {
 }
 
 /* Стили для фокуса на выпадающих списках */
-/* Стили для фокуса на выпадающих списках */
 select#birth:focus,
 select#user_sex:focus {
     outline: none;         /* Убираем обводку при фокусе */
-    border-color: #7527B2; /* Цвет рамки при фокусе, как у кнопок */
-    background-color: #ffffff; /* Фон при фокусе, как у кнопок */
-    color: #7527B2;          /* Цвет текста при фокусе, как у кнопок */
-    box-shadow: 0 0 5px rgba(117, 39, 178, 0.5); /* Тень для акцента */
-}
-
-/* Стили для выбранной опции в выпадающем списке */
-select#birth option:checked,
-select#user_sex option:checked {
-    background-color: #5B4296; /* Цвет фона выбранной опции */
-    color: white;              /* Цвет текста выбранной опции */
     border-color: #7527B2; /* Цвет рамки при фокусе, как у кнопок */
     background-color: #ffffff; /* Фон при фокусе, как у кнопок */
     color: #7527B2;          /* Цвет текста при фокусе, как у кнопок */
@@ -712,9 +577,6 @@ select#user_sex option:checked {
     border: 2px solid #5B4296;
     border-color: #a067ff;
     background-color: #fff;
-<<<<<<< Updated upstream
-}
-=======
 }
 
 
@@ -738,40 +600,6 @@ select#user_sex option:checked {
     align-items: center; /* Выравнивание по вертикали */
     position: relative; /* Для позиционирования звездочки */
 }
-
-
-.session-card {
-    border: 1px solid #e0e0e0; /* Цвет границы */
-    background-color: rgba(255, 255, 255, 0.6); /* Белый фон с прозрачностью 60% */
-    border-radius: 8px; /* Скругление углов */
-    padding: 10px; /* Внутренние отступы */
-    width: 300px; /* Ширина карточки */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Тень */
-    display: flex;
-    flex-direction: column;
-    gap: 5px; /* Уменьшаем расстояние между элементами внутри карточки */
-}
-
-/* Стили для содержимого карточки сессии */
-.session-card .card-content {
-    font-size: 12px; /* Уменьшаем размер шрифта */
-    color: #291161; /* Цвет текста (цвет темы) */
-    line-height: 1.4; /* Уменьшаем высоту строки */
-}
-
-/* Стили для заголовков внутри карточки сессии */
-.session-card .card-content strong {
-    color: #7527B2; /* Цвет заголовков (другой оттенок темы) */
-    font-weight: 600; /* Увеличиваем жирность заголовков */
-}
-
-.card:hover {
-    background-color: rgba(255, 255, 255, 0.8); /* Увеличиваем прозрачность фона */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Увеличиваем тень */
-    transform: translateY(-2px); /* Слегка поднимаем карточку */
-    cursor: pointer; /* Меняем курсор на указатель */
-}
-
 
 
 .session-card {
@@ -869,4 +697,3 @@ select#user_sex option:checked {
 .star.favorite svg {
     transform: scale(1.0); /* Увеличение звездочки при активации */
 }
->>>>>>> Stashed changes
