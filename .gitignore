@@ -160,5 +160,9 @@ cython_debug/
 #.idea/
 *.env
 *.db
+<<<<<<< Updated upstream
+=======
 docker-compose.yml
 Dockerfile
+
+>>>>>>> Stashed changes
