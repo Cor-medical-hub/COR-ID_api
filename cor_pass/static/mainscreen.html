@@ -283,12 +283,12 @@
                 window.location.href = '/static/password_manager.html' + '?access_token=' + accessToken;   
             });
     
-            document.getElementById('COR-MED').addEventListener('click', function() {
+            document.getElementById('COR-AUTH').addEventListener('click', function() {
                 window.location.href = '/static/Medical.html' + '?access_token=' + accessToken;
             });
     
             // Обработчик для кнопки "COR-Platform"
-        document.getElementById('COR-AUTH').addEventListener('click', function() {
+        document.getElementById('COR-MED').addEventListener('click', function() {
             const accessToken = new URLSearchParams(window.location.search).get('access_token');
             const refreshToken = new URLSearchParams(window.location.search).get('refresh_token');
             const savedRedirectUrl = localStorage.getItem('redirectUrl');
