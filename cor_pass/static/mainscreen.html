@@ -442,18 +442,32 @@ async function getSessions() {
         cardsContainer.innerHTML = ""; // Очистка перед вставкой новых данных
 
         sessions.forEach(session => {
-    const card = document.createElement("div");
-    card.className = "session-card"; // Используем новый класс
-    card.innerHTML = `
+        const card = document.createElement("div");
+        card.className = "session-card"; // Используем новый класс
+        card.innerHTML = `
         <div class="card-content">
-            <p><strong>ID:</strong> ${session.id}</p>
+            <p><strong>Об устройстве:</strong> ${session.device_info}</p>
             <p><strong>Устройство:</strong> ${session.device_type || "Неизвестно"}, ${session.device_os || "Неизвестно"}</p>
-            <p><strong>IP:</strong> ${session.ip_address || "Нет данных"}</p>
             <p><strong>Даты:</strong> Создана: ${new Date(session.created_at).toLocaleString()}, Обновлена: ${new Date(session.updated_at).toLocaleString()}</p>
         </div>
-    `;
+        `;
     cardsContainer.appendChild(card);
 });
+
+
+  // Рассчитываем высоту всех карточек
+  const cardsHeight = Array.from(cardsContainer.children).reduce((totalHeight, card) => {
+            return totalHeight + card.offsetHeight;
+        }, 0);
+
+        // Добавляем дополнительные отступы (например, padding и margin)
+        const padding = 40; // Отступы внутри модального окна
+        const modalHeight = cardsHeight + padding+10;
+
+        // Устанавливаем высоту модального окна
+        const modal = document.getElementById("sessionsModal");
+        modal.style.height = `${modalHeight}px`;
+
 
     } catch (error) {
         console.error("Ошибка при получении сессий:", error);
