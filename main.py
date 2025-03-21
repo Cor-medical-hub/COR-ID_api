@@ -22,6 +22,8 @@ from cor_pass.routes import (
     cor_id,
     otp_auth,
     admin,
+    lawyer,
+    doctor
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger
@@ -180,6 +182,8 @@ app.include_router(password_generator.router, prefix="/api")
 app.include_router(person.router, prefix="/api")
 app.include_router(cor_id.router, prefix="/api")
 app.include_router(otp_auth.router, prefix="/api")
+app.include_router(lawyer.router, prefix="/api")
+app.include_router(doctor.router, prefix="/api")
 
 
 if __name__ == "__main__":

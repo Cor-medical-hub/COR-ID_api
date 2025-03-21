@@ -6,6 +6,9 @@ from cor_pass.database.models import (
 
     Doctor,
     DoctorStatus,
+    Diploma,
+    Certificate,
+    ClinicAffiliation
 
 )
 from cor_pass.schemas import (

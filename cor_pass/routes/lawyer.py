@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from typing import List
+from fastapi import APIRouter, File, HTTPException, Depends, UploadFile, status
 from sqlalchemy.orm import Session
 from cor_pass.database.db import get_db
 from cor_pass.services.auth import auth_service
-from cor_pass.database.models import User, Status
+from cor_pass.database.models import Certificate, ClinicAffiliation, Diploma, User, Status, Doctor
 from cor_pass.services.access import admin_access, lawyer_access
-from cor_pass.schemas import UserDb, DoctorsResponseSchema
+from cor_pass.schemas import CertificateResponse, ClinicAffiliationResponse, DiplomaResponse, DoctorCreate, DoctorResponse, DoctorWithRelationsResponse, UserDb
 from cor_pass.repository import person
 from cor_pass.repository import lawyer
 from pydantic import EmailStr
@@ -17,47 +18,104 @@ router = APIRouter(prefix="/lawyer", tags=["Lawyer"])
 
 
 @router.get(
-    "/get_all", response_model=list[UserDb], dependencies=[Depends(lawyer_access)]
+    "/get_all",
+    response_model=List[DoctorResponse],  
+    dependencies=[Depends(lawyer_access)],
 )
 async def get_all_doctors(
-    skip: int = 0,
-    limit: int = 10,
-    user: User = Depends(auth_service.get_current_user),
-    db: Session = Depends(get_db),
+    skip: int = 0,  
+    limit: int = 10,  
+    db: Session = Depends(get_db),  
 ):
-    """
-    **Get a list of users. / Получение списка всех пользователей**\n
-    This route allows to get a list of pagination-aware users.
-    Level of Access:
-    - Current authorized user
-    :param skip: int: Number of users to skip.
-    :param limit: int: Maximum number of users to return.
-    :param current_user: User: Current authenticated user.
-    :param db: Session: Database session.
-    :return: List of users with their last activity.
-    :rtype: List[UserDb]
-    """
 
-    list_doctors = await lawyer.get_doctors(skip, limit, db)
+    list_doctors = db.query(Doctor).offset(skip).limit(limit).all()
 
-    users_list_with_activity = []
-    for doctor in list_doctors:
-        oid = doctor.doctor_id
-        doctor_response = DoctorsResponseSchema(
+    if not list_doctors:
+        return []
+
+    doctors_response = [
+        DoctorResponse(
             id=doctor.id,
-            cor_id=doctor.doctor_id,
+            doctor_id=doctor.doctor_id,
+            work_email=doctor.work_email,
             first_name=doctor.first_name,
             surname=doctor.surname,
             last_name=doctor.last_name,
-            account_status=doctor.status,
             scientific_degree=doctor.scientific_degree,
             date_of_last_attestation=doctor.date_of_last_attestation,
-            
+            status=doctor.status,  
         )
+        for doctor in list_doctors
+    ]
+    return doctors_response
 
-        users_list_with_activity.append(doctor_response)
 
-    return users_list_with_activity
+@router.get(
+    "/{doctor_id}",
+    response_model=DoctorWithRelationsResponse,
+    dependencies=[Depends(lawyer_access)],
+)
+async def get_doctor_with_relations(
+    doctor_id: str,  
+    db: Session = Depends(get_db),  
+):
+    doctor = (
+        db.query(Doctor)
+        .filter(Doctor.id == doctor_id)
+        .outerjoin(Diploma)  
+        .outerjoin(Certificate)  
+        .outerjoin(ClinicAffiliation)  
+        .first()  
+    )
+
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Лікаря не знайдено")
+
+    # Серіалізуємо дані у відповідну схему
+    doctor_response = DoctorWithRelationsResponse(
+        id=doctor.id,
+        doctor_id=doctor.doctor_id,
+        work_email=doctor.work_email,
+        first_name=doctor.first_name,
+        surname=doctor.surname,
+        last_name=doctor.last_name,
+        scientific_degree=doctor.scientific_degree,
+        date_of_last_attestation=doctor.date_of_last_attestation,
+        status=doctor.status,
+        diplomas=[
+            DiplomaResponse(
+                id=diploma.id,
+                date=diploma.date,
+                series=diploma.series,
+                number=diploma.number,
+                university=diploma.university,
+            )
+            for diploma in doctor.diplomas
+        ],
+        certificates=[
+            CertificateResponse(
+                id=certificate.id,
+                date=certificate.date,
+                series=certificate.series,
+                number=certificate.number,
+                university=certificate.university,
+            )
+            for certificate in doctor.certificates
+        ],
+        clinic_affiliations=[
+            ClinicAffiliationResponse(
+                id=affiliation.id,
+                clinic_name=affiliation.clinic_name,
+                department=affiliation.department,
+                position=affiliation.position,
+                specialty=affiliation.specialty,
+            )
+            for affiliation in doctor.clinic_affiliations
+        ],
+    )
+
+    return doctor_response
+
 
 
 @router.patch("/asign_status/{account_status}", dependencies=[Depends(admin_access)])

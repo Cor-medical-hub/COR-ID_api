@@ -24,9 +24,9 @@ class Status(enum.Enum):
     premium: str = "premium"
     basic: str = "basic"
 
-class DoctorStatus(Enum):
-    PENDING = "заявка на рассмотрении"  
-    APPROVED = "заявка подтверждена" 
+class DoctorStatus(enum.Enum):
+    PENDING: str = "pending"  
+    APPROVED: str = "approved" 
 
 
 class User(Base):
@@ -82,7 +82,7 @@ class User(Base):
 class Doctor(Base):
     __tablename__ = "doctors"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    doctor_id = Column(String(36), ForeignKey("users.cor_id"), nullable=False)
+    doctor_id = Column(String(36), ForeignKey("users.cor_id"), unique=True, nullable=False)
     work_email = Column(String(250), unique=True, nullable=False)
     first_name = Column(String(100), nullable=True)
     surname = Column(String(100), nullable=True)
@@ -92,6 +92,7 @@ class Doctor(Base):
     date_of_last_attestation = Column(Date, nullable=True)
     status = Column(Enum(DoctorStatus), default=DoctorStatus.PENDING, nullable=False)
 
+    user = relationship("User", back_populates="user_doctors") 
     diplomas = relationship("Diploma", back_populates="doctor", cascade="all, delete-orphan")
     certificates = relationship("Certificate", back_populates="doctor", cascade="all, delete-orphan")
     clinic_affiliations = relationship("ClinicAffiliation", back_populates="doctor", cascade="all, delete-orphan")
@@ -99,7 +100,7 @@ class Doctor(Base):
 class Diploma(Base):
     __tablename__ = "diplomas"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False)
+    doctor_id = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=False)
     scan = Column(LargeBinary, nullable=True)
     date = Column(Date, nullable=False)
     series = Column(String(50), nullable=False)
@@ -111,7 +112,7 @@ class Diploma(Base):
 class Certificate(Base):
     __tablename__ = "certificates"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False)
+    doctor_id = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=False)
     scan = Column(LargeBinary, nullable=True)
     date = Column(Date, nullable=False)
     series = Column(String(50), nullable=False)
@@ -123,7 +124,7 @@ class Certificate(Base):
 class ClinicAffiliation(Base):
     __tablename__ = "clinic_affiliations"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False)
+    doctor_id = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=False)
     clinic_name = Column(String(250), nullable=False)
     department = Column(String(250), nullable=True)
     position = Column(String(250), nullable=True)
