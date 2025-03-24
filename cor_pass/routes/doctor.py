@@ -45,72 +45,72 @@ async def signup_doctor(
     :return: Созданный врач.
     :rtype: DoctorResponse
     """
-    # Парсим JSON-строку в объект DoctorCreate
-    # doctor_data_dict = json.loads(doctor_data)
-    # doctors_photo_bytes = await doctors_photo.read() if doctors_photo else None
-    # diploma_scan_bytes = await diploma_scan.read() if diploma_scan else None
-    # certificate_scan_bytes = await certificate_scan.read() if certificate_scan else None
-    # # doctor_data_obj = DoctorCreate(**doctor_data_dict)
-    # doctor = await create_doctor(
-    #     doctor_data=doctor_data_dict,
-    #     db=db,
-    #     doctors_photo_bytes=doctors_photo_bytes,
-    #     user=user
-    # )
-    # doctors_data = await create_doctor_service(
-    #     doctor_data=doctor_data_dict,
-    #     db=db,
-    #     doctor=doctor,
-    #     diploma_scan_bytes=diploma_scan_bytes,
-    #     certificate_scan_bytes=certificate_scan_bytes,
-    # )
+    #Парсим JSON-строку в объект DoctorCreate
+    doctor_data_dict = json.loads(doctor_data)
+    doctors_photo_bytes = await doctors_photo.read() if doctors_photo else None
+    diploma_scan_bytes = await diploma_scan.read() if diploma_scan else None
+    certificate_scan_bytes = await certificate_scan.read() if certificate_scan else None
+    # doctor_data_obj = DoctorCreate(**doctor_data_dict)
+    doctor = await create_doctor(
+        doctor_data=doctor_data_dict,
+        db=db,
+        doctors_photo_bytes=doctors_photo_bytes,
+        user=user
+    )
+    doctors_data = await create_doctor_service(
+        doctor_data=doctor_data_dict,
+        db=db,
+        doctor=doctor,
+        diploma_scan_bytes=diploma_scan_bytes,
+        certificate_scan_bytes=certificate_scan_bytes,
+    )
 
-    # # Сериализуем ответ
-    # doctor_response = DoctorResponse(
-    #     id=doctor.id,
-    #     doctor_id=doctor.doctor_id,
-    #     work_email=doctor.work_email,
-    #     first_name=doctor.first_name,
-    #     surname=doctor.surname,
-    #     last_name=doctor.last_name,
-    #     doctors_photo=doctor.doctors_photo,
-    #     scientific_degree=doctor.scientific_degree,
-    #     date_of_last_attestation=doctor.date_of_last_attestation,
-    #     status=doctor.status,
-    #     diplomas=[
-    #         DiplomaResponse(
-    #             id=diploma.id,
-    #             date=diploma.date,
-    #             series=diploma.series,
-    #             number=diploma.number,
-    #             university=diploma.university,
-    #         )
-    #         for diploma in doctor.diplomas
-    #     ],
-    #     certificates=[
-    #         CertificateResponse(
-    #             id=certificate.id,
-    #             date=certificate.date,
-    #             series=certificate.series,
-    #             number=certificate.number,
-    #             university=certificate.university,
-    #         )
-    #         for certificate in doctor.certificates
-    #     ],
-    #     clinic_affiliations=[
-    #         ClinicAffiliationResponse(
-    #             id=affiliation.id,
-    #             clinic_name=affiliation.clinic_name,
-    #             department=affiliation.department,
-    #             position=affiliation.position,
-    #             specialty=affiliation.specialty,
-    #         )
-    #         for affiliation in doctor.clinic_affiliations
-    #     ],
-    # )
+    # Сериализуем ответ
+    doctor_response = DoctorResponse(
+        id=doctor.id,
+        doctor_id=doctor.doctor_id,
+        work_email=doctor.work_email,
+        first_name=doctor.first_name,
+        surname=doctor.surname,
+        last_name=doctor.last_name,
+        doctors_photo=doctor.doctors_photo,
+        scientific_degree=doctor.scientific_degree,
+        date_of_last_attestation=doctor.date_of_last_attestation,
+        status=doctor.status,
+        diplomas=[
+            DiplomaResponse(
+                id=diploma.id,
+                date=diploma.date,
+                series=diploma.series,
+                number=diploma.number,
+                university=diploma.university,
+            )
+            for diploma in doctor.diplomas
+        ],
+        certificates=[
+            CertificateResponse(
+                id=certificate.id,
+                date=certificate.date,
+                series=certificate.series,
+                number=certificate.number,
+                university=certificate.university,
+            )
+            for certificate in doctor.certificates
+        ],
+        clinic_affiliations=[
+            ClinicAffiliationResponse(
+                id=affiliation.id,
+                clinic_name=affiliation.clinic_name,
+                department=affiliation.department,
+                position=affiliation.position,
+                specialty=affiliation.specialty,
+            )
+            for affiliation in doctor.clinic_affiliations
+        ],
+    )
 
-    # return doctor_response
-    return "Success"
+    return doctor_response
+
 
 
 
