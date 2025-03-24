@@ -275,30 +275,25 @@
 
     <script src="/static/translation.js"></script>  
     <script src="/static/general_fun.js"></script>   
-    <script> function goBack() { window.history.back();  } </script>
+    
         <script>
            const accessToken = new URLSearchParams(window.location.search).get('access_token');
             console.log("accessToken from localStorage:", accessToken);
             document.getElementById('passwordManagerButton').addEventListener('click', function() {
-                window.location.href = '/static/password_manager.html' + '?access_token=' + accessToken;   
+                if (checkToken()) {
+                window.location.href = '/static/password_manager.html' + '?access_token=' + accessToken;   }
             });
     
-            document.getElementById('COR-MED').addEventListener('click', function() {
-                window.location.href = '/static/Medical.html' + '?access_token=' + accessToken;
+            document.getElementById('COR-AUTH').addEventListener('click', function() {
+                if (checkToken()) {
+                window.location.href = '/static/medical.html' + '?access_token=' + accessToken;}
             });
     
             // Обработчик для кнопки "COR-Platform"
-        document.getElementById('COR-AUTH').addEventListener('click', function() {
-            const accessToken = new URLSearchParams(window.location.search).get('access_token');
-            const refreshToken = new URLSearchParams(window.location.search).get('refresh_token');
-            const savedRedirectUrl = localStorage.getItem('redirectUrl');
-
-            if (savedRedirectUrl && accessToken) {
-                // Перенаправляем на savedRedirectUrl с access_token и cor_id
-                window.location.href = `${savedRedirectUrl}?access_token=${accessToken}&refresh_token=${refreshToken}`;
-            } else {
-                console.error("Ошибка: Не найдены параметры redirect_url или cor_id.");
-            }
+        document.getElementById('COR-MED').addEventListener('click', function() {
+            if (checkToken()) {          
+                window.location.href = '/static/medical.html' + '?access_token=' + accessToken;
+            } 
         });
 
 
@@ -388,26 +383,43 @@
             }
 
             document.addEventListener('DOMContentLoaded', fetchCorId);
+            
             document.addEventListener('DOMContentLoaded', function() {
-                initModalControls('sessionsModal');
-          const isAdmin = localStorage.getItem('isAdmin'); // Получаем значение из localStorage
-          const adminButtonContainer = document.getElementById('admin-button-container'); // Элемент, куда будет добавлена кнопка
-              // Логирование значения isAdmin
-            console.log("isAdmin from localStorage:", isAdmin); // Логируем значение
-            if (isAdmin === 'true') { // Проверяем, является ли пользователь администратором
+              initModalControls('sessionsModal');
+              enableFetchInterceptor();
+              setupTokenCheckOnActions();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const accessToken = urlParams.get('access_token'); // Получаем токен из URL
+
+    if (accessToken) {
+        try {
+            // Расшифровываем токен
+            const decodedToken = decodeToken(accessToken);
+
+            // Логируем расшифрованный токен
+            console.log("Decoded token:", decodedToken);
+
+            // Проверяем, является ли пользователь администратором
+            const isAdmin = localStorage.getItem('isAdmin');
+            const adminButtonContainer = document.getElementById('admin-button-container');
+            adminButtonContainer.innerHTML = '';
+            if (isAdmin === 'true') {
                 const adminButton = document.createElement('button');
                 adminButton.innerText = 'Администрирование';
-                adminButton.className = 'admin-button'; 
                 adminButton.onclick = function() {
-                    window.location.href =  `/static/admin.html/?access_token=${accessToken}`// Переход на страницу администрирования
-                   
+                    window.location.href = `/static/admin.html/?access_token=${accessToken}`;
                 };
-                adminButtonContainer.appendChild(adminButton); // Добавляем кнопку в контейнер
+                adminButtonContainer.appendChild(adminButton);
             }
+        } catch (error) {
+            console.error("Ошибка при расшифровке токена:", error);
+        }
+    } else {
+        console.error("Токен не найден в localStorage.");
+    }
+});
 
-        });
-
-                // Находим элементы
             const sessionsButton = document.getElementById("Sessions"); // Кнопка "Сессии"
             const modal = document.getElementById("sessionsModal"); // Модальное окно
 
@@ -422,7 +434,8 @@
 // Функция для получения данных о сессиях
 async function getSessions() {
     try {
-        const token = localStorage.getItem("access_token"); // Берем токен из localStorage
+        const token = getTokenFromURL();
+       // const token = localStorage.getItem("access_token"); // Берем токен из localStorage
         const response = await fetch("/api/user/sessions/all?skip=0&limit=150", {
             method: "GET",
             headers: {
@@ -442,23 +455,39 @@ async function getSessions() {
         cardsContainer.innerHTML = ""; // Очистка перед вставкой новых данных
 
         sessions.forEach(session => {
-    const card = document.createElement("div");
-    card.className = "session-card"; // Используем новый класс
-    card.innerHTML = `
+        const card = document.createElement("div");
+        card.className = "session-card"; // Используем новый класс
+        card.innerHTML = `
         <div class="card-content">
-            <p><strong>ID:</strong> ${session.id}</p>
+            <p><strong>Об устройстве:</strong> ${session.device_info}</p>
             <p><strong>Устройство:</strong> ${session.device_type || "Неизвестно"}, ${session.device_os || "Неизвестно"}</p>
-            <p><strong>IP:</strong> ${session.ip_address || "Нет данных"}</p>
             <p><strong>Даты:</strong> Создана: ${new Date(session.created_at).toLocaleString()}, Обновлена: ${new Date(session.updated_at).toLocaleString()}</p>
         </div>
-    `;
+        `;
     cardsContainer.appendChild(card);
 });
+
+
+  // Рассчитываем высоту всех карточек
+  const cardsHeight = Array.from(cardsContainer.children).reduce((totalHeight, card) => {
+            return totalHeight + card.offsetHeight;
+        }, 0);
+
+        // Добавляем дополнительные отступы (например, padding и margin)
+        const padding = 40; // Отступы внутри модального окна
+        const modalHeight = cardsHeight + padding+10;
+
+        // Устанавливаем высоту модального окна
+        const modal = document.getElementById("sessionsModal");
+        modal.style.height = `${modalHeight}px`;
+
 
     } catch (error) {
         console.error("Ошибка при получении сессий:", error);
     }
 }
+
+
 
         </script>
     </body>
