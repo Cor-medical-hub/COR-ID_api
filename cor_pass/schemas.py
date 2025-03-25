@@ -255,9 +255,7 @@ class UpdateOTPRecordModel(BaseModel):
     username: str = Field(max_length=50)
 
 
-
 # DOCTOR MODELS
-
 
 
 class DiplomaCreate(BaseModel):
@@ -270,6 +268,7 @@ class DiplomaCreate(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+
 class DiplomaResponse(BaseModel):
     id: str = Field(..., description="ID диплома")
     date: datetime.date = Field(..., description="Дата выдачи диплома")
@@ -279,7 +278,8 @@ class DiplomaResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed = True
+
 
 class CertificateCreate(BaseModel):
     scan: Optional[bytes] = Field(None, description="Скан сертификата")
@@ -290,7 +290,8 @@ class CertificateCreate(BaseModel):
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed = True
+
 
 class CertificateResponse(BaseModel):
     id: str = Field(..., description="ID сертификата")
@@ -301,7 +302,8 @@ class CertificateResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed = True
+
 
 class ClinicAffiliationCreate(BaseModel):
     clinic_name: str = Field(..., max_length=250, description="Название клиники")
@@ -311,7 +313,8 @@ class ClinicAffiliationCreate(BaseModel):
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed = True
+
 
 class ClinicAffiliationResponse(BaseModel):
     id: str = Field(..., description="ID клиники")
@@ -320,10 +323,10 @@ class ClinicAffiliationResponse(BaseModel):
     position: Optional[str] = Field(None, description="Должность")
     specialty: Optional[str] = Field(None, description="Специальность")
 
-
     class Config:
         from_attributes = True
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed = True
+
 
 class DoctorWithRelationsResponse(BaseModel):
     id: str
@@ -339,11 +342,9 @@ class DoctorWithRelationsResponse(BaseModel):
     certificates: List[CertificateResponse] = []
     clinic_affiliations: List[ClinicAffiliationResponse] = []
 
-
-
     class Config:
         from_attributes = True
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed = True
 
 
 # class DoctorCreate(BaseModel):
@@ -378,7 +379,6 @@ class DoctorWithRelationsResponse(BaseModel):
 #         arbitrary_types_allowed=True
 
 
-
 class DoctorCreate(BaseModel):
     work_email: str
     first_name: str
@@ -404,7 +404,7 @@ class DoctorCreate(BaseModel):
                         "date": "2023-01-01",
                         "series": "AB",
                         "number": "123456",
-                        "university": "Medical University"
+                        "university": "Medical University",
                     }
                 ],
                 "certificates": [
@@ -412,7 +412,7 @@ class DoctorCreate(BaseModel):
                         "date": "2023-01-01",
                         "series": "CD",
                         "number": "654321",
-                        "university": "Another University"
+                        "university": "Another University",
                     }
                 ],
                 "clinic_affiliations": [
@@ -420,12 +420,11 @@ class DoctorCreate(BaseModel):
                         "clinic_name": "City Hospital",
                         "department": "Cardiology",
                         "position": "Senior Doctor",
-                        "specialty": "Cardiologist"
+                        "specialty": "Cardiologist",
                     }
-                ]
+                ],
             }
         }
-
 
 
 class DoctorResponse(BaseModel):
@@ -436,7 +435,9 @@ class DoctorResponse(BaseModel):
     surname: Optional[str] = Field(None, description="Фамилия врача")
     last_name: Optional[str] = Field(None, description="Отчество врача")
     scientific_degree: Optional[str] = Field(None, description="Научная степень")
-    date_of_last_attestation: Optional[date] = Field(None, description="Дата последней атестации")
+    date_of_last_attestation: Optional[date] = Field(
+        None, description="Дата последней атестации"
+    )
     status: DoctorStatus
     diplomas: List[DiplomaResponse] = []
     certificates: List[CertificateResponse] = []
@@ -444,4 +445,4 @@ class DoctorResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed=True
+        arbitrary_types_allowed = True

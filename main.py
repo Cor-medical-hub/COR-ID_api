@@ -23,7 +23,7 @@ from cor_pass.routes import (
     otp_auth,
     admin,
     lawyer,
-    doctor
+    doctor,
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger

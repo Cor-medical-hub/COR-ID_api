@@ -1,15 +1,12 @@
-
 from sqlalchemy.orm import Session
 
 
 from cor_pass.database.models import (
-
     Doctor,
     DoctorStatus,
     Diploma,
     Certificate,
-    ClinicAffiliation
-
+    ClinicAffiliation,
 )
 from cor_pass.schemas import (
     UserModel,
@@ -18,7 +15,6 @@ from cor_pass.schemas import (
     UserSessionDBModel,
     UserSessionModel,
 )
-
 
 
 async def get_doctors(skip: int, limit: int, db: Session) -> list[Doctor]:
@@ -40,16 +36,15 @@ async def get_doctor(doctor_id: str, db: Session) -> Doctor | None:
     return query
 
 
-
 async def get_all_doctor_info(doctor_id: str, db: Session) -> Doctor | None:
 
     query = (
         db.query(Doctor)
         .filter(Doctor.doctor_id == doctor_id)
-        .outerjoin(Diploma)  
-        .outerjoin(Certificate)  
-        .outerjoin(ClinicAffiliation)  
-        .first()  
+        .outerjoin(Diploma)
+        .outerjoin(Certificate)
+        .outerjoin(ClinicAffiliation)
+        .first()
     )
     return query
 
@@ -62,5 +57,3 @@ async def approve_doctor(doctor: Doctor, db: Session, status: DoctorStatus):
     except Exception as e:
         db.rollback()
         raise e
-
-

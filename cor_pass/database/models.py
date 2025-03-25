@@ -24,9 +24,10 @@ class Status(enum.Enum):
     premium: str = "premium"
     basic: str = "basic"
 
+
 class DoctorStatus(enum.Enum):
-    PENDING: str = "pending"  
-    APPROVED: str = "approved" 
+    PENDING: str = "pending"
+    APPROVED: str = "approved"
 
 
 class User(Base):
@@ -79,10 +80,13 @@ class User(Base):
         Index("idx_users_cor_id", "cor_id"),
     )
 
+
 class Doctor(Base):
     __tablename__ = "doctors"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    doctor_id = Column(String(36), ForeignKey("users.cor_id"), unique=True, nullable=False)
+    doctor_id = Column(
+        String(36), ForeignKey("users.cor_id"), unique=True, nullable=False
+    )
     work_email = Column(String(250), unique=True, nullable=False)
     first_name = Column(String(100), nullable=True)
     surname = Column(String(100), nullable=True)
@@ -92,10 +96,17 @@ class Doctor(Base):
     date_of_last_attestation = Column(Date, nullable=True)
     status = Column(Enum(DoctorStatus), default=DoctorStatus.PENDING, nullable=False)
 
-    user = relationship("User", back_populates="user_doctors") 
-    diplomas = relationship("Diploma", back_populates="doctor", cascade="all, delete-orphan")
-    certificates = relationship("Certificate", back_populates="doctor", cascade="all, delete-orphan")
-    clinic_affiliations = relationship("ClinicAffiliation", back_populates="doctor", cascade="all, delete-orphan")
+    user = relationship("User", back_populates="user_doctors")
+    diplomas = relationship(
+        "Diploma", back_populates="doctor", cascade="all, delete-orphan"
+    )
+    certificates = relationship(
+        "Certificate", back_populates="doctor", cascade="all, delete-orphan"
+    )
+    clinic_affiliations = relationship(
+        "ClinicAffiliation", back_populates="doctor", cascade="all, delete-orphan"
+    )
+
 
 class Diploma(Base):
     __tablename__ = "diplomas"
@@ -109,6 +120,7 @@ class Diploma(Base):
 
     doctor = relationship("Doctor", back_populates="diplomas")
 
+
 class Certificate(Base):
     __tablename__ = "certificates"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -120,6 +132,7 @@ class Certificate(Base):
     university = Column(String(250), nullable=False)
 
     doctor = relationship("Doctor", back_populates="certificates")
+
 
 class ClinicAffiliation(Base):
     __tablename__ = "clinic_affiliations"

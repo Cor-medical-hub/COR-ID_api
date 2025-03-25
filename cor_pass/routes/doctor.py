@@ -6,7 +6,13 @@ from typing import Optional
 from cor_pass.database.db import get_db
 from cor_pass.database.models import User
 from cor_pass.repository.doctor import create_doctor, create_doctor_service
-from cor_pass.schemas import CertificateResponse, ClinicAffiliationResponse, DiplomaResponse, DoctorCreate, DoctorResponse
+from cor_pass.schemas import (
+    CertificateResponse,
+    ClinicAffiliationResponse,
+    DiplomaResponse,
+    DoctorCreate,
+    DoctorResponse,
+)
 
 from cor_pass.services.access import user_access
 from cor_pass.services.auth import auth_service
@@ -15,6 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/doctor", tags=["Doctor"])
+
 
 @router.post(
     "/signup",
@@ -26,7 +33,7 @@ async def signup_doctor(
     doctor_data: str = Form(
         ...,
         example='{"work_email": "doctor@example.com", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
-        description="Данные врача в формате JSON. Пример: см. значение по умолчанию."
+        description="Данные врача в формате JSON. Пример: см. значение по умолчанию.",
     ),
     # doctor_data: DoctorCreate = Body(...),
     doctors_photo: UploadFile = File(None),
@@ -45,7 +52,7 @@ async def signup_doctor(
     :return: Созданный врач.
     :rtype: DoctorResponse
     """
-    #Парсим JSON-строку в объект DoctorCreate
+    # Парсим JSON-строку в объект DoctorCreate
     doctor_data_dict = json.loads(doctor_data)
     doctors_photo_bytes = await doctors_photo.read() if doctors_photo else None
     diploma_scan_bytes = await diploma_scan.read() if diploma_scan else None
@@ -55,7 +62,7 @@ async def signup_doctor(
         doctor_data=doctor_data_dict,
         db=db,
         doctors_photo_bytes=doctors_photo_bytes,
-        user=user
+        user=user,
     )
     doctors_data = await create_doctor_service(
         doctor_data=doctor_data_dict,
@@ -110,7 +117,3 @@ async def signup_doctor(
     )
 
     return doctor_response
-
-
-
-

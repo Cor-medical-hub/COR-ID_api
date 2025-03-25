@@ -2,8 +2,16 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from fastapi import UploadFile, File
 
-from cor_pass.database.models import Certificate, ClinicAffiliation, Diploma, Doctor, User, DoctorStatus
+from cor_pass.database.models import (
+    Certificate,
+    ClinicAffiliation,
+    Diploma,
+    Doctor,
+    User,
+    DoctorStatus,
+)
 from cor_pass.schemas import DoctorCreate
+
 
 async def create_doctor(
     doctor_data: dict,
@@ -32,7 +40,6 @@ async def create_doctor(
     # Добавляем врача в сессию
     db.add(doctor)
     # db.flush()  # Обеспечиваем, что объект стал постоянным
-
 
     # Создание дипломов
     # for diploma_data in doctor_data.get("diplomas", []):
@@ -76,12 +83,16 @@ async def create_doctor(
     return doctor
 
 
-
-async def create_certificates(doctor: Doctor, certificates_data: list, db: Session, certificate_scan_bytes: Optional[bytes] = None) -> None:
+async def create_certificates(
+    doctor: Doctor,
+    doctor_data: dict,
+    db: Session,
+    certificate_scan_bytes: Optional[bytes] = None,
+) -> None:
     """
     Создает сертификаты для врача.
     """
-    for cert in certificates_data:
+    for cert in doctor_data.get("certificates", []):
         certificate = Certificate(
             doctor_id=doctor.doctor_id,
             date=cert.get("date"),
@@ -94,7 +105,13 @@ async def create_certificates(doctor: Doctor, certificates_data: list, db: Sessi
 
     db.commit()  # Сохраняем изменения
 
-async def create_diploma(doctor: Doctor, doctor_data: dict, db: Session, diploma_scan_bytes: Optional[bytes] = None) -> None:
+
+async def create_diploma(
+    doctor: Doctor,
+    doctor_data: dict,
+    db: Session,
+    diploma_scan_bytes: Optional[bytes] = None,
+) -> None:
     """
     Создает дипломы для врача.
     """
@@ -111,7 +128,10 @@ async def create_diploma(doctor: Doctor, doctor_data: dict, db: Session, diploma
 
     db.commit()  # Сохраняем изменения
 
-async def create_clinic_affiliation(doctor: Doctor, doctor_data: dict, db: Session) -> None:
+
+async def create_clinic_affiliation(
+    doctor: Doctor, doctor_data: dict, db: Session
+) -> None:
     """
     Создает привязки к клиникам для врача.
     """
@@ -126,6 +146,7 @@ async def create_clinic_affiliation(doctor: Doctor, doctor_data: dict, db: Sessi
         db.add(affiliation)
 
     db.commit()  # Сохраняем изменения
+
 
 async def create_doctor_service(
     doctor_data: dict,
@@ -142,13 +163,15 @@ async def create_doctor_service(
     # Проверяем, что врач был создан успешно
     if doctor:
         print("Врач создан успешно")
-        
+
         # Создаем сертификаты
-        await create_certificates(doctor, doctor_data.get("certificates", []), db, certificate_scan_bytes)
-        
+        await create_certificates(
+            doctor, doctor_data, db, certificate_scan_bytes
+        )
+
         # Создаем дипломы
         await create_diploma(doctor, doctor_data, db, diploma_scan_bytes)
-        
+
         # Создаем привязки к клиникам
         await create_clinic_affiliation(doctor, doctor_data, db)
 

@@ -25,7 +25,8 @@ class AdminAccess:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden operation"
             )
-        
+
+
 class LawyerAccess:
     def __init__(self, email):
         self.email = email

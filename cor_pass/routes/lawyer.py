@@ -3,9 +3,25 @@ from fastapi import APIRouter, File, HTTPException, Depends, UploadFile, status
 from sqlalchemy.orm import Session
 from cor_pass.database.db import get_db
 from cor_pass.services.auth import auth_service
-from cor_pass.database.models import Certificate, ClinicAffiliation, Diploma, DoctorStatus, User, Status, Doctor
+from cor_pass.database.models import (
+    Certificate,
+    ClinicAffiliation,
+    Diploma,
+    DoctorStatus,
+    User,
+    Status,
+    Doctor,
+)
 from cor_pass.services.access import admin_access, lawyer_access
-from cor_pass.schemas import CertificateResponse, ClinicAffiliationResponse, DiplomaResponse, DoctorCreate, DoctorResponse, DoctorWithRelationsResponse, UserDb
+from cor_pass.schemas import (
+    CertificateResponse,
+    ClinicAffiliationResponse,
+    DiplomaResponse,
+    DoctorCreate,
+    DoctorResponse,
+    DoctorWithRelationsResponse,
+    UserDb,
+)
 from cor_pass.repository import person
 from cor_pass.repository import lawyer
 from pydantic import EmailStr
@@ -19,13 +35,13 @@ router = APIRouter(prefix="/lawyer", tags=["Lawyer"])
 
 @router.get(
     "/get_all_doctors",
-    response_model=List[DoctorResponse],  
+    response_model=List[DoctorResponse],
     dependencies=[Depends(lawyer_access)],
 )
 async def get_all_doctors(
-    skip: int = 0,  
-    limit: int = 10,  
-    db: Session = Depends(get_db),  
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(get_db),
 ):
 
     list_doctors = await lawyer.get_doctors(skip=skip, limit=limit, db=db)
@@ -43,7 +59,7 @@ async def get_all_doctors(
             last_name=doctor.last_name,
             scientific_degree=doctor.scientific_degree,
             date_of_last_attestation=doctor.date_of_last_attestation,
-            status=doctor.status,  
+            status=doctor.status,
         )
         for doctor in list_doctors
     ]
@@ -56,8 +72,8 @@ async def get_all_doctors(
     dependencies=[Depends(lawyer_access)],
 )
 async def get_doctor_with_relations(
-    doctor_id: str,  
-    db: Session = Depends(get_db),  
+    doctor_id: str,
+    db: Session = Depends(get_db),
 ):
 
     doctor = await lawyer.get_all_doctor_info(doctor_id=doctor_id, db=db)
@@ -111,7 +127,6 @@ async def get_doctor_with_relations(
     return doctor_response
 
 
-
 @router.patch("/asign_status/{doctor_id}", dependencies=[Depends(lawyer_access)])
 async def assign_status(
     doctor_id: str, doctor_status: DoctorStatus, db: Session = Depends(get_db)
@@ -133,12 +148,11 @@ async def assign_status(
 
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
-    
+
     if doctor_status == doctor.status:
         return {"message": "The acount status has already been assigned"}
     else:
         await lawyer.approve_doctor(doctor=doctor, db=db, status=doctor_status)
-        return {"message": f"{doctor.first_name} {doctor.last_name}'s status - {doctor_status.value}"}
-
-
-
+        return {
+            "message": f"{doctor.first_name} {doctor.last_name}'s status - {doctor_status.value}"
+        }
