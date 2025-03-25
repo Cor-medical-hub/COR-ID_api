@@ -3,7 +3,7 @@ from fastapi import APIRouter, File, HTTPException, Depends, UploadFile, status
 from sqlalchemy.orm import Session
 from cor_pass.database.db import get_db
 from cor_pass.services.auth import auth_service
-from cor_pass.database.models import Certificate, ClinicAffiliation, Diploma, User, Status, Doctor
+from cor_pass.database.models import Certificate, ClinicAffiliation, Diploma, DoctorStatus, User, Status, Doctor
 from cor_pass.services.access import admin_access, lawyer_access
 from cor_pass.schemas import CertificateResponse, ClinicAffiliationResponse, DiplomaResponse, DoctorCreate, DoctorResponse, DoctorWithRelationsResponse, UserDb
 from cor_pass.repository import person
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/lawyer", tags=["Lawyer"])
 
 
 @router.get(
-    "/get_all",
+    "/get_all_doctors",
     response_model=List[DoctorResponse],  
     dependencies=[Depends(lawyer_access)],
 )
@@ -28,7 +28,7 @@ async def get_all_doctors(
     db: Session = Depends(get_db),  
 ):
 
-    list_doctors = db.query(Doctor).offset(skip).limit(limit).all()
+    list_doctors = await lawyer.get_doctors(skip=skip, limit=limit, db=db)
 
     if not list_doctors:
         return []
@@ -51,7 +51,7 @@ async def get_all_doctors(
 
 
 @router.get(
-    "/{doctor_id}",
+    "/get_doctor_info/{doctor_id}",
     response_model=DoctorWithRelationsResponse,
     dependencies=[Depends(lawyer_access)],
 )
@@ -59,17 +59,11 @@ async def get_doctor_with_relations(
     doctor_id: str,  
     db: Session = Depends(get_db),  
 ):
-    doctor = (
-        db.query(Doctor)
-        .filter(Doctor.id == doctor_id)
-        .outerjoin(Diploma)  
-        .outerjoin(Certificate)  
-        .outerjoin(ClinicAffiliation)  
-        .first()  
-    )
+
+    doctor = await lawyer.get_all_doctor_info(doctor_id=doctor_id, db=db)
 
     if not doctor:
-        raise HTTPException(status_code=404, detail="Лікаря не знайдено")
+        raise HTTPException(status_code=404, detail="Doctor not found")
 
     # Серіалізуємо дані у відповідну схему
     doctor_response = DoctorWithRelationsResponse(
@@ -118,60 +112,33 @@ async def get_doctor_with_relations(
 
 
 
-@router.patch("/asign_status/{account_status}", dependencies=[Depends(admin_access)])
+@router.patch("/asign_status/{doctor_id}", dependencies=[Depends(lawyer_access)])
 async def assign_status(
-    email: EmailStr, account_status: Status, db: Session = Depends(get_db)
+    doctor_id: str, doctor_status: DoctorStatus, db: Session = Depends(get_db)
 ):
     """
-    **Assign a account_status to a user by email. / Применение нового статуса аккаунта пользователя**\n
+    **Assign a doctor_status to a doctor by doctor_id. / Применение нового статуса доктора (подтвержден / на рассмотрении)**\n
 
-    This route allows to assign the selected account_status to a user by their email.
+    :param doctor_id: str: doctor_id of the user to whom you want to assign the status.
 
-    :param email: EmailStr: Email of the user to whom you want to assign the status.
-
-    :param account_status: Status: The selected account_status for the assignment (Premium, Basic).
+    :param doctor_status: DoctorStatus: The selected doctor_status for the assignment (pending, approved).
 
     :param db: Session: Database Session.
 
     :return: Message about successful status change.
 
-    :rtype: dict
+    :rtype: str
     """
-    user = await person.get_user_by_email(email, db)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    if account_status == user.account_status:
+    doctor = await lawyer.get_doctor(doctor_id=doctor_id, db=db)
+
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    
+    if doctor_status == doctor.status:
         return {"message": "The acount status has already been assigned"}
     else:
-        await person.make_user_status(email, account_status, db)
-        return {"message": f"{email} - {account_status.value}"}
+        await lawyer.approve_doctor(doctor=doctor, db=db, status=doctor_status)
+        return {"message": f"{doctor.first_name} {doctor.last_name}'s status - {doctor_status.value}"}
 
-
-
-@router.patch("/activate/{email}", dependencies=[Depends(admin_access)])
-async def activate_user(email: EmailStr, db: Session = Depends(get_db)):
-    """
-    **Activate user by email. / Активация аккаунта пользователя**\n
-
-    This route allows to assign the selected account_status to a user by their email.
-
-    :param email: EmailStr: Email of the user to whom you want to assign the status.
-
-    :param account_status: Status: The selected account_status for the assignment (Premium, Basic).
-
-    :param db: Session: Database Session.
-
-    :return: Message about successful status change.
-
-    :rtype: dict
-    """
-    user = await person.get_user_by_email(email, db)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    if user.is_active:
-        return {"message": f"The {user.email} account is already active"}
-    else:
-        await person.activate_user(email, db)
-        return {"message": f"{user.email} - account is activated"}
 
 
