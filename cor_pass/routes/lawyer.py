@@ -26,7 +26,7 @@ from cor_pass.repository import person
 from cor_pass.repository import lawyer
 from pydantic import EmailStr
 from cor_pass.database.redis_db import redis_client
-
+import base64
 
 from cor_pass.services.logger import logger
 
@@ -65,6 +65,14 @@ async def get_all_doctors(
     ]
     return doctors_response
 
+    # Функция для преобразования бинарных данных в base64
+def bytes_to_base64(binary_data: bytes):
+    if binary_data is None:
+        return None
+    return base64.b64encode(binary_data).decode('utf-8')
+
+
+
 
 @router.get(
     "/get_doctor_info/{doctor_id}",
@@ -99,6 +107,7 @@ async def get_doctor_with_relations(
                 series=diploma.series,
                 number=diploma.number,
                 university=diploma.university,
+                scan=bytes_to_base64(diploma.scan)
             )
             for diploma in doctor.diplomas
         ],

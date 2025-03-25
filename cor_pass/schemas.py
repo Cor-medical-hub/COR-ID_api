@@ -275,6 +275,11 @@ class DiplomaResponse(BaseModel):
     series: str = Field(..., description="Серия диплома")
     number: str = Field(..., description="Номер диплома")
     university: str = Field(..., description="Название ВУЗа")
+    # scan: Optional[bytes] = Field(None, description="Скан диплома")
+    scan: Optional[str] = Field(
+    None, 
+    description="Скан документа в формате base64. Может быть None если скан отсутствует"
+)
 
     class Config:
         from_attributes = True

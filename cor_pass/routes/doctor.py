@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, Body, Depends, Form, UploadFile, File
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -16,6 +16,7 @@ from cor_pass.schemas import (
 
 from cor_pass.services.access import user_access
 from cor_pass.services.auth import auth_service
+from cor_pass.services.image_validation import validate_image_file
 import logging
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,18 @@ async def signup_doctor(
     :return: Созданный врач.
     :rtype: DoctorResponse
     """
+    try:
+        # Валидация изображений
+        if doctors_photo:
+            doctors_photo = await validate_image_file(doctors_photo)
+        if diploma_scan:
+            diploma_scan = await validate_image_file(diploma_scan)
+        if certificate_scan:
+            certificate_scan = await validate_image_file(certificate_scan)
+    except HTTPException as exeption:
+        logger.error(f"Error validating image: {str(exeption)}")
+        raise exeption
+
     # Парсим JSON-строку в объект DoctorCreate
     doctor_data_dict = json.loads(doctor_data)
     doctors_photo_bytes = await doctors_photo.read() if doctors_photo else None
