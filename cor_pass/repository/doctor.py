@@ -18,8 +18,6 @@ async def create_doctor(
     db: Session,
     user: User,
     doctors_photo_bytes: Optional[bytes] = None,
-    diploma_scan_bytes: Optional[bytes] = None,
-    certificate_scan_bytes: Optional[bytes] = None,
 ) -> Doctor:
     """
     Сервисная функция для создания врача.
@@ -39,42 +37,6 @@ async def create_doctor(
 
     # Добавляем врача в сессию
     db.add(doctor)
-    # db.flush()  # Обеспечиваем, что объект стал постоянным
-
-    # Создание дипломов
-    # for diploma_data in doctor_data.get("diplomas", []):
-    #     diploma = Diploma(
-    #         doctor_id=doctor.doctor_id,
-    #         date=diploma_data.get("date"),
-    #         series=diploma_data.get("series"),
-    #         number=diploma_data.get("number"),
-    #         university=diploma_data.get("university"),
-    #         scan=diploma_scan_bytes,
-    #     )
-    #     db.add(diploma)
-
-    # Создание сертификатов
-    # for certificate_data in doctor_data.get("certificates", []):
-    #     certificate = Certificate(
-    #         doctor_id=doctor.doctor_id,
-    #         date=certificate_data.get("date"),
-    #         series=certificate_data.get("series"),
-    #         number=certificate_data.get("number"),
-    #         university=certificate_data.get("university"),
-    #         scan=certificate_scan_bytes,
-    #     )
-    #     db.add(certificate)
-
-    # Создание привязок к клиникам
-    # for affiliation_data in doctor_data.get("clinic_affiliations", []):
-    #     affiliation = ClinicAffiliation(
-    #         doctor_id=doctor.doctor_id,
-    #         clinic_name=affiliation_data.get("clinic_name"),
-    #         department=affiliation_data.get("department"),
-    #         position=affiliation_data.get("position"),
-    #         specialty=affiliation_data.get("specialty"),
-    #     )
-    #     db.add(affiliation)
 
     # Сохраняем изменения в базе данных
     db.commit()
