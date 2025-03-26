@@ -165,3 +165,18 @@ async def assign_status(
         return {
             "message": f"{doctor.first_name} {doctor.last_name}'s status - {doctor_status.value}"
         }
+
+
+
+@router.delete("/delete_doctor/{doctor_id}", dependencies=[Depends(lawyer_access)])
+async def delete_user(doctor_id: str, db: Session = Depends(get_db)):
+    """
+        **Delete doctor by doctor_id. / Удаление врача по doctor_id**\n
+
+    """
+    doctor = await lawyer.get_doctor(doctor_id=doctor_id, db=db)
+    if not doctor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    else:
+        await lawyer.delete_doctor_by_doctor_id(db=db, doctor_id=doctor_id)
+        return {"message": f" doctor {doctor.first_name} {doctor.last_name} - was deleted"}

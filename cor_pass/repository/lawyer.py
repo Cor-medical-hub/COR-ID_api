@@ -15,6 +15,7 @@ from cor_pass.schemas import (
     UserSessionDBModel,
     UserSessionModel,
 )
+from sqlalchemy.exc import NoResultFound
 
 
 async def get_doctors(skip: int, limit: int, db: Session) -> list[Doctor]:
@@ -57,3 +58,16 @@ async def approve_doctor(doctor: Doctor, db: Session, status: DoctorStatus):
     except Exception as e:
         db.rollback()
         raise e
+
+
+async def delete_doctor_by_doctor_id(db: Session, doctor_id: str):
+    try:
+        doctor = db.query(Doctor).filter(Doctor.doctor_id == doctor_id).one()
+        db.delete(doctor)
+        db.commit()
+    except NoResultFound:
+        print("Доктор не найден.")
+    except Exception as e:
+        db.rollback()
+        print(f"Произошла ошибка при удалении врача: {e}")
+
