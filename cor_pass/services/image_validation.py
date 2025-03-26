@@ -1,7 +1,7 @@
 from fastapi import UploadFile, HTTPException
 import imghdr  # Встроенный модуль для проверки типа изображения
 
-ALLOWED_IMAGE_TYPES = {"jpeg", "png", "gif", "jpg"}
+ALLOWED_IMAGE_TYPES = {"jpeg", "png", "jpg"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 async def validate_image_file(file: UploadFile):
