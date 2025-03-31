@@ -171,6 +171,7 @@ async def assign_status(
 @router.delete("/delete_doctor/{doctor_id}", dependencies=[Depends(lawyer_access)])
 async def delete_user(doctor_id: str, db: Session = Depends(get_db)):
     """
+    
         **Delete doctor by doctor_id. / Удаление врача по doctor_id**\n
 
     """
