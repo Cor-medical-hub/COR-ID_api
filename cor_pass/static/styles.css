@@ -627,6 +627,7 @@ select#user_sex option:checked {
 
 .session-card {
     background-color: rgba(255, 255, 255, 0.6); /* Белый фон с прозрачностью 60% */
+
     border-radius: 12px; 
     padding: 7px; 
     width: 320px; /* Ширина карточки */
