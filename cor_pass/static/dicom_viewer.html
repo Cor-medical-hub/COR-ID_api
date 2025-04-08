@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICOM Viewer</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <style>
+        #dicomContainer {
+            width: 80%;
+            height: 600px;
+            margin: 20px auto;
+            position: relative;
+            background-color: black;
+        }
+        #dicomImage {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .toolbar {
+            text-align: center;
+            margin: 20px;
+        }
+        select, button {
+            padding: 8px 15px;
+            margin: 0 5px;
+        }
+        .metadata-panel {
+            width: 80%;
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <select id="fileSelector">
+            <option value="">Select DICOM file</option>
+        </select>
+        <button id="zoomIn">Zoom In</button>
+        <button id="zoomOut">Zoom Out</button>
+        <button id="pan">Pan</button>
+        <button id="wwc">Window Level</button>
+        <button id="reset">Reset</button>
+    </div>
+    
+    <div id="dicomContainer">
+        <div id="dicomImage">
+            <canvas></canvas>
+        </div>
+    </div>
+    
+    <div class="metadata-panel">
+        <h3>DICOM Metadata</h3>
+        <pre id="metadataDisplay"></pre>
+    </div>
+    
+    <!-- Подключаем библиотеки в правильном порядке -->
+    <script src="https://unpkg.com/dicom-parser@1.8.3/dist/dicomParser.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-math@0.1.9/dist/cornerstoneMath.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.13.2/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+    <script src="https://unpkg.com/cornerstone-tools@6.0.9/dist/cornerstoneTools.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Cornerstone version:', cornerstone.version);
+            console.log('CornerstoneTools version:', cornerstoneTools.version);
+            
+            await initViewer();
+            await loadDicomFileList();
+        });
+
+        async function initViewer() {
+            console.log('Initializing viewer...');
+            
+            const element = document.getElementById('dicomImage');
+            const canvas = document.createElement('canvas');
+            element.appendChild(canvas);
+
+            // Настраиваем загрузчик
+            cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+            cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+
+            cornerstoneWADOImageLoader.webWorkerManager.initialize({
+                maxWebWorkers: navigator.hardwareConcurrency || 1,
+                startWebWorkersOnDemand: true,
+                webWorkerPath: 'https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.13.2/dist/cornerstoneWADOImageLoaderWebWorker.min.js',
+                taskConfiguration: {
+                    'decodeTask': {
+                        codecsPath: 'https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.13.2/dist/cornerstoneWADOImageLoaderCodecs.min.js'
+                    }
+                }
+            });
+
+            cornerstone.enable(element);
+            cornerstoneTools.init({
+                showSVGCursors: true,
+                globalToolSyncEnabled: true
+            });
+        }
+
+        async function loadDicomFileList() {
+            try {
+                const response = await fetch('/api/dicom/list');
+                if (!response.ok) throw new Error('Failed to load DICOM list');
+                
+                const data = await response.json();
+                const selector = document.getElementById('fileSelector');
+                
+                selector.innerHTML = '<option value="">Select DICOM file</option>';
+                
+                data.files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file;
+                    option.textContent = file;
+                    selector.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading DICOM list:', error);
+                alert('Failed to load DICOM files list');
+            }
+        }
+
+        async function loadMetadata(filename) {
+            try {
+                const response = await fetch(`/api/dicom/${filename}/metadata`);
+                if (!response.ok) throw new Error('Failed to load metadata');
+                
+                const metadata = await response.json();
+                const metadataDisplay = document.getElementById('metadataDisplay');
+                
+                let formattedMetadata = '';
+                for (const [key, value] of Object.entries(metadata)) {
+                    formattedMetadata += `${key}: ${value}\n`;
+                }
+                
+                metadataDisplay.textContent = formattedMetadata;
+            } catch (error) {
+                console.error('Error loading metadata:', error);
+                document.getElementById('metadataDisplay').textContent = 'Failed to load metadata';
+            }
+        }
+
+        async function loadAndViewDicomFile(filename) {
+            if (!filename) return;
+            
+            try {
+                await loadMetadata(filename);
+                
+                const element = document.getElementById('dicomImage');
+                const imageId = `wadouri:${window.location.origin}/api/dicom/${filename}`;
+                
+                const image = await cornerstone.loadImage(imageId);
+                cornerstone.displayImage(element, image);
+                
+            } catch (error) {
+                console.error('Error loading DICOM image:', error);
+                alert('Failed to load DICOM image');
+            }
+        }
+
+        document.getElementById('fileSelector').addEventListener('change', (e) => {
+            loadAndViewDicomFile(e.target.value);
+        });
+
+    </script> 
+</body>
+</html>
