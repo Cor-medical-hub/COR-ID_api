@@ -96,6 +96,7 @@ async def get_doctor_with_relations(
         work_email=doctor.work_email,
         first_name=doctor.first_name,
         surname=doctor.surname,
+        doctors_photo=bytes_to_base64(doctor.doctors_photo),
         last_name=doctor.last_name,
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,
@@ -118,6 +119,7 @@ async def get_doctor_with_relations(
                 series=certificate.series,
                 number=certificate.number,
                 university=certificate.university,
+                scan=bytes_to_base64(certificate.scan)
             )
             for certificate in doctor.certificates
         ],

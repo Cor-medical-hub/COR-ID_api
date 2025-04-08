@@ -168,6 +168,8 @@ class UserSession(Base):
     __table_args__ = (Index("idx_user_sessions_user_id", "user_id"),)
 
 
+
+
 class Verification(Base):
     __tablename__ = "verification"
     id = Column(Integer, primary_key=True)
