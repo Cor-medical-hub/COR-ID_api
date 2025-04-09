@@ -29,6 +29,11 @@ class DoctorStatus(enum.Enum):
     PENDING: str = "pending"
     APPROVED: str = "approved"
 
+class AuthSessionStatus(enum.Enum):
+    PENDING: str = "pending"
+    APPROVED: str = "approved"
+    REJECTED: str = "rejected" 
+    TIMEOUT: str = "timeout"
 
 class User(Base):
     __tablename__ = "users"
@@ -168,6 +173,18 @@ class UserSession(Base):
     __table_args__ = (Index("idx_user_sessions_user_id", "user_id"),)
 
 
+class CorIdAuthSession(Base):
+    __tablename__ = "cor_id_auth_sessions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String(255), index=True, nullable=True)
+    cor_id = Column(String(250), index=True, nullable=True)
+    session_token = Column(String(36), unique=True, index=True, nullable=False)
+    status = Column(Enum(AuthSessionStatus), default=AuthSessionStatus.PENDING, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=func.now())
+
+    __table_args__ = (Index("idx_cor_id_auth_sessions_token", "session_token"),)
 
 
 class Verification(Base):

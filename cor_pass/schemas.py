@@ -431,3 +431,21 @@ class DoctorResponse(BaseModel):
     class Config:
         from_attributes = True
         arbitrary_types_allowed = True
+
+
+
+
+
+class InitiateLoginRequest(BaseModel):
+    email: EmailStr
+
+class InitiateLoginResponse(BaseModel):
+    session_token: str
+
+class ConfirmLoginRequest(BaseModel):
+    email: EmailStr
+    session_token: str
+    status: str  # "approved" или "rejected" от Cor-ID
+
+class ConfirmLoginResponse(BaseModel):
+    message: str

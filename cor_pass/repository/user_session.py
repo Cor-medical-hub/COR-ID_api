@@ -1,9 +1,13 @@
+from datetime import datetime, timedelta
 from typing import List
+import uuid
 from sqlalchemy.orm import Session
 
 from sqlalchemy import func, and_
 
 from cor_pass.database.models import (
+    AuthSessionStatus,
+    CorIdAuthSession,
     User,
     Status,
     Verification,
@@ -166,3 +170,42 @@ async def delete_session(user: User, db: Session, session_id: str):
         db.commit()
         print("Session deleted")
     return user_session
+
+
+
+
+async def create_auth_session(request: User, db: Session):
+    email = request.email
+    session_token = uuid.uuid4().hex
+    expires_at = datetime.now() + timedelta(minutes=10)  # 10 минут на подтверждение
+
+    db_session = CorIdAuthSession(email=email, session_token=session_token, expires_at=expires_at)
+    try:
+        db.add(db_session)
+        db.commit()
+        db.refresh(db_session)
+        return session_token
+    except Exception as e:
+        db.rollback()
+        raise e
+    
+async def get_auth_session(session_token: str, db: Session) -> CorIdAuthSession | None:
+    return db.query(CorIdAuthSession).filter(
+        CorIdAuthSession.session_token == session_token,
+        CorIdAuthSession.status == AuthSessionStatus.PENDING,
+        CorIdAuthSession.expires_at > datetime.utcnow()
+    ).first()
+
+
+async def update_session_status(db_session: CorIdAuthSession, confirmation_status: AuthSessionStatus, db: Session):
+    if confirmation_status == "approved":
+        db_session.status = AuthSessionStatus.APPROVED
+
+    elif confirmation_status == "rejected":
+        db_session.status = AuthSessionStatus.REJECTED
+    try:
+        db.commit()
+        db.refresh(db_session)
+    except Exception as e:
+        db.rollback()
+        raise e
