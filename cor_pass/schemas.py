@@ -436,6 +436,7 @@ class DoctorResponse(BaseModel):
 
 
 
+# CorIdAuthSession MODELS
 
 class InitiateLoginRequest(BaseModel):
     email: Optional[EmailStr] = None
@@ -462,7 +463,7 @@ class ConfirmLoginRequest(BaseModel):
     cor_id: Optional[str] = None
     session_token: str
     status: SessionLoginStatus
-    
+
     @model_validator(mode='before')
     def check_either_email_or_cor_id(cls, data: dict):
         email = data.get('email')
