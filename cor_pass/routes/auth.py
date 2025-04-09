@@ -16,7 +16,7 @@ from fastapi.security import (
 )
 from sqlalchemy.orm import Session
 from random import randint
-
+from fastapi_limiter.depends import RateLimiter
 from cor_pass.database.db import get_db
 from cor_pass.schemas import (
     ConfirmLoginRequest,
@@ -213,7 +213,7 @@ async def login(
     }
 
 
-@router.post("/v1/initiate-login", response_model=InitiateLoginResponse)
+@router.post("/v1/initiate-login", response_model=InitiateLoginResponse, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def initiate_login(request: InitiateLoginRequest, db: Session = Depends(get_db)):
     """
     Инициирует процесс входа пользователя через Cor-ID.

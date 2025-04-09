@@ -100,7 +100,7 @@ async def create_new_corid(user: User, db: Session):
     )
     term2 = n_days_since_first_jan_2024 * (2 ** (patient_bit + facility_bit))
     term3 = n_facility * (2**patient_bit)
-    term4 = get_register_per_day(n_facility)
+    term4 = await get_register_per_day(n_facility)
 
     new_corid_decimal = term1 + term2 + term3 + term4
     new_corid_encoded = custom_base32_encode(new_corid_decimal, charset)
@@ -114,17 +114,17 @@ async def create_new_corid(user: User, db: Session):
         raise e
 
 
-def get_register_per_day(facility_number):
+async def get_register_per_day(facility_number):
     """Получить номер регистрации за день для указанного учреждения."""
     # Генерируем уникальный ключ на основе facility_number и текущей даты
     date_str = datetime.now().strftime("%Y-%m-%d")  # Текущая дата в формате ГГГГ-ММ-ДД
     register_key = f"register:{facility_number}:{date_str}"
 
-    if redis_client.exists(register_key):
-        register_number = redis_client.incr(register_key)
+    if await redis_client.exists(register_key):
+        register_number = await redis_client.incr(register_key)
     else:
-        redis_client.set(register_key, 1)
-        redis_client.expire(register_key, 24 * 60 * 60)
+        await redis_client.set(register_key, 1)
+        await redis_client.expire(register_key, 24 * 60 * 60)
         register_number = 1
 
     return register_number

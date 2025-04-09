@@ -372,7 +372,7 @@ class DoctorCreate(BaseModel):
     clinic_affiliations: List[ClinicAffiliationCreate] = []
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "work_email": "doctor@example.com",
                 "first_name": "John",
