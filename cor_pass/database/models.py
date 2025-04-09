@@ -29,11 +29,13 @@ class DoctorStatus(enum.Enum):
     PENDING: str = "pending"
     APPROVED: str = "approved"
 
+
 class AuthSessionStatus(enum.Enum):
     PENDING: str = "pending"
     APPROVED: str = "approved"
-    REJECTED: str = "rejected" 
+    REJECTED: str = "rejected"
     TIMEOUT: str = "timeout"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -180,7 +182,9 @@ class CorIdAuthSession(Base):
     email = Column(String(255), index=True, nullable=True)
     cor_id = Column(String(250), index=True, nullable=True)
     session_token = Column(String(36), unique=True, index=True, nullable=False)
-    status = Column(Enum(AuthSessionStatus), default=AuthSessionStatus.PENDING, nullable=False)
+    status = Column(
+        Enum(AuthSessionStatus), default=AuthSessionStatus.PENDING, nullable=False
+    )
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
 

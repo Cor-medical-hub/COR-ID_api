@@ -10,7 +10,6 @@ from cor_pass.database.db import SessionLocal
 active_connections: dict[str, WebSocket] = {}
 
 
-
 async def send_websocket_message(session_token: str, message: dict):
     """Отправляет сообщение через WebSocket конкретному клиенту."""
     if session_token in active_connections:
@@ -31,16 +30,24 @@ async def check_session_timeouts():
         db = SessionLocal()  # Создаем новую сессию внутри задачи
         try:
             now = datetime.utcnow()
-            expired_sessions = db.query(CorIdAuthSession).filter(
-                CorIdAuthSession.status == AuthSessionStatus.PENDING,
-                CorIdAuthSession.expires_at < now
-            ).all()
+            expired_sessions = (
+                db.query(CorIdAuthSession)
+                .filter(
+                    CorIdAuthSession.status == AuthSessionStatus.PENDING,
+                    CorIdAuthSession.expires_at < now,
+                )
+                .all()
+            )
 
             for session in expired_sessions:
                 session.status = AuthSessionStatus.TIMEOUT
                 db.commit()
-                await send_websocket_message(session.session_token, {"status": "timeout"})
-                await close_websocket_connection(session.session_token) # Закрываем соединение
+                await send_websocket_message(
+                    session.session_token, {"status": "timeout"}
+                )
+                await close_websocket_connection(
+                    session.session_token
+                )  # Закрываем соединение
 
             db.close()  # Закрываем сессию после использования
         except Exception as e:
@@ -49,7 +56,7 @@ async def check_session_timeouts():
                 db.rollback()
                 db.close()
 
-        await asyncio.sleep(60) # Проверять каждую минуту
+        await asyncio.sleep(60)  # Проверять каждую минуту
 
 
 async def cleanup_auth_sessions():
@@ -59,19 +66,33 @@ async def cleanup_auth_sessions():
         try:
             now = datetime.utcnow()
             # Удаляем сессии, которые истекли
-            expired_sessions = db.query(CorIdAuthSession).filter(
-                CorIdAuthSession.expires_at < now
-            ).delete(synchronize_session="fetch")
+            expired_sessions = (
+                db.query(CorIdAuthSession)
+                .filter(CorIdAuthSession.expires_at < now)
+                .delete(synchronize_session="fetch")
+            )
 
             # Удаляем завершенные сессии старше определенного периода (например, 1 день)
             cutoff_time = now - timedelta(days=1)
-            completed_sessions = db.query(CorIdAuthSession).filter(
-                CorIdAuthSession.status.in_([AuthSessionStatus.APPROVED, AuthSessionStatus.REJECTED, AuthSessionStatus.TIMEOUT]),
-                CorIdAuthSession.created_at < cutoff_time
-            ).delete(synchronize_session="fetch")
+            completed_sessions = (
+                db.query(CorIdAuthSession)
+                .filter(
+                    CorIdAuthSession.status.in_(
+                        [
+                            AuthSessionStatus.APPROVED,
+                            AuthSessionStatus.REJECTED,
+                            AuthSessionStatus.TIMEOUT,
+                        ]
+                    ),
+                    CorIdAuthSession.created_at < cutoff_time,
+                )
+                .delete(synchronize_session="fetch")
+            )
 
             db.commit()
-            print(f"Удалено {expired_sessions} истекших сессий и {completed_sessions} завершенных сессий.")
+            print(
+                f"Удалено {expired_sessions} истекших сессий и {completed_sessions} завершенных сессий."
+            )
             db.close()
         except Exception as e:
             print(f"Ошибка при очистке сессий авторизации: {e}")
@@ -79,4 +100,4 @@ async def cleanup_auth_sessions():
                 db.rollback()
                 db.close()
 
-        await asyncio.sleep(3600) # Запускать каждый час (настрой по необходимости)
+        await asyncio.sleep(3600)  # Запускать каждый час (настрой по необходимости)

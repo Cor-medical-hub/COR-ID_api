@@ -1,5 +1,13 @@
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field, EmailStr, ValidationInfo, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    EmailStr,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from typing import List, Optional
 from datetime import datetime
 from cor_pass.database.models import Status, DoctorStatus, AuthSessionStatus
@@ -276,9 +284,9 @@ class DiplomaResponse(BaseModel):
     number: str = Field(..., description="Номер диплома")
     university: str = Field(..., description="Название ВУЗа")
     scan: Optional[str] = Field(
-    None, 
-    description="Скан документа в формате base64. Может быть None если скан отсутствует"
-)
+        None,
+        description="Скан документа в формате base64. Может быть None если скан отсутствует",
+    )
 
     class Config:
         from_attributes = True
@@ -304,9 +312,9 @@ class CertificateResponse(BaseModel):
     number: str = Field(..., description="Номер сертификата")
     university: str = Field(..., description="Название ВУЗа")
     scan: Optional[str] = Field(
-    None, 
-    description="Скан документа в формате base64. Может быть None если скан отсутствует"
-)
+        None,
+        description="Скан документа в формате base64. Может быть None если скан отсутствует",
+    )
 
     class Config:
         from_attributes = True
@@ -344,9 +352,8 @@ class DoctorWithRelationsResponse(BaseModel):
     surname: Optional[str]
     last_name: Optional[str]
     doctors_photo: Optional[str] = Field(
-    None, 
-    description="Фото в формате base64. Может быть None если фото отсутствует"
-)
+        None, description="Фото в формате base64. Может быть None если фото отсутствует"
+    )
     scientific_degree: Optional[str]
     date_of_last_attestation: Optional[date]
     status: str
@@ -357,8 +364,6 @@ class DoctorWithRelationsResponse(BaseModel):
     class Config:
         from_attributes = True
         arbitrary_types_allowed = True
-
-
 
 
 class DoctorCreate(BaseModel):
@@ -417,9 +422,8 @@ class DoctorResponse(BaseModel):
     surname: Optional[str] = Field(None, description="Фамилия врача")
     last_name: Optional[str] = Field(None, description="Отчество врача")
     doctors_photo: Optional[str] = Field(
-    None, 
-    description="Фото в формате base64. Может быть None если фото отсутствует"
-)
+        None, description="Фото в формате base64. Может быть None если фото отсутствует"
+    )
     scientific_degree: Optional[str] = Field(None, description="Научная степень")
     date_of_last_attestation: Optional[date] = Field(
         None, description="Дата последней атестации"
@@ -434,21 +438,21 @@ class DoctorResponse(BaseModel):
         arbitrary_types_allowed = True
 
 
-
-
 # CorIdAuthSession MODELS
+
 
 class InitiateLoginRequest(BaseModel):
     email: Optional[EmailStr] = None
     cor_id: Optional[str] = None
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def check_either_email_or_cor_id(cls, data: dict):
-        email = data.get('email')
-        cor_id = data.get('cor_id')
+        email = data.get("email")
+        cor_id = data.get("cor_id")
         if not email and not cor_id:
-            raise ValueError('Требуется указать либо email, либо cor_id')
+            raise ValueError("Требуется указать либо email, либо cor_id")
         return data
+
 
 class InitiateLoginResponse(BaseModel):
     session_token: str
@@ -458,19 +462,21 @@ class SessionLoginStatus(str, Enum):
     approved = "approved"
     rejected = "rejected"
 
+
 class ConfirmLoginRequest(BaseModel):
     email: Optional[EmailStr] = None
     cor_id: Optional[str] = None
     session_token: str
     status: SessionLoginStatus
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def check_either_email_or_cor_id(cls, data: dict):
-        email = data.get('email')
-        cor_id = data.get('cor_id')
+        email = data.get("email")
+        cor_id = data.get("cor_id")
         if not email and not cor_id:
-            raise ValueError('Требуется указать либо email, либо cor_id')
+            raise ValueError("Требуется указать либо email, либо cor_id")
         return data
+
 
 class ConfirmLoginResponse(BaseModel):
     message: str

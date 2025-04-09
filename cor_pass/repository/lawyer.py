@@ -70,4 +70,3 @@ async def delete_doctor_by_doctor_id(db: Session, doctor_id: str):
     except Exception as e:
         db.rollback()
         print(f"Произошла ошибка при удалении врача: {e}")
-

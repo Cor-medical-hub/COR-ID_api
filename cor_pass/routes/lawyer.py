@@ -66,12 +66,12 @@ async def get_all_doctors(
     return doctors_response
 
     # Функция для преобразования бинарных данных в base64
+
+
 def bytes_to_base64(binary_data: bytes):
     if binary_data is None:
         return None
-    return base64.b64encode(binary_data).decode('utf-8')
-
-
+    return base64.b64encode(binary_data).decode("utf-8")
 
 
 @router.get(
@@ -108,7 +108,7 @@ async def get_doctor_with_relations(
                 series=diploma.series,
                 number=diploma.number,
                 university=diploma.university,
-                scan=bytes_to_base64(diploma.scan)
+                scan=bytes_to_base64(diploma.scan),
             )
             for diploma in doctor.diplomas
         ],
@@ -119,7 +119,7 @@ async def get_doctor_with_relations(
                 series=certificate.series,
                 number=certificate.number,
                 university=certificate.university,
-                scan=bytes_to_base64(certificate.scan)
+                scan=bytes_to_base64(certificate.scan),
             )
             for certificate in doctor.certificates
         ],
@@ -169,12 +169,11 @@ async def assign_status(
         }
 
 
-
 @router.delete("/delete_doctor/{doctor_id}", dependencies=[Depends(lawyer_access)])
 async def delete_user(doctor_id: str, db: Session = Depends(get_db)):
     """
-    
-        **Delete doctor by doctor_id. / Удаление врача по doctor_id**\n
+
+    **Delete doctor by doctor_id. / Удаление врача по doctor_id**\n
 
     """
     doctor = await lawyer.get_doctor(doctor_id=doctor_id, db=db)
@@ -182,4 +181,6 @@ async def delete_user(doctor_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     else:
         await lawyer.delete_doctor_by_doctor_id(db=db, doctor_id=doctor_id)
-        return {"message": f" doctor {doctor.first_name} {doctor.last_name} - was deleted"}
+        return {
+            "message": f" doctor {doctor.first_name} {doctor.last_name} - was deleted"
+        }

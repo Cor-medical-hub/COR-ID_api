@@ -23,6 +23,7 @@ from cor_pass.schemas import (
     ConfirmLoginResponse,
     InitiateLoginRequest,
     InitiateLoginResponse,
+    SessionLoginStatus,
     UserModel,
     ResponseUser,
     TokenModel,
@@ -214,7 +215,11 @@ async def login(
     }
 
 
-@router.post("/v1/initiate-login", response_model=InitiateLoginResponse, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@router.post(
+    "/v1/initiate-login",
+    response_model=InitiateLoginResponse,
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))],
+)
 async def initiate_login(request: InitiateLoginRequest, db: Session = Depends(get_db)):
     """
     Инициирует процесс входа пользователя через Cor-ID.
@@ -223,21 +228,25 @@ async def initiate_login(request: InitiateLoginRequest, db: Session = Depends(ge
 
     session_token = await repository_session.create_auth_session(request, db)
 
-
     return {"session_token": session_token}
 
-@router.post("/v1/confirm-login", response_model=ConfirmLoginResponse, dependencies=[Depends(user_access)],)
+
+@router.post(
+    "/v1/confirm-login",
+    response_model=ConfirmLoginResponse,
+    dependencies=[Depends(user_access)],
+)
 async def confirm_login(request: ConfirmLoginRequest, db: Session = Depends(get_db)):
     """
     Подтверждает или отклоняет запрос на вход от Cor-ID.
-    Получает email, session_token и статус, обновляет сессию и отправляет результат через WebSocket.
+    Получает email и/или cor-id, session_token и статус, обновляет сессию и отправляет результат через WebSocket.
+    Требует авторизацию
     """
     email = request.email
     cor_id = request.cor_id
     session_token = request.session_token
     confirmation_status = request.status.lower()
 
-    # await repository_session.create_auth_session(request, db)
     db_session = await repository_session.get_auth_session(session_token, db)
 
     if not db_session:
@@ -245,13 +254,14 @@ async def confirm_login(request: ConfirmLoginRequest, db: Session = Depends(get_
 
     if email and db_session.email != email:
         raise HTTPException(status_code=400, detail="Неверный email для данной сессии")
-    
+
     elif cor_id and db_session.cor_id != cor_id:
         raise HTTPException(status_code=400, detail="Неверный cor_id для данной сессии")
 
-    if confirmation_status == "approved":
-
-        await repository_session.update_session_status(db_session, confirmation_status, db)
+    if confirmation_status == SessionLoginStatus.approved:
+        await repository_session.update_session_status(
+            db_session, confirmation_status, db
+        )
         # Получаем пользователя по email
         user = await repository_person.get_user_by_email(db_session.email, db)
         if user is None:
@@ -260,33 +270,39 @@ async def confirm_login(request: ConfirmLoginRequest, db: Session = Depends(get_
                 detail="User not found / invalid email",
             )
         # Получаем токены
-        if user.email in settings.eternal_accounts:
-            access_token = await auth_service.create_access_token(
-                data={"oid": user.id, "corid": user.cor_id},
-                expires_delta=settings.eternal_token_expiration,
-            )
-            refresh_token = await auth_service.create_refresh_token(
-                data={"oid": user.id, "corid": user.cor_id},
-                expires_delta=settings.eternal_token_expiration,
-            )
-        else:
-            access_token = await auth_service.create_access_token(
-                data={"oid": user.id, "corid": user.cor_id}
-            )
-            refresh_token = await auth_service.create_refresh_token(
-                data={"oid": user.id, "corid": user.cor_id}
-            )
+        token_data = {"oid": user.id, "corid": user.cor_id}
+        expires_delta = (
+            settings.eternal_token_expiration
+            if user.email in settings.eternal_accounts
+            else None
+        )
 
+        access_token = await auth_service.create_access_token(
+            data=token_data, expires_delta=expires_delta
+        )
+        refresh_token = await auth_service.create_refresh_token(
+            data=token_data, expires_delta=expires_delta
+        )
 
-        await send_websocket_message(session_token, {"status": "approved", "access_token": access_token,"refresh_token": refresh_token,"token_type": "bearer",})
+        await send_websocket_message(
+            session_token,
+            {
+                "status": "approved",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "bearer",
+            },
+        )
         return {"message": "Вход успешно подтвержден"}
-    elif confirmation_status == "rejected":
-        await repository_session.update_session_status(db_session, confirmation_status, db)
+
+    elif confirmation_status == SessionLoginStatus.rejected:
+        await repository_session.update_session_status(
+            db_session, confirmation_status, db
+        )
         await send_websocket_message(session_token, {"status": "rejected"})
         return {"message": "Вход отменен пользователем"}
     else:
         raise HTTPException(status_code=400, detail="Неверный статус подтверждения")
-
 
 
 @router.get(

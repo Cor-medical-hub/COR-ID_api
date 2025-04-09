@@ -72,7 +72,6 @@ def get_device_info(request: Request) -> dict:
     }
 
 
-
 def get_client_ip(request: Request):
     """Получение реального IP-адреса клиента."""
     if "x-forwarded-for" in request.headers:

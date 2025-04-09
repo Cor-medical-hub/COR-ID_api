@@ -173,15 +173,15 @@ async def delete_session(user: User, db: Session, session_id: str):
     return user_session
 
 
-
-
 async def create_auth_session(request: InitiateLoginRequest, db: Session):
     email = request.email
     cor_id = request.cor_id
     session_token = uuid.uuid4().hex
     expires_at = datetime.now() + timedelta(minutes=10)  # 10 минут на подтверждение
 
-    db_session = CorIdAuthSession(email=email, cor_id=cor_id, session_token=session_token, expires_at=expires_at)
+    db_session = CorIdAuthSession(
+        email=email, cor_id=cor_id, session_token=session_token, expires_at=expires_at
+    )
     try:
         db.add(db_session)
         db.commit()
@@ -190,21 +190,33 @@ async def create_auth_session(request: InitiateLoginRequest, db: Session):
     except Exception as e:
         db.rollback()
         raise e
-    
+
+
 async def get_auth_session(session_token: str, db: Session) -> CorIdAuthSession | None:
-    return db.query(CorIdAuthSession).filter(
-        CorIdAuthSession.session_token == session_token,
-        CorIdAuthSession.status == AuthSessionStatus.PENDING,
-        CorIdAuthSession.expires_at > datetime.utcnow()
-    ).first()
+    return (
+        db.query(CorIdAuthSession)
+        .filter(
+            CorIdAuthSession.session_token == session_token,
+            CorIdAuthSession.status == AuthSessionStatus.PENDING,
+            CorIdAuthSession.expires_at > datetime.utcnow(),
+        )
+        .first()
+    )
 
 
+async def get_auth_session_by_token(
+    session_token: str, db: Session
+) -> CorIdAuthSession | None:
+    return (
+        db.query(CorIdAuthSession)
+        .filter(CorIdAuthSession.session_token == session_token)
+        .first()
+    )
 
-async def get_auth_session_by_token(session_token: str, db: Session) -> CorIdAuthSession | None:
-    return db.query(CorIdAuthSession).filter(CorIdAuthSession.session_token == session_token).first()
 
-
-async def update_session_status(db_session: CorIdAuthSession, confirmation_status: AuthSessionStatus, db: Session):
+async def update_session_status(
+    db_session: CorIdAuthSession, confirmation_status: AuthSessionStatus, db: Session
+):
     if confirmation_status == "approved":
         db_session.status = AuthSessionStatus.APPROVED
 

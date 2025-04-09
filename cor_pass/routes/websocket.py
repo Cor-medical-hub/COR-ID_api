@@ -10,8 +10,11 @@ from cor_pass.database.db import get_db
 
 router = APIRouter(prefix="/websockets", tags=["Websockets"])
 
+
 @router.websocket("/auth/{session_token}")
-async def websocket_endpoint(websocket: WebSocket, session_token: str, db: Session = Depends(get_db)):
+async def websocket_endpoint(
+    websocket: WebSocket, session_token: str, db: Session = Depends(get_db)
+):
     """
     WebSocket-эндпоинт для ожидания статуса подтверждения от Cor-ID.
     Принимает подключение только для сессий со статусом PENDING.
@@ -24,8 +27,12 @@ async def websocket_endpoint(websocket: WebSocket, session_token: str, db: Sessi
         return
 
     if db_session.status != AuthSessionStatus.PENDING:
-        print(f"Подключение к сессии с токеном {session_token} отклонено. Статус: {db_session.status}")
-        await websocket.close(code=1008, reason=f"Неверный статус сессии: {db_session.status}")
+        print(
+            f"Подключение к сессии с токеном {session_token} отклонено. Статус: {db_session.status}"
+        )
+        await websocket.close(
+            code=1008, reason=f"Неверный статус сессии: {db_session.status}"
+        )
         return
 
     await websocket.accept()

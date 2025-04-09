@@ -36,7 +36,7 @@ from cor_pass.routes import (
     lawyer,
     doctor,
     dicom,
-    websocket
+    websocket,
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger
@@ -147,8 +147,10 @@ def healthchecker(db: Session = Depends(get_db)):
             detail="Error connecting to the database",
         )
 
+
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
-    
+
+
 # Middleware для добавления заголовка времени обработки
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -181,19 +183,15 @@ async def track_active_users(request: Request, call_next):
     return response
 
 
-
-
 async def custom_identifier(request: Request) -> str:
     return request.client.host
+
 
 # Событие при старте приложения
 @app.on_event("startup")
 async def startup():
     print("------------- STARTUP --------------")
-    await FastAPILimiter.init(
-        redis_client,
-        identifier=custom_identifier
-    )
+    await FastAPILimiter.init(redis_client, identifier=custom_identifier)
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
 

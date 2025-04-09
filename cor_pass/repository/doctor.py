@@ -127,9 +127,7 @@ async def create_doctor_service(
         print("Врач создан успешно")
 
         # Создаем сертификаты
-        await create_certificates(
-            doctor, doctor_data, db, certificate_scan_bytes
-        )
+        await create_certificates(doctor, doctor_data, db, certificate_scan_bytes)
 
         # Создаем дипломы
         await create_diploma(doctor, doctor_data, db, diploma_scan_bytes)
