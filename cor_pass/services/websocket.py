@@ -16,6 +16,15 @@ async def send_websocket_message(session_token: str, message: dict):
     if session_token in active_connections:
         await active_connections[session_token].send_json(message)
 
+
+async def close_websocket_connection(session_token: str):
+    """Закрывает WebSocket-соединение и удаляет его из активных."""
+    if session_token in active_connections:
+        await active_connections[session_token].close()
+        del active_connections[session_token]
+        print(f"WebSocket соединение для {session_token} закрыто из-за таймаута.")
+
+
 async def check_session_timeouts():
     """Фоновая задача для проверки и обработки таймаутов сессий."""
     while True:
@@ -31,6 +40,7 @@ async def check_session_timeouts():
                 session.status = AuthSessionStatus.TIMEOUT
                 db.commit()
                 await send_websocket_message(session.session_token, {"status": "timeout"})
+                await close_websocket_connection(session.session_token) # Закрываем соединение
 
             db.close()  # Закрываем сессию после использования
         except Exception as e:

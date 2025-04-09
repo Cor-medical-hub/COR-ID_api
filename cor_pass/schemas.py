@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, EmailStr, ValidationInfo, field_validator, model_validator
 from typing import List, Optional
 from datetime import datetime
 from cor_pass.database.models import Status, DoctorStatus
@@ -437,7 +437,16 @@ class DoctorResponse(BaseModel):
 
 
 class InitiateLoginRequest(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    cor_id: Optional[str] = None
+
+    @model_validator(mode='before')
+    def check_either_email_or_cor_id(cls, data: dict):
+        email = data.get('email')
+        cor_id = data.get('cor_id')
+        if not email and not cor_id:
+            raise ValueError('Требуется указать либо email, либо cor_id')
+        return data
 
 class InitiateLoginResponse(BaseModel):
     session_token: str
