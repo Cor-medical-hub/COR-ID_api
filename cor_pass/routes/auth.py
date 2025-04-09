@@ -46,6 +46,7 @@ from cor_pass.services.email import (
 )
 from cor_pass.services.cipher import decrypt_data, decrypt_user_key, encrypt_data
 from cor_pass.config.config import settings
+from cor_pass.services.access import user_access
 from cor_pass.services.logger import logger
 from cor_pass.services import cor_otp
 from fastapi import UploadFile
@@ -225,7 +226,7 @@ async def initiate_login(request: InitiateLoginRequest, db: Session = Depends(ge
 
     return {"session_token": session_token}
 
-@router.post("/v1/confirm-login", response_model=ConfirmLoginResponse)
+@router.post("/v1/confirm-login", response_model=ConfirmLoginResponse, dependencies=[Depends(user_access)],)
 async def confirm_login(request: ConfirmLoginRequest, db: Session = Depends(get_db)):
     """
     Подтверждает или отклоняет запрос на вход от Cor-ID.
