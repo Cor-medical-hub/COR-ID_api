@@ -233,6 +233,7 @@ async def confirm_login(request: ConfirmLoginRequest, db: Session = Depends(get_
     Получает email, session_token и статус, обновляет сессию и отправляет результат через WebSocket.
     """
     email = request.email
+    cor_id = request.cor_id
     session_token = request.session_token
     confirmation_status = request.status.lower()
 
@@ -242,8 +243,11 @@ async def confirm_login(request: ConfirmLoginRequest, db: Session = Depends(get_
     if not db_session:
         raise HTTPException(status_code=404, detail="Сессия не найдена или истекла")
 
-    if db_session.email != email:
+    if email and db_session.email != email:
         raise HTTPException(status_code=400, detail="Неверный email для данной сессии")
+    
+    elif cor_id and db_session.cor_id != cor_id:
+        raise HTTPException(status_code=400, detail="Неверный cor_id для данной сессии")
 
     if confirmation_status == "approved":
 

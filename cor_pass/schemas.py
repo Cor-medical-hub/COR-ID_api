@@ -458,9 +458,18 @@ class SessionLoginStatus(str, Enum):
     rejected = "rejected"
 
 class ConfirmLoginRequest(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    cor_id: Optional[str] = None
     session_token: str
-    status: SessionLoginStatus  
+    status: SessionLoginStatus
+    
+    @model_validator(mode='before')
+    def check_either_email_or_cor_id(cls, data: dict):
+        email = data.get('email')
+        cor_id = data.get('cor_id')
+        if not email and not cor_id:
+            raise ValueError('Требуется указать либо email, либо cor_id')
+        return data
 
 class ConfirmLoginResponse(BaseModel):
     message: str
