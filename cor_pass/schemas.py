@@ -1,7 +1,8 @@
+from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, EmailStr, ValidationInfo, field_validator, model_validator
 from typing import List, Optional
 from datetime import datetime
-from cor_pass.database.models import Status, DoctorStatus
+from cor_pass.database.models import Status, DoctorStatus, AuthSessionStatus
 import re
 from datetime import date
 
@@ -451,10 +452,15 @@ class InitiateLoginRequest(BaseModel):
 class InitiateLoginResponse(BaseModel):
     session_token: str
 
+
+class SessionLoginStatus(str, Enum):
+    approved = "approved"
+    rejected = "rejected"
+
 class ConfirmLoginRequest(BaseModel):
     email: EmailStr
     session_token: str
-    status: str  # "approved" или "rejected" от Cor-ID
+    status: SessionLoginStatus  
 
 class ConfirmLoginResponse(BaseModel):
     message: str
