@@ -218,7 +218,7 @@ async def login(
 async def initiate_login(request: InitiateLoginRequest, db: Session = Depends(get_db)):
     """
     Инициирует процесс входа пользователя через Cor-ID.
-    Получает email, генерирует session_token и сохраняет информацию о сессии CorIdAuthSession.
+    Получает email и/или cor-id, генерирует session_token и сохраняет информацию о сессии CorIdAuthSession.
     """
 
     session_token = await repository_session.create_auth_session(request, db)
