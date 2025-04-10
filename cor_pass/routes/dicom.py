@@ -4,14 +4,14 @@ import os
 import pydicom
 from pathlib import Path
 from typing import List
-
+from cor_pass.services.access import user_access
 router = APIRouter(prefix="/dicom", tags=["DICOM"])
 
 DICOM_DIR = "dicom_files"
 os.makedirs(DICOM_DIR, exist_ok=True)
 
 
-@router.post("/upload")
+@router.post("/upload", dependencies=[Depends(user_access)])
 async def upload_dicom_file(file: UploadFile = File(...)):
     """Загрузка DICOM файла на сервер"""
     try:
@@ -27,7 +27,7 @@ async def upload_dicom_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"Invalid DICOM file: {str(e)}")
 
 
-@router.get("/list")
+@router.get("/list", dependencies=[Depends(user_access)])
 async def list_dicom_files():
     """Список доступных DICOM файлов"""
     files = [f for f in os.listdir(DICOM_DIR) if f.endswith((".dcm", ".DCM"))]
@@ -53,13 +53,13 @@ async def get_dicom_metadata(filename: str):
         )
 
 
-@router.get("/viewer", response_class=HTMLResponse)
+@router.get("/viewer", response_class=HTMLResponse, dependencies=[Depends(user_access)])
 async def dicom_viewer():
     """Встроенный DICOM просмотровщик"""
     return FileResponse("cor_pass/static/dicom_viewer.html")
 
 
-@router.get("/{filename}")
+@router.get("/{filename}", dependencies=[Depends(user_access)])
 async def get_dicom_file(filename: str):
     """Получение DICOM файла"""
     try:

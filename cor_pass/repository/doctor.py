@@ -26,6 +26,7 @@ async def create_doctor(
     doctor = Doctor(
         doctor_id=user.cor_id,
         work_email=doctor_data.get("work_email"),
+        phone_number=doctor_data.get("phone_number"),
         first_name=doctor_data.get("first_name"),
         surname=doctor_data.get("surname"),
         last_name=doctor_data.get("last_name"),

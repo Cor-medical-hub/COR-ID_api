@@ -95,6 +95,7 @@ class Doctor(Base):
         String(36), ForeignKey("users.cor_id"), unique=True, nullable=False
     )
     work_email = Column(String(250), unique=True, nullable=False)
+    phone_number = Column(String(20), nullable=True)
     first_name = Column(String(100), nullable=True)
     surname = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)

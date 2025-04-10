@@ -33,7 +33,7 @@ router = APIRouter(prefix="/doctor", tags=["Doctor"])
 async def signup_doctor(
     doctor_data: str = Form(
         ...,
-        example='{"work_email": "doctor@example.com", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
+        example='{"work_email": "doctor@example.com","phone_number": "+380636666541", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
         description="Данные врача в формате JSON. Пример: см. значение по умолчанию.",
     ),
     # doctor_data: DoctorCreate = Body(...),
@@ -90,10 +90,11 @@ async def signup_doctor(
         id=doctor.id,
         doctor_id=doctor.doctor_id,
         work_email=doctor.work_email,
+        phone_number=doctor.phone_number,
         first_name=doctor.first_name,
         surname=doctor.surname,
         last_name=doctor.last_name,
-        doctors_photo=doctor.doctors_photo,
+        # doctors_photo=doctor.doctors_photo,
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,
         status=doctor.status,

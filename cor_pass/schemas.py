@@ -348,6 +348,7 @@ class DoctorWithRelationsResponse(BaseModel):
     id: str
     doctor_id: str
     work_email: str
+    phone_number: Optional[str]
     first_name: Optional[str]
     surname: Optional[str]
     last_name: Optional[str]
@@ -368,6 +369,7 @@ class DoctorWithRelationsResponse(BaseModel):
 
 class DoctorCreate(BaseModel):
     work_email: str
+    phone_number: Optional[str] = None
     first_name: str
     surname: str
     last_name: str
@@ -381,6 +383,7 @@ class DoctorCreate(BaseModel):
         json_schema_extra = {
             "example": {
                 "work_email": "doctor@example.com",
+                "phone_number": "+3806666666",
                 "first_name": "John",
                 "surname": "Doe",
                 "last_name": "Smith",
@@ -418,6 +421,7 @@ class DoctorResponse(BaseModel):
     id: str = Field(..., description="ID врача")
     doctor_id: str = Field(..., description="COR-ID врача")
     work_email: EmailStr = Field(..., description="Рабочий имейл")
+    phone_number: Optional[str] = Field(None, description="Номер телефона")
     first_name: Optional[str] = Field(None, description="Имя врача")
     surname: Optional[str] = Field(None, description="Фамилия врача")
     last_name: Optional[str] = Field(None, description="Отчество врача")
