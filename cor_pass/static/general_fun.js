@@ -6,6 +6,10 @@ const modalConfigs = {
     myModal: { width: '250px', height: '450px', top: '50px', left: '250px' },
     settingsModal: { width: '550px', height: '600px', top: '50px', left: '450px' },
     sessionsModal: { width: '400px', height: '300px', top: '100px', left: '100px' },
+    step1Modal: { width: '460px', height: '650px', top: '20px', left: '300px' },
+    step2Modal: { width: '460px', height: '650px', top: '20px', left: '300px' },
+    step3Modal: { width: '460px', height: '650px', top: '20px', left: '300px' },
+    step4Modal: { width: '460px', height: '650px', top: '20px', left: '300px' },
 };
 
 function makeModalDraggable(modalId) {
@@ -287,3 +291,248 @@ function updateEyeIcon(eyeIcon, isPasswordHidden) {
 }
 // Автоматическая инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', initAllModals);
+
+
+// Функция для проверки истечения срока действия токена
+function isTokenExpired(token) {
+    const decodedToken = decodeToken(token);
+    if (!decodedToken || !decodedToken.exp) {
+        return true;
+    }
+    const currentTime = Math.floor(Date.now() / 1000);
+    return decodedToken.exp < currentTime;
+}
+
+// Функция для декодирования токена
+function decodeToken(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (error) {
+        console.error("Failed to decode token:", error);
+        return null;
+    }
+}
+
+// Функция вычисления оставшегося времени жизни токена
+function calculateTokenLifetime(decodedToken) {
+    if (!decodedToken.exp) {
+        console.warn("Token does not have an 'exp' field.");
+        return null;
+    }
+
+    const currentTime = Math.floor(Date.now() / 1000); // Текущее время в секундах
+    const remainingTime = decodedToken.exp - currentTime;
+
+    if (remainingTime <= 0) {
+        console.warn("Token has already expired.");
+        return 0;
+    }
+    console.log(`Оставшееся время жизни токена: ${formatTime(remainingTime)}`);
+    return remainingTime; // В секундах
+}
+
+// Функция форматирования времени
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    return `${hours}ч ${minutes}м ${secs}с`;
+}
+
+function showTokenExpiredModal() {
+
+    // Очищаем всё содержимое body
+    document.body.innerHTML = "";
+    // Добавляем модальное окно в body
+    const modalHTML = `
+    <div id="tokenExpiredModal" class="modal" 
+       style="height: auto; 
+       padding: 20px; 
+       display: flex; 
+       flex-direction: column;
+       position: fixed;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%);
+       z-index: 1000;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; flex: 1; justify-content: center;">
+
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="80" rx="40" fill="white"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M40.0605 24.2002C41.6475 24.2002 43.0791 
+    25.0459 43.8896 26.4629L56.9111 49.1445C57.3018 49.8145 57.5088 50.5742 57.5088 51.3379C57.5088 
+    53.9648 55.6729 55.8008 53.0459 55.8008H27.0586C24.4316 55.8008 22.5977 53.9648 22.5977 
+    51.3379C22.5996 50.5723 22.8057 49.8184 23.1963 49.1582L36.2139 26.4639C37.041 25.0459 
+    38.4795 24.2002 40.0605 24.2002Z" fill="#DF1125"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M39.0374 33.7061C39.2815 33.458 39.636 
+    33.3213 40.0364 33.3213C40.4329 33.3213 40.7903 33.4619 41.0413 33.7188C41.2727 33.9551 
+    41.3968 34.2744 41.3899 34.6191L41.1526 43.5195C41.139 44.2734 40.7581 44.6738 40.053 
+    44.6738C39.3255 44.6738 38.9339 44.2734 38.9192 43.5176L38.6995 34.6025C38.6927 34.249 
+    38.8099 33.9385 39.0374 33.7061ZM41.6768 48.6055C41.6768 49.4629 40.9492 50.1621 40.0537 
+    50.1621C39.1729 50.1621 38.4297 49.4492 38.4297 48.6055C38.4297 47.748 39.1582 47.0488 
+    40.0537 47.0488C40.9639 47.0488 41.6768 47.7324 41.6768 48.6055Z" fill="white"/>
+   </svg>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <h1 style="font-size: 18px; margin: 0; color: #291161;">Срок действия сессии истёк</h1>
+        </div>
+        
+        <p style="margin: 0; color: #5B4296; text-align: center;">Пожалуйста, войдите снова, чтобы продолжить.</p>
+        
+        <button id="loginRedirectButton" style="
+            padding: 10px;
+            border: none;
+            margin: 10px 0;
+            background-color: #7527B2;
+            color: white;
+            cursor: pointer;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 200px;
+            height: 40px;
+            transition: background-color 0.3s;">Войти
+        </button>
+    </div>
+</div>
+`;
+    document.body.style.display = "none";
+    document.body.innerHTML = modalHTML;
+    document.body.style.display = "block"; 
+
+
+      // Удаление токенов из localStorage
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('isAdmin');
+      localStorage.removeItem('redirectUrl');
+
+
+      // Очистка кэша страницы
+      if ('caches' in window) {
+          caches.keys().then(names => {
+              for (let name of names) caches.delete(name);
+          });
+      }
+
+
+    // Добавляем обработчик кнопки для перехода на страницу логина
+    document.getElementById('loginRedirectButton').addEventListener('click', () => {
+        window.location.href = "/"; 
+    });
+
+}
+
+function getTokenFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('access_token'); // Извлекаем токен из URL
+}
+
+
+// Функция для проверки истечения токена
+function checkToken() {
+    const token = getTokenFromURL(); // Получаем токен из URL
+    if (!token) {
+        console.warn("Authorization token is missing.");
+        showTokenExpiredModal();
+        return false; // Токен отсутствует
+    }
+
+    // Парсим токен и проверяем, истёк ли он
+    const decodedToken = decodeToken(token);
+    calculateTokenLifetime(decodedToken);
+    if (!decodedToken) {
+        console.error("Failed to decode token.");
+        showTokenExpiredModal();
+        return false; // Токен не удалось декодировать
+    }
+
+    if (isTokenExpired(token)) {
+        console.warn("Token has expired.");
+        showTokenExpiredModal();
+        return false; // Токен истёк
+    }
+
+    return true; // Токен актуален
+}
+
+
+// Функция для прослушки всех событий с делегированием
+function setupTokenCheckOnActions() {
+    document.addEventListener('click', function(event) {
+        const target = event.target;
+
+        // Проверяем, был ли клик по кнопке или ссылке
+        if (target.tagName === 'BUTTON' || target.tagName === 'A') {
+            if (!checkToken()) {
+                event.preventDefault(); // Отменяем действие, если токен истёк
+            }
+        }
+    });
+}
+
+// Функция для активации перехватчика fetch
+function enableFetchInterceptor() {
+    const originalFetch = window.fetch;
+
+    window.fetch = async function (...args) {
+        // Печатаем аргументы вызова fetch для отладки
+        console.log("Fetch arguments:", args);
+
+        // Проверяем наличие токена в заголовках
+        const requestOptions = args[1] || {};
+        const headers = requestOptions.headers || {};
+
+        if (headers.Authorization) {
+            const token = headers.Authorization.replace("Bearer ", ""); // Убираем "Bearer"
+            console.log("Extracted token:", token);
+
+            // Парсим токен и выводим его в консоль
+            const decodedToken = decodeToken(token);
+            if (decodedToken) {
+                console.log("Decoded token:", decodedToken);
+
+                // Проверяем, истёк ли токен
+                if (isTokenExpired(token)) {
+                    console.warn("Token has expired.");
+                    showTokenExpiredModal();
+                    return; // Прекращаем выполнение запроса
+                }
+            } else {
+                console.error("Failed to decode token.");
+            }
+        } else {
+            console.warn("Authorization header is missing.");
+        }
+
+        // Выполняем оригинальный запрос
+        const response = await originalFetch(...args);
+
+        // Обрабатываем ошибки 401
+        if (response.status === 401) { // Неавторизован
+            console.warn("Unauthorized: Token might be expired.");
+            showTokenExpiredModal();
+        }
+
+        return response;
+    };
+}
+
+
+function goBack(url) {
+    // Проверяем токен
+    if (checkToken()) {
+        // Получаем токен из localStorage или из URL
+        const accessToken = localStorage.getItem('accessToken');
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('access_token');
+        // Используем токен из URL, если он есть, иначе из localStorage
+        const token = tokenFromUrl || accessToken;
+        window.location.href = `${url}?access_token=${token}`;
+    } 
+}

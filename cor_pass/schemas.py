@@ -1,8 +1,18 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from enum import Enum
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    EmailStr,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from typing import List, Optional
 from datetime import datetime
-from cor_pass.database.models import Status
+from cor_pass.database.models import Status, DoctorStatus, AuthSessionStatus
 import re
+from datetime import date
 
 # AUTH MODELS
 
@@ -252,3 +262,225 @@ class OTPRecordResponse(BaseModel):
 class UpdateOTPRecordModel(BaseModel):
     record_name: str = Field(max_length=50)
     username: str = Field(max_length=50)
+
+
+# DOCTOR MODELS
+
+
+class DiplomaCreate(BaseModel):
+    scan: Optional[bytes] = Field(None, description="Скан диплома")
+    date: Optional[datetime.date] = Field(..., description="Дата выдачи диплома")
+    series: str = Field(..., max_length=50, description="Серия диплома")
+    number: str = Field(..., max_length=50, description="Номер диплома")
+    university: str = Field(..., max_length=250, description="Название ВУЗа")
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class DiplomaResponse(BaseModel):
+    id: str = Field(..., description="ID диплома")
+    date: datetime.date = Field(..., description="Дата выдачи диплома")
+    series: str = Field(..., description="Серия диплома")
+    number: str = Field(..., description="Номер диплома")
+    university: str = Field(..., description="Название ВУЗа")
+    scan: Optional[str] = Field(
+        None,
+        description="Скан документа в формате base64. Может быть None если скан отсутствует",
+    )
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+class CertificateCreate(BaseModel):
+    scan: Optional[bytes] = Field(None, description="Скан сертификата")
+    date: datetime.date = Field(..., description="Дата выдачи сертификата")
+    series: str = Field(..., max_length=50, description="Серия сертификата")
+    number: str = Field(..., max_length=50, description="Номер сертификата")
+    university: str = Field(..., max_length=250, description="Название ВУЗа")
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+class CertificateResponse(BaseModel):
+    id: str = Field(..., description="ID сертификата")
+    date: datetime.date = Field(..., description="Дата выдачи сертификата")
+    series: str = Field(..., description="Серия сертификата")
+    number: str = Field(..., description="Номер сертификата")
+    university: str = Field(..., description="Название ВУЗа")
+    scan: Optional[str] = Field(
+        None,
+        description="Скан документа в формате base64. Может быть None если скан отсутствует",
+    )
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+class ClinicAffiliationCreate(BaseModel):
+    clinic_name: str = Field(..., max_length=250, description="Название клиники")
+    department: Optional[str] = Field(None, max_length=250, description="Отделение")
+    position: Optional[str] = Field(None, max_length=250, description="Должность")
+    specialty: Optional[str] = Field(None, max_length=250, description="Специальность")
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+class ClinicAffiliationResponse(BaseModel):
+    id: str = Field(..., description="ID клиники")
+    clinic_name: str = Field(..., description="Название клиники")
+    department: Optional[str] = Field(None, description="Отделение")
+    position: Optional[str] = Field(None, description="Должность")
+    specialty: Optional[str] = Field(None, description="Специальность")
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+class DoctorWithRelationsResponse(BaseModel):
+    id: str
+    doctor_id: str
+    work_email: str
+    phone_number: Optional[str]
+    first_name: Optional[str]
+    surname: Optional[str]
+    last_name: Optional[str]
+    doctors_photo: Optional[str] = Field(
+        None, description="Фото в формате base64. Может быть None если фото отсутствует"
+    )
+    scientific_degree: Optional[str]
+    date_of_last_attestation: Optional[date]
+    status: str
+    diplomas: List[DiplomaResponse] = []
+    certificates: List[CertificateResponse] = []
+    clinic_affiliations: List[ClinicAffiliationResponse] = []
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+class DoctorCreate(BaseModel):
+    work_email: str
+    phone_number: Optional[str] = None
+    first_name: str
+    surname: str
+    last_name: str
+    scientific_degree: Optional[str] = None
+    date_of_last_attestation: Optional[date] = None
+    diplomas: List[DiplomaCreate] = []
+    certificates: List[CertificateCreate] = []
+    clinic_affiliations: List[ClinicAffiliationCreate] = []
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "work_email": "doctor@example.com",
+                "phone_number": "+3806666666",
+                "first_name": "John",
+                "surname": "Doe",
+                "last_name": "Smith",
+                "scientific_degree": "PhD",
+                "date_of_last_attestation": "2022-12-31",
+                "diplomas": [
+                    {
+                        "date": "2023-01-01",
+                        "series": "AB",
+                        "number": "123456",
+                        "university": "Medical University",
+                    }
+                ],
+                "certificates": [
+                    {
+                        "date": "2023-01-01",
+                        "series": "CD",
+                        "number": "654321",
+                        "university": "Another University",
+                    }
+                ],
+                "clinic_affiliations": [
+                    {
+                        "clinic_name": "City Hospital",
+                        "department": "Cardiology",
+                        "position": "Senior Doctor",
+                        "specialty": "Cardiologist",
+                    }
+                ],
+            }
+        }
+
+
+class DoctorResponse(BaseModel):
+    id: str = Field(..., description="ID врача")
+    doctor_id: str = Field(..., description="COR-ID врача")
+    work_email: EmailStr = Field(..., description="Рабочий имейл")
+    phone_number: Optional[str] = Field(None, description="Номер телефона")
+    first_name: Optional[str] = Field(None, description="Имя врача")
+    surname: Optional[str] = Field(None, description="Фамилия врача")
+    last_name: Optional[str] = Field(None, description="Отчество врача")
+    doctors_photo: Optional[str] = Field(
+        None, description="Фото в формате base64. Может быть None если фото отсутствует"
+    )
+    scientific_degree: Optional[str] = Field(None, description="Научная степень")
+    date_of_last_attestation: Optional[date] = Field(
+        None, description="Дата последней атестации"
+    )
+    status: DoctorStatus
+    # diplomas: List[DiplomaResponse] = []
+    # certificates: List[CertificateResponse] = []
+    # clinic_affiliations: List[ClinicAffiliationResponse] = []
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+# CorIdAuthSession MODELS
+
+
+class InitiateLoginRequest(BaseModel):
+    email: Optional[EmailStr] = None
+    cor_id: Optional[str] = None
+
+    @model_validator(mode="before")
+    def check_either_email_or_cor_id(cls, data: dict):
+        email = data.get("email")
+        cor_id = data.get("cor_id")
+        if not email and not cor_id:
+            raise ValueError("Требуется указать либо email, либо cor_id")
+        return data
+
+
+class InitiateLoginResponse(BaseModel):
+    session_token: str
+
+
+class SessionLoginStatus(str, Enum):
+    approved = "approved"
+    rejected = "rejected"
+
+
+class ConfirmLoginRequest(BaseModel):
+    email: Optional[EmailStr] = None
+    cor_id: Optional[str] = None
+    session_token: str
+    status: SessionLoginStatus
+
+    @model_validator(mode="before")
+    def check_either_email_or_cor_id(cls, data: dict):
+        email = data.get("email")
+        cor_id = data.get("cor_id")
+        if not email and not cor_id:
+            raise ValueError("Требуется указать либо email, либо cor_id")
+        return data
+
+
+class ConfirmLoginResponse(BaseModel):
+    message: str

@@ -1,5 +1,7 @@
+import asyncio
 import time
 
+from fastapi.middleware import Middleware
 import uvicorn
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -11,9 +13,18 @@ from prometheus_client import Counter, Histogram
 from prometheus_client import generate_latest
 from starlette.responses import Response
 
+from starlette.middleware import Middleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+
+
 from cor_pass.routes import auth, person
 from cor_pass.database.db import get_db
 from cor_pass.database.redis_db import redis_client
+
 from cor_pass.routes import (
     auth,
     records,
@@ -22,6 +33,10 @@ from cor_pass.routes import (
     cor_id,
     otp_auth,
     admin,
+    lawyer,
+    doctor,
+    dicom,
+    websocket,
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger
@@ -32,6 +47,8 @@ from collections import defaultdict
 from jose import JWTError, jwt
 
 import logging
+
+from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
 
 
 # Создание обработчика для логирования с временными метками
@@ -131,6 +148,9 @@ def healthchecker(db: Session = Depends(get_db)):
         )
 
 
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+
+
 # Middleware для добавления заголовка времени обработки
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -156,17 +176,24 @@ async def track_active_users(request: Request, call_next):
                     algorithms=[auth_service.ALGORITHM],
                 )
                 oid = decoded_token.get("oid")
-                redis_client.set(oid, time.time())
+                await redis_client.set(oid, time.time())
             except JWTError:
                 pass
     response = await call_next(request)
     return response
 
 
+async def custom_identifier(request: Request) -> str:
+    return request.client.host
+
+
 # Событие при старте приложения
 @app.on_event("startup")
 async def startup():
     print("------------- STARTUP --------------")
+    await FastAPILimiter.init(redis_client, identifier=custom_identifier)
+    asyncio.create_task(check_session_timeouts())
+    asyncio.create_task(cleanup_auth_sessions())
 
 
 auth_attempts = defaultdict(list)
@@ -180,6 +207,10 @@ app.include_router(password_generator.router, prefix="/api")
 app.include_router(person.router, prefix="/api")
 app.include_router(cor_id.router, prefix="/api")
 app.include_router(otp_auth.router, prefix="/api")
+app.include_router(lawyer.router, prefix="/api")
+app.include_router(doctor.router, prefix="/api")
+app.include_router(dicom.router, prefix="/api")
+app.include_router(websocket.router, prefix="/api")
 
 
 if __name__ == "__main__":

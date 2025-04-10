@@ -1403,6 +1403,24 @@ toml = ["tomli (>=2.0.1)"]
 yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
+name = "pydicom"
+version = "3.0.1"
+description = "A pure Python package for reading and writing DICOM data"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "pydicom-3.0.1-py3-none-any.whl", hash = "sha256:db32f78b2641bd7972096b8289111ddab01fb221610de8d7afa835eb938adb41"},
+    {file = "pydicom-3.0.1.tar.gz", hash = "sha256:7b8be344b5b62493c9452ba6f5a299f78f8a6ab79786c729b0613698209603ec"},
+]
+
+[package.extras]
+basic = ["numpy", "types-pydicom"]
+dev = ["black (==24.8.0)", "mypy (==1.11.2)", "pre-commit", "pydicom-data", "pytest", "pytest-cov", "ruff (==0.6.3)", "types-requests"]
+docs = ["matplotlib", "numpy", "numpydoc", "pillow", "sphinx", "sphinx-copybutton", "sphinx-gallery", "sphinx_rtd_theme", "sphinxcontrib-jquery", "sphinxcontrib-napoleon"]
+gpl-license = ["pylibjpeg[libjpeg]"]
+pixeldata = ["numpy", "pillow", "pyjpegls", "pylibjpeg[openjpeg]", "pylibjpeg[rle]", "python-gdcm"]
+
+[[package]]
 name = "pygments"
 version = "2.18.0"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -2175,4 +2193,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "433dc47376c95fa4f684f305ea42060260c98350bdab1ce1162f8d01bebdaf76"
+content-hash = "27f1f673b72400805eca93b5957edf6cafc0d1aff7e90215b9a61163636a94bb"

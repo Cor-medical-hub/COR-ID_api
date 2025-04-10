@@ -49,7 +49,7 @@
                 </svg> <br>   
         </div>   
             <br> <h1 style=" margin-top:0; color:#291161;font-size: 18px; "  data-translate="welcome-message">Приветствуем в COR-ID</h1>
-            <h4 id="userCorId" class="clickable" style=margin-top:0;>Загрузка...</h4>
+            <h4 id="userCorId" class="clickable" style="margin-top:0;margin-bottom:0;">Загрузка...</h4>
             <div id="qrCodeContainer" style="display: none;margin-top: 10px;"></div> 
             <button class="custom-button"id="passwordManagerButton">
                 <!-- Первая SVG-иконка -->       
@@ -250,10 +250,10 @@
               </svg>        
             </button>
             <button id="Sessions" class="link-button" type="button" 
-            style="  text-align: left; font-size: 12px;float: left;
-            white-space: nowrap;max-width:60px;width:60px;
-            max-height: 20px;height: 20px;margin-top: 0px;
-            margin-bottom: 0px;margin-left:25px">Сессии</button>          
+            style=" font-size: 12px;
+                    height: 20px;
+                    margin-top: -5px;
+                    margin-right:150px">Сессии</button>          
     </div>
 
        
@@ -275,20 +275,27 @@
 
     <script src="/static/translation.js"></script>  
     <script src="/static/general_fun.js"></script>   
-    <script> function goBack() { window.history.back();  } </script>
+    
         <script>
            const accessToken = new URLSearchParams(window.location.search).get('access_token');
             console.log("accessToken from localStorage:", accessToken);
             document.getElementById('passwordManagerButton').addEventListener('click', function() {
-                window.location.href = '/static/password_manager.html' + '?access_token=' + accessToken;   
+                if (checkToken()) {
+                window.location.href = '/static/password_manager.html' + '?access_token=' + accessToken;   }
             });
     
             document.getElementById('COR-AUTH').addEventListener('click', function() {
-                window.location.href = '/static/Medical.html' + '?access_token=' + accessToken;
+
+                if (checkToken()) {
+                window.location.href = '/static/medical.html' + '?access_token=' + accessToken;}
+
             });
     
             // Обработчик для кнопки "COR-Platform"
         document.getElementById('COR-MED').addEventListener('click', function() {
+
+
+
             const accessToken = new URLSearchParams(window.location.search).get('access_token');
             const refreshToken = new URLSearchParams(window.location.search).get('refresh_token');
             const savedRedirectUrl = localStorage.getItem('redirectUrl');
@@ -388,26 +395,43 @@
             }
 
             document.addEventListener('DOMContentLoaded', fetchCorId);
+            
             document.addEventListener('DOMContentLoaded', function() {
-                initModalControls('sessionsModal');
-          const isAdmin = localStorage.getItem('isAdmin'); // Получаем значение из localStorage
-          const adminButtonContainer = document.getElementById('admin-button-container'); // Элемент, куда будет добавлена кнопка
-              // Логирование значения isAdmin
-            console.log("isAdmin from localStorage:", isAdmin); // Логируем значение
-            if (isAdmin === 'true') { // Проверяем, является ли пользователь администратором
+              initModalControls('sessionsModal');
+              enableFetchInterceptor();
+              setupTokenCheckOnActions();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const accessToken = urlParams.get('access_token'); // Получаем токен из URL
+
+    if (accessToken) {
+        try {
+            // Расшифровываем токен
+            const decodedToken = decodeToken(accessToken);
+
+            // Логируем расшифрованный токен
+            console.log("Decoded token:", decodedToken);
+
+            // Проверяем, является ли пользователь администратором
+            const isAdmin = localStorage.getItem('isAdmin');
+            const adminButtonContainer = document.getElementById('admin-button-container');
+            adminButtonContainer.innerHTML = '';
+            if (isAdmin === 'true') {
                 const adminButton = document.createElement('button');
                 adminButton.innerText = 'Администрирование';
-                adminButton.className = 'admin-button'; 
                 adminButton.onclick = function() {
-                    window.location.href =  `/static/admin.html/?access_token=${accessToken}`// Переход на страницу администрирования
-                   
+                    window.location.href = `/static/admin.html/?access_token=${accessToken}`;
                 };
-                adminButtonContainer.appendChild(adminButton); // Добавляем кнопку в контейнер
+                adminButtonContainer.appendChild(adminButton);
             }
+        } catch (error) {
+            console.error("Ошибка при расшифровке токена:", error);
+        }
+    } else {
+        console.error("Токен не найден в localStorage.");
+    }
+});
 
-        });
-
-                // Находим элементы
             const sessionsButton = document.getElementById("Sessions"); // Кнопка "Сессии"
             const modal = document.getElementById("sessionsModal"); // Модальное окно
 
@@ -422,7 +446,8 @@
 // Функция для получения данных о сессиях
 async function getSessions() {
     try {
-        const token = localStorage.getItem("access_token"); // Берем токен из localStorage
+        const token = getTokenFromURL();
+       // const token = localStorage.getItem("access_token"); // Берем токен из localStorage
         const response = await fetch("/api/user/sessions/all?skip=0&limit=150", {
             method: "GET",
             headers: {
@@ -473,6 +498,8 @@ async function getSessions() {
         console.error("Ошибка при получении сессий:", error);
     }
 }
+
+
 
         </script>
     </body>

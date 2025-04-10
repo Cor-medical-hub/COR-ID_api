@@ -16,9 +16,14 @@ from fastapi.security import (
 )
 from sqlalchemy.orm import Session
 from random import randint
-
+from fastapi_limiter.depends import RateLimiter
 from cor_pass.database.db import get_db
 from cor_pass.schemas import (
+    ConfirmLoginRequest,
+    ConfirmLoginResponse,
+    InitiateLoginRequest,
+    InitiateLoginResponse,
+    SessionLoginStatus,
     UserModel,
     ResponseUser,
     TokenModel,
@@ -42,6 +47,7 @@ from cor_pass.services.email import (
 )
 from cor_pass.services.cipher import decrypt_data, decrypt_user_key, encrypt_data
 from cor_pass.config.config import settings
+from cor_pass.services.access import user_access
 from cor_pass.services.logger import logger
 from cor_pass.services import cor_otp
 from fastapi import UploadFile
@@ -49,6 +55,8 @@ from fastapi import UploadFile
 from collections import defaultdict
 from datetime import datetime, timedelta
 import re
+
+from cor_pass.services.websocket import send_websocket_message
 
 auth_attempts = defaultdict(list)
 blocked_ips = {}
@@ -207,6 +215,96 @@ async def login(
     }
 
 
+@router.post(
+    "/v1/initiate-login",
+    response_model=InitiateLoginResponse,
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))],
+)
+async def initiate_login(request: InitiateLoginRequest, db: Session = Depends(get_db)):
+    """
+    Инициирует процесс входа пользователя через Cor-ID.
+    Получает email и/или cor-id, генерирует session_token и сохраняет информацию о сессии CorIdAuthSession.
+    """
+
+    session_token = await repository_session.create_auth_session(request, db)
+
+    return {"session_token": session_token}
+
+
+@router.post(
+    "/v1/confirm-login",
+    response_model=ConfirmLoginResponse,
+    dependencies=[Depends(user_access)],
+)
+async def confirm_login(request: ConfirmLoginRequest, db: Session = Depends(get_db)):
+    """
+    Подтверждает или отклоняет запрос на вход от Cor-ID.
+    Получает email и/или cor-id, session_token и статус, обновляет сессию и отправляет результат через WebSocket.
+    Требует авторизацию
+    """
+    email = request.email
+    cor_id = request.cor_id
+    session_token = request.session_token
+    confirmation_status = request.status.lower()
+
+    db_session = await repository_session.get_auth_session(session_token, db)
+
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Сессия не найдена или истекла")
+
+    if email and db_session.email != email:
+        raise HTTPException(status_code=400, detail="Неверный email для данной сессии")
+
+    elif cor_id and db_session.cor_id != cor_id:
+        raise HTTPException(status_code=400, detail="Неверный cor_id для данной сессии")
+
+    if confirmation_status == SessionLoginStatus.approved:
+        await repository_session.update_session_status(
+            db_session, confirmation_status, db
+        )
+        # Получаем пользователя по email
+        user = await repository_person.get_user_by_email(db_session.email, db)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found / invalid email",
+            )
+        # Получаем токены
+        token_data = {"oid": user.id, "corid": user.cor_id}
+        expires_delta = (
+            settings.eternal_token_expiration
+            if user.email in settings.eternal_accounts
+            else None
+        )
+
+        access_token = await auth_service.create_access_token(
+            data=token_data, expires_delta=expires_delta
+        )
+        refresh_token = await auth_service.create_refresh_token(
+            data=token_data, expires_delta=expires_delta
+        )
+
+        await send_websocket_message(
+            session_token,
+            {
+                "status": "approved",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "bearer",
+            },
+        )
+        return {"message": "Вход успешно подтвержден"}
+
+    elif confirmation_status == SessionLoginStatus.rejected:
+        await repository_session.update_session_status(
+            db_session, confirmation_status, db
+        )
+        await send_websocket_message(session_token, {"status": "rejected"})
+        return {"message": "Вход отменен пользователем"}
+    else:
+        raise HTTPException(status_code=400, detail="Неверный статус подтверждения")
+
+
 @router.get(
     "/refresh_token",
     response_model=TokenModel,
@@ -246,21 +344,23 @@ async def refresh_token(
     device_information = di.get_device_info(request)
     # Если устройство мобильное, проверяем, есть ли у пользователя сессии на этом устройстве
     existing_sessions = await repository_session.get_user_sessions_by_device_info(
-            user.cor_id, device_information["device_info"], db
-        )
+        user.cor_id, device_information["device_info"], db
+    )
     if device_information["device_type"] == "Mobile" and not existing_sessions:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Нужен ввод мастер-ключа",
         )
     for session in existing_sessions:
-        session_token = await decrypt_data(encrypted_data=session.refresh_token,key=await decrypt_user_key(user.unique_cipher_key))
+        session_token = await decrypt_data(
+            encrypted_data=session.refresh_token,
+            key=await decrypt_user_key(user.unique_cipher_key),
+        )
         if session_token != token and device_information["device_type"] == "Mobile":
             # await repository_person.update_token(user, None, db)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
             )
-
 
     if user.email in settings.eternal_accounts:
         access_token = await auth_service.create_access_token(
@@ -279,7 +379,7 @@ async def refresh_token(
             data={"oid": user.id, "corid": user.cor_id}
         )
     # user.refresh_token = refresh_token
-    
+
     await repository_session.update_session_token(
         user, refresh_token, device_info["device_info"], db
     )
