@@ -285,27 +285,15 @@
             });
     
             document.getElementById('COR-AUTH').addEventListener('click', function() {
-
                 if (checkToken()) {
                 window.location.href = '/static/medical.html' + '?access_token=' + accessToken;}
-
             });
     
             // Обработчик для кнопки "COR-Platform"
         document.getElementById('COR-MED').addEventListener('click', function() {
-
-
-
-            const accessToken = new URLSearchParams(window.location.search).get('access_token');
-            const refreshToken = new URLSearchParams(window.location.search).get('refresh_token');
-            const savedRedirectUrl = localStorage.getItem('redirectUrl');
-
-            if (savedRedirectUrl && accessToken) {
-                // Перенаправляем на savedRedirectUrl с access_token и cor_id
-                window.location.href = `${savedRedirectUrl}?access_token=${accessToken}&refresh_token=${refreshToken}`;
-            } else {
-                console.error("Ошибка: Не найдены параметры redirect_url или cor_id.");
-            }
+            if (checkToken()) {          
+                window.location.href = '/static/medical.html' + '?access_token=' + accessToken;
+            } 
         });
 
 
@@ -333,7 +321,7 @@
 
             function toggleQrCode(corId) {
                 const qrCodeContainer = document.getElementById('qrCodeContainer');
-
+                if( checkToken()){
                 if (qrCodeContainer.style.display === 'block') {
                     // Скрываем QR-код, если он уже отображается
                     qrCodeContainer.style.display = 'none';
@@ -351,7 +339,7 @@
                         width: 160,
                         height: 160
                     });
-                }
+                }}
             }
             async function fetchCorId() {
                 const accessToken = new URLSearchParams(window.location.search).get('access_token');
