@@ -15,10 +15,9 @@
     height: 100%;
     flex-direction: column;
     display: flex;
-  /*  justify-content: center;
-    align-items: center; */
+    justify-content: center;
+    align-items: center; 
 }
-
 
 /* Стили для внутреннего контента */
 .modal-content {
@@ -57,7 +56,33 @@
     background-color: #B1A1DA;
 }
 
-/* Стили для контейнера кнопок навигации */
+.recovery-btn {
+    background-color: white;
+    color: #7B43F2;
+    border: 1px solid #7B43F2;
+    border-radius: 12px;
+    padding: 2px 5px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    font-size: 11px;
+    height: 55px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Необязательно: стиль при наведении */
+.recovery-btn:hover {
+    background-color: #f2eaff;
+    color: #5e32c5;
+    border-color: #5e32c5;
+}
+
+.recovery-btn:active {
+    background-color: #e3d6ff;
+    color: #4a299e;
+    transform: scale(0.98); /* небольшой "нажимательный" эффект */
+}
 /* Стили для контейнера навигации */
 .navigation-container {
     display: flex
@@ -136,10 +161,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0 10px;
+    padding: 0px 0px 0px 10px;
 }
 
 .name-fields {
+    margin-top: 30px;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -165,12 +191,48 @@
 .form-group input[type="email"],
              input[type="text"],
              input[type="date"] {
+  /*  width: 100%; */
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+/* Новый класс form-group-width на основе form-group */
+.form-group-width {
+    width: 460px; /* Новая ширина */
+    padding: 0 20px; /* Сохраняем отступы как у form-group */
+    box-sizing: border-box; /* Учитываем padding в ширине */
+}
+
+/* Стили для элементов внутри form-group-width */
+.form-group-width input[type="email"],
+.form-group-width input[type="range"],
+.form-group-width input[type="text"],
+.form-group-width input[type="date"] {
     width: 100%;
     padding: 10px;
     margin-bottom: 10px;
     border: 1px solid #f0f0f0;
     border-radius: 12px;
     box-sizing: border-box;
+}
+
+/* Стиль для подсказки */
+.form-group-width .hint {
+    margin-top: 5px;
+    padding-left: 0;
+    color: #7f69bd;
+    font-size: 12px;
+}
+
+/* Стиль для label */
+.form-group-width label {
+    color: #7f69bd;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 5px;
 }
 
 .date-selector {
@@ -204,10 +266,11 @@
 /* Стили для дополнительных полей */
 .additional-fields {
     display: flex;
-    margin: 10px 0;
+ /*   margin: 5px 0; */
     max-width: 420px;
     padding-left: 20px;
-    justify-content: space-between;
+    gap: 20px;
+  /*  justify-content: space-between; */
 }
 
 .additional-fields .input-wrapper {
@@ -222,22 +285,25 @@
     border: 1px solid #D2CAE8;
     border-radius: 12px;
     padding-left: 10px;
-   
     width: 200px;
     box-sizing: border-box;
     color: #5B4296;
     cursor: not-allowed;
+    margin-bottom: 1px;
 }
 
 /* Стили для прогресс бара */
 .progress-container {
-    width: 100%;
-    padding: 20px;
-    position: sticky;
-    bottom: 20px;
-    box-sizing: border-box;
+    position: absolute;      /* фиксируем относительно .modal */
+    bottom: 20px;            /* отступ от нижнего края модального окна */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 410px;
+    padding: 4px;
+    border-radius: 6px;
     background-color: white;
     border-top: 1px solid #f0f0f0;
+    z-index: 10;             /* чтобы не перекрывался другим контентом */
 }
 
 .progress-bar {
@@ -262,21 +328,15 @@
 }
 
 .progress-step::after {
-    content: "";
-    position: absolute;
-    top: -6px;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: #D2CAE8;
-    border: 2px solid white;
+    content: none;
+    width: 0;
+    height: 0;
+    border: none;
+    background: none;
 }
 
 .progress-step.active::after {
-    background-color: #7B43F2;
+    display: none;
 }
 
 
@@ -338,3 +398,233 @@
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
+
+
+/* Новый класс для контейнера радио-кнопок */
+.storage-options-container {
+    width: 200px;
+    height: 40px;
+    background-color: white;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+/* Стили для контейнера опций */
+.storage-options {
+    display: flex;
+    gap: 10px;
+   /* margin-bottom: 10px; */
+}
+
+/* Стиль для каждой радио-кнопки в рамке */
+.storage-option {
+    width: 200px; /* Ширина рамки */
+    height: 40px; /* Высота рамки */
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+}
+
+/* Скрытие оригинального радио-кнопки */
+.storage-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Стиль для кастомного радио-кнопки */
+.storage-option .custom-radio {
+    position: relative;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #5B4296;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* Галочка для выбранного состояния */
+.storage-option input[type="radio"]:checked ~ .custom-radio::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #5B4296;
+    font-size: 12px;
+}
+
+/* Стиль текста */
+.storage-option span {
+    color: #291161;
+    font-size: 13px;
+}
+
+/* Эффект при наведении */
+.storage-option:hover {
+    background-color: #f9f9f9;
+}
+
+/* Эффект для выбранной опции */
+.storage-option input[type="radio"]:checked ~ span {
+    color: #5B4296;
+    font-weight: bold;
+}
+
+
+
+
+.settings-panel {
+    width: 320px;
+    padding: 20px;
+    margin: 0 auto;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    font-family: sans-serif;
+    background-color: #f9f9f9;
+  }
+  
+  .setting {
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .switch-label {
+    display: flex;
+    justify-content: space-between;
+    color: #5B4296;
+    font-size: 13px;
+    width: 190px;
+    align-items: center;
+  }
+  
+  /* Стилизация тумблера */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    border-radius: 24px;
+    transition: 0.4s;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.4s;
+  }
+  
+  .switch input:checked + .slider {
+    background-color: #4CAF50;
+  }
+  
+  .switch input:checked + .slider:before {
+    transform: translateX(26px);
+  }
+
+  .setting input[type="range"] {
+    -webkit-appearance: none;
+    width: 390px;
+    height: 6px;
+    background: #D2CAE8;
+    border-radius: 12px;
+    outline: none;
+    margin-left: 15px;
+}
+
+/* Контейнер для слайдера и значения */
+.range-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: white;
+    border-radius: 12px;
+    width: 420px;
+    padding: 10px;
+    box-sizing: border-box;
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+/* Слайдер растягивается */
+.range-container input[type="range"] {
+    flex-grow: 1;
+    height: 6px;
+    accent-color: #7B43F2;
+}
+
+/* Отображение значения */
+.range-value {
+    color: #5B4296;
+    font-size: 13px;
+    min-width: 25px;
+    text-align: center;
+}
+
+.recovery-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+    justify-content: center;
+    text-align: center;
+    margin-top: 15px;
+}
+
+  #recoveryCode {
+   width: 100%;
+   padding: 5px;
+   margin-top: 5px;
+   display: none;
+  }
+
+
+  #recoveryQRImage {
+    max-width: 100px;
+    margin-top: 10px;
+    display: block; /* Убедитесь, что изображение ведет себя как блочный элемент */
+    margin-left: auto; /* Центрирование изображения */
+    margin-right: auto; /* Центрирование изображения */
+  }
+
+  #recoveryCodeDisplay {
+   display: none;
+  }
+
+
+  .recovery-options {
+    display: flex;
+    justify-content: space-between; /* Равномерное распределение кнопок */
+     margin-top: 10px;
+   }

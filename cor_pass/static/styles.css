@@ -16,7 +16,7 @@ body, html {
 }
 
 .container {
-    width: 250px; /* Установите фиксированную ширину контейнера */
+    width: 220px; /* Установите фиксированную ширину контейнера */
     margin: 0 auto;
     padding: 20px;
     border: 1px solid #ccc;
@@ -141,18 +141,16 @@ button:disabled {
     color: #ffffff;
 }
 
-
 .button-container {
-    margin-top: 15px; 
     display: flex;
-    gap: 40px;
+    flex-direction: row;
     justify-content: space-between;
+    align-items: center;
+    gap: 40px;
     width: 100%;
     padding: 1px;
     box-sizing: border-box;
-    align-self: stretch; 
 }
-
 #admin-button-container {
     width: 100%; 
     max-width: 200px; 
@@ -295,7 +293,8 @@ h3 {
 label {
     display: block;
     margin-bottom: 5px;
-    color: #333;
+    font-size: 14px;
+    color: #7f69bd;
 }
 
 input[type="text"],
@@ -318,9 +317,21 @@ input[type="submit"] {
     cursor: pointer;
 }
 
+
+.label-padded {
+    padding-left: 20px;
+    color: #291161;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 10px;
+}
+
 .password-container {
     position: relative;
-    width: 100%; 
+    display: flex;
+    align-items: center; /* вертикальное выравнивание по центру */
+    justify-content: center; /* горизонтальное выравнивание (опционально) */
+    min-height: 50px; /* или любая другая высота */
 }
 
 .password-input {
@@ -576,16 +587,16 @@ select#user_sex option:checked {
 }
 
 .otp-container {
-    display: none; /* Изначально скрываем */
+    display: none;
     justify-content: center;
-    gap: 10px;
+    gap: 5px;
     margin: 10px 0;
-    max-width: 200px; /* Ограничиваем ширину */
+    width: 200px;
 }
 
 .otp-input {
     width: 35px;
-    height: 35px;
+    height: 40px;
     font-size: 14px;
     text-align: center;
     border: 2px solid #5B4296;
@@ -593,7 +604,7 @@ select#user_sex option:checked {
     background-color: #ffffff;
     outline: none;
     transition: border-color 0.3s ease-in-out;
-    max-width: 32px; /* Ограничиваем ширину */
+    max-width: 29px; /* Ограничиваем ширину */
 }
 
 .otp-input:focus {
@@ -627,7 +638,6 @@ select#user_sex option:checked {
 
 .session-card {
     background-color: rgba(255, 255, 255, 0.6); /* Белый фон с прозрачностью 60% */
-
     border-radius: 12px; 
     padding: 7px; 
     width: 320px; /* Ширина карточки */
@@ -738,8 +748,8 @@ select#user_sex option:checked {
 
 
 .image-frame {
-    width: 190px;
-    height:190px;
+    width: 200px;
+    height: 200px;
     border: 1px solid #5B4296;
     border-radius: 12px;
     position: relative;
