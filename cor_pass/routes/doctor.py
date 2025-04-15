@@ -1,19 +1,27 @@
 import json
-from fastapi import APIRouter, Body, Depends, Form, HTTPException, UploadFile, File
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Path, Query, UploadFile, File, responses, status
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Annotated, List, Optional
 
 from cor_pass.database.db import get_db
-from cor_pass.database.models import User
-from cor_pass.repository.doctor import create_doctor, create_doctor_service
+from cor_pass.database.models import Patient, PatientStatus, User
+from cor_pass.repository.doctor import create_doctor, create_doctor_service, get_doctor_patients_with_status
+from cor_pass.repository.lawyer import get_doctor
+from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
     CertificateResponse,
     ClinicAffiliationResponse,
     DiplomaResponse,
     DoctorCreate,
     DoctorResponse,
+    ExistingPatientAdd,
+    NewPatientRegistration,
+    PatientResponce,
 )
-
+from cor_pass.repository import person as repository_person
+from cor_pass.repository import user_session as repository_session
+from cor_pass.repository import cor_id as repository_cor_id
+from cor_pass.services.auth import auth_service
 from cor_pass.services.access import user_access
 from cor_pass.services.auth import auth_service
 from cor_pass.services.image_validation import validate_image_file
@@ -131,3 +139,84 @@ async def signup_doctor(
     )
 
     return doctor_response
+
+
+
+@router.get("/{doctor_id}/patients", 
+            # response_model=List[PatientResponce], 
+            dependencies=[Depends(user_access)])
+async def get_doctor_patients(
+    doctor_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user),
+    status: Optional[List[PatientStatus]] = Query(None, description="Фильтр за статусом"),
+    sex: Optional[List[str]] = Query(None, description="Фильтр за полом"),
+    sort_by: Optional[str] = Query("change_date", description="Поле для сортировки (change_date)"),
+    sort_order: Optional[str] = Query("desc", description="Порядок сортировки (asc - по возрастанию, desc - по убыванию)"),
+    skip: int = Query(1, ge=1, description="Страница"),
+    limit: int = Query(10, ge=1, le=100, description="Количество на странице"),
+):
+
+    doctor = await get_doctor(doctor_id, db)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+
+    if current_user.cor_id != doctor.doctor_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view these patients")
+
+    patients_with_status = await get_doctor_patients_with_status(
+        db=db,
+        doctor=doctor,
+        status_filters=status,
+        sex_filters=sex,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        skip=skip,
+        limit=limit,
+    )
+
+    return patients_with_status
+
+
+
+
+@router.post("/{doctor_id}/patients/register-new", status_code=201, dependencies=[Depends(user_access)])
+async def add_new_patient_to_doctor(
+    doctor_id: Annotated[str, Path(description="ID врача")],
+    body: NewPatientRegistration,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user),
+):
+    """
+    Добавить нового или существующего пользователя как пациента к врачу.
+    """
+    doctor = await get_doctor(db, doctor_id)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+
+    if current_user.cor_id != doctor.doctor_cor_id:
+        raise HTTPException(status_code=403, detail="Not authorized to add patients to this doctor")
+
+    if body:
+        new_patient_info = body
+        exist_user = await repository_person.get_user_by_email(new_patient_info.email, db)
+        if exist_user:
+            logger.debug(f"{new_patient_info.email} user already exist")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="Account already exists"
+            )
+        new_patient = await register_new_patient(db, new_patient_info, doctor)
+        return {"message": f"Новый пациент {new_patient_info.first_name} {new_patient_info.surname} успешно зарегистрирован и добавлен к врачу."}
+    else:
+        # Эта ветка не должна достигаться из-за валидации Pydantic
+        raise HTTPException(status_code=400, detail="Некорректные данные для добавления пациента.")
+    
+
+@router.post("/{doctor_id}/patients/add-existing", dependencies=[Depends(user_access)])
+async def add_existing_patient_to_doctor(doctor_id: str, patient_data: ExistingPatientAdd, db: Session = Depends(get_db)):
+    # Логіка додавання існуючого пацієнта
+    doctor = await get_doctor(doctor_id=doctor_id, db=db)
+    existing_patient = await add_existing_patient(db=db, doctor=doctor, cor_id=patient_data.cor_id)
+    if not existing_patient:
+        raise HTTPException(status_code=404, detail="Patient or doctor not found")
+    return existing_patient

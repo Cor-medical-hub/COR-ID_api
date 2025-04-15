@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session
-from typing import Optional
+from sqlalchemy import  asc, desc
+from sqlalchemy.orm import Session, joinedload
+from typing import Dict, List, Optional, Tuple, List
 from fastapi import UploadFile, File
 
 from cor_pass.database.models import (
@@ -7,6 +8,9 @@ from cor_pass.database.models import (
     ClinicAffiliation,
     Diploma,
     Doctor,
+    DoctorPatientStatus,
+    Patient,
+    PatientStatus,
     User,
     DoctorStatus,
 )
@@ -137,3 +141,50 @@ async def create_doctor_service(
         await create_clinic_affiliation(doctor, doctor_data, db)
 
     return doctor
+
+
+
+async def get_doctor_patients_with_status(
+    db: Session,
+    doctor: Doctor,
+    status_filters: Optional[List[PatientStatus]] = None,
+    sex_filters: Optional[List[str]] = None,
+    sort_by: Optional[str] = "change_date",
+    sort_order: Optional[str] = "desc",
+    skip: int = 1,
+    limit: int = 10,
+) -> Tuple[List, int]:
+    """
+    Получает список пациентов конкретного врача вместе с их статусами с учетом фильтрации,
+    сортировки и пагинации.
+    """
+    query = db.query(DoctorPatientStatus).options(joinedload(DoctorPatientStatus.patient)).filter(DoctorPatientStatus.doctor_id == doctor.id)
+
+    # Фильтрация по статусу
+    if status_filters:
+        query = query.filter(DoctorPatientStatus.status.in_(status_filters))
+
+    # Фильтрация по полу пациента
+    if sex_filters:
+        query = query.join(Patient).filter(Patient.sex.in_(sex_filters))
+
+    # Сортировка
+    order_by_clause = None
+    if sort_by == "change_date":
+        order_by_clause = desc(Patient.change_date) if sort_order == "desc" else asc(Patient.change_date)
+
+    if order_by_clause is not None:
+        query = query.order_by(order_by_clause)
+
+    # Пагинация
+    offset = (skip - 1) * limit
+    patients_with_status = await query.offset(offset).limit(limit).all()
+
+    result = []
+    for dps in patients_with_status:
+        result.append({
+            "patient": dps.patient,
+            "status": dps.status.value
+        })
+
+    return result
