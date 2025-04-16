@@ -121,6 +121,7 @@ async def send_email_code_with_qr(email: EmailStr, host: str, recovery_code):
     except ConnectionErrors as err:
         print(err)
 
+
 async def send_email_code_with_temp_pass(email: EmailStr, host: str, temp_pass):
     logger.debug(f"Sending email to {email}")
     try:
@@ -132,7 +133,7 @@ async def send_email_code_with_temp_pass(email: EmailStr, host: str, temp_pass):
                 "host": host,
                 "temp_pass": temp_pass,
             },
-            subtype=MessageType.html
+            subtype=MessageType.html,
         )
 
         fm = FastMail(conf)

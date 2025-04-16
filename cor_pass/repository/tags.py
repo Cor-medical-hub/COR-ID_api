@@ -1,77 +1,91 @@
-from typing import List
+from typing import Any, Dict, List
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from cor_pass.database.models import Tag
 from cor_pass.schemas import TagModel, TagResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_tags(skip: int, limit: int, db: Session) -> List[Tag]:
+async def get_tags(skip: int, limit: int, db: AsyncSession) -> List[Dict[str, Any]]:
     """
-    Get a list of tags from the database.
+    Асинхронно отримує список тегів з бази даних.
 
-    :param skip: The number of tags to skip.
-    :param limit: The maximum number of tags to retrieve.
-    :param db: The database session used to interact with the database.
-    :return: A list of tag objects.
+    :param skip: Кількість тегів, які потрібно пропустити.
+    :param limit: Максимальна кількість тегів для отримання.
+    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
+    :return: Список словників, що представляють теги.
     """
-    tags = db.query(Tag).offset(skip).limit(limit).all()
-    tag_dicts = [{"name": tag.name, "id": tag.id} for tag in tags]
+    stmt = select(Tag).offset(skip).limit(limit)
+    result = await db.execute(stmt)
+    tags = result.scalars().all()
+    tag_dicts = [{"name": tag.name, "id": str(tag.id)} for tag in tags]
     return tag_dicts
 
 
-async def get_tag(tag_id: int, db: Session) -> Tag:
+async def get_tag(tag_id: int, db: AsyncSession) -> Tag | None:
     """
-    Get a tag from the database by its ID.
+    Асинхронно отримує тег з бази даних за його ID.
 
-    :param tag_id: The ID of the tag to retrieve.
-    :param db: The database session used to interact with the database.
-    :return: The retrieved tag object.
+    :param tag_id: ID тега, який потрібно отримати.
+    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
+    :return: Отриманий об'єкт тега або None, якщо тег не знайдено.
     """
-    return db.query(Tag).filter(Tag.id == tag_id).first()
+    stmt = select(Tag).where(Tag.id == tag_id)
+    result = await db.execute(stmt)
+    tag = result.scalar_one_or_none()
+    return tag
 
 
-async def create_tag(body: TagModel, db: Session) -> TagResponse:
+async def create_tag(body: TagModel, db: AsyncSession) -> TagResponse:
     """
-    Create a new tag in the database.
+    Асинхронно створює новий тег в базі даних.
 
-    :param body: The tag data used to create the tag.
-    :param db: The database session used to interact with the database.
-    :return: The created tag response object.
+    :param body: Дані тега, які використовуються для створення тега.
+    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
+    :return: Об'єкт відповіді створеного тега.
     """
     tag = Tag(name=body.name)
     db.add(tag)
-    db.commit()
-    db.refresh(tag)
+    await db.commit()
+    await db.refresh(tag)
     return TagResponse(id=tag.id, name=tag.name)
 
 
-async def update_tag(tag_id: int, body: TagModel, db: Session) -> Tag | None:
+async def update_tag(tag_id: int, body: TagModel, db: AsyncSession) -> Tag | None:
     """
-    Update an existing tag in the database.
+    Асинхронно оновлює існуючий тег в базі даних.
 
-    :param tag_id: The ID of the tag to update.
-    :param body: The updated tag data.
-    :param db: The database session used to interact with the database.
-    :return: The updated tag object if found, else None.
+    :param tag_id: ID тега, який потрібно оновити.
+    :param body: Оновлені дані тега.
+    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
+    :return: Оновлений об'єкт тега, якщо знайдено, інакше None.
     """
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    stmt = select(Tag).where(Tag.id == tag_id)
+    result = await db.execute(stmt)
+    tag = result.scalar_one_or_none()
     if tag:
         tag.name = body.name
-        db.commit()
-    return tag
+        await db.commit()
+        await db.refresh(tag)  # Оновлюємо об'єкт для відображення змін
+        return tag
+    return None
 
 
-async def remove_tag(tag_id: int, db: Session) -> Tag | None:
+async def remove_tag(tag_id: int, db: AsyncSession) -> Tag | None:
     """
-    Remove a tag from the database.
+    Асинхронно видаляє тег з бази даних.
 
-    :param tag_id: The ID of the tag to remove.
-    :param db: The database session used to interact with the database.
-    :return: The removed tag object if found, else None.
+    :param tag_id: ID тега, який потрібно видалити.
+    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
+    :return: Видалений об'єкт тега, якщо знайдено, інакше None.
     """
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    stmt = select(Tag).where(Tag.id == tag_id)
+    result = await db.execute(stmt)
+    tag = result.scalar_one_or_none()
     if tag:
-        db.delete(tag)
-        db.commit()
-    return tag
+        await db.delete(tag)
+        await db.commit()
+        return tag
+    return None

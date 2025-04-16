@@ -27,7 +27,7 @@ from cor_pass.repository import lawyer
 from pydantic import EmailStr
 from cor_pass.database.redis_db import redis_client
 import base64
-
+from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.services.logger import logger
 
 router = APIRouter(prefix="/lawyer", tags=["Lawyer"])
@@ -41,9 +41,19 @@ router = APIRouter(prefix="/lawyer", tags=["Lawyer"])
 async def get_all_doctors(
     skip: int = 0,
     limit: int = 10,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-
+    """
+    **Получение списка всех врачей**\n
+    Этот маршрут позволяет получить список всех врачей с возможностью пагинации.
+    Уровень доступа:
+    - Пользователи с ролью "lawyer"
+    :param skip: int: Количество записей для пропуска (для пагинации).
+    :param limit: int: Максимальное количество записей для возврата (для пагинации).
+    :param db: AsyncSession: Сессия базы данных.
+    :return: Список врачей.
+    :rtype: List[DoctorResponse]
+    """
     list_doctors = await lawyer.get_doctors(skip=skip, limit=limit, db=db)
 
     if not list_doctors:
@@ -61,6 +71,10 @@ async def get_all_doctors(
             scientific_degree=doctor.scientific_degree,
             date_of_last_attestation=doctor.date_of_last_attestation,
             status=doctor.status,
+            # Include other fields from Doctor model as needed
+            # diplomas=[...],
+            # certificates=[...],
+            # clinic_affiliations=[...],
         )
         for doctor in list_doctors
     ]
@@ -82,13 +96,24 @@ def bytes_to_base64(binary_data: bytes):
 )
 async def get_doctor_with_relations(
     doctor_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-
+    """
+    **Получение информации о враче со всеми связями**\n
+    Этот маршрут позволяет получить полную информацию о враче, включая дипломы, сертификаты и привязки к клиникам.
+    Уровень доступа:
+    - Пользователи с ролью "lawyer"
+    :param doctor_id: str: ID врача.
+    :param db: AsyncSession: Сессия базы данных.
+    :return: Информация о враче со всеми связями.
+    :rtype: DoctorWithRelationsResponse
+    """
     doctor = await lawyer.get_all_doctor_info(doctor_id=doctor_id, db=db)
 
     if not doctor:
-        raise HTTPException(status_code=404, detail="Doctor not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+        )
 
     # Серіалізуємо дані у відповідну схему
     doctor_response = DoctorWithRelationsResponse(
@@ -98,7 +123,9 @@ async def get_doctor_with_relations(
         phone_number=doctor.phone_number,
         first_name=doctor.first_name,
         surname=doctor.surname,
-        doctors_photo=bytes_to_base64(doctor.doctors_photo),
+        doctors_photo=(
+            bytes_to_base64(doctor.doctors_photo) if doctor.doctors_photo else None
+        ),
         last_name=doctor.last_name,
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,
@@ -110,7 +137,7 @@ async def get_doctor_with_relations(
                 series=diploma.series,
                 number=diploma.number,
                 university=diploma.university,
-                scan=bytes_to_base64(diploma.scan),
+                scan=bytes_to_base64(diploma.scan) if diploma.scan else None,
             )
             for diploma in doctor.diplomas
         ],
@@ -121,7 +148,7 @@ async def get_doctor_with_relations(
                 series=certificate.series,
                 number=certificate.number,
                 university=certificate.university,
-                scan=bytes_to_base64(certificate.scan),
+                scan=bytes_to_base64(certificate.scan) if certificate.scan else None,
             )
             for certificate in doctor.certificates
         ],
@@ -142,7 +169,9 @@ async def get_doctor_with_relations(
 
 @router.patch("/asign_status/{doctor_id}", dependencies=[Depends(lawyer_access)])
 async def assign_status(
-    doctor_id: str, doctor_status: DoctorStatus, db: Session = Depends(get_db)
+    doctor_id: str,
+    doctor_status: DoctorStatus,
+    db: AsyncSession = Depends(get_db),
 ):
     """
     **Assign a doctor_status to a doctor by doctor_id. / Применение нового статуса доктора (подтвержден / на рассмотрении)**\n
@@ -151,19 +180,21 @@ async def assign_status(
 
     :param doctor_status: DoctorStatus: The selected doctor_status for the assignment (pending, approved).
 
-    :param db: Session: Database Session.
+    :param db: AsyncSession: Database Session.
 
     :return: Message about successful status change.
 
-    :rtype: str
+    :rtype: dict
     """
     doctor = await lawyer.get_doctor(doctor_id=doctor_id, db=db)
 
     if not doctor:
-        raise HTTPException(status_code=404, detail="Doctor not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+        )
 
     if doctor_status == doctor.status:
-        return {"message": "The acount status has already been assigned"}
+        return {"message": "The account status has already been assigned"}
     else:
         await lawyer.approve_doctor(doctor=doctor, db=db, status=doctor_status)
         return {
@@ -172,15 +203,15 @@ async def assign_status(
 
 
 @router.delete("/delete_doctor/{doctor_id}", dependencies=[Depends(lawyer_access)])
-async def delete_user(doctor_id: str, db: Session = Depends(get_db)):
+async def delete_user(doctor_id: str, db: AsyncSession = Depends(get_db)):
     """
-
     **Delete doctor by doctor_id. / Удаление врача по doctor_id**\n
-
     """
     doctor = await lawyer.get_doctor(doctor_id=doctor_id, db=db)
     if not doctor:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+        )
     else:
         await lawyer.delete_doctor_by_doctor_id(db=db, doctor_id=doctor_id)
         return {

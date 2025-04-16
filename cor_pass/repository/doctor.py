@@ -1,4 +1,4 @@
-from sqlalchemy import  asc, desc
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session, joinedload
 from typing import Dict, List, Optional, Tuple, List
 from fastapi import UploadFile, File
@@ -15,18 +15,19 @@ from cor_pass.database.models import (
     DoctorStatus,
 )
 from cor_pass.schemas import DoctorCreate
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def create_doctor(
     doctor_data: dict,
-    db: Session,
+    db: AsyncSession,
     user: User,
     doctors_photo_bytes: Optional[bytes] = None,
 ) -> Doctor:
     """
-    Сервисная функция для создания врача.
+    Асинхронна сервісна функція для створення лікаря.
     """
-    # Создаем врача
+    # Створюємо лікаря
     doctor = Doctor(
         doctor_id=user.cor_id,
         work_email=doctor_data.get("work_email"),
@@ -40,12 +41,12 @@ async def create_doctor(
         status=DoctorStatus.PENDING,
     )
 
-    # Добавляем врача в сессию
+    # Додаємо лікаря в сесію
     db.add(doctor)
 
-    # Сохраняем изменения в базе данных
-    db.commit()
-    db.refresh(doctor)  # Обновляем объект врача после сохранения
+    # Зберігаємо зміни в базі даних
+    await db.commit()
+    await db.refresh(doctor)  # Оновлюємо об'єкт лікаря після збереження
 
     return doctor
 
@@ -53,11 +54,11 @@ async def create_doctor(
 async def create_certificates(
     doctor: Doctor,
     doctor_data: dict,
-    db: Session,
+    db: AsyncSession,
     certificate_scan_bytes: Optional[bytes] = None,
 ) -> None:
     """
-    Создает сертификаты для врача.
+    Асинхронно створює сертифікати для лікаря.
     """
     for cert in doctor_data.get("certificates", []):
         certificate = Certificate(
@@ -70,17 +71,17 @@ async def create_certificates(
         )
         db.add(certificate)
 
-    db.commit()  # Сохраняем изменения
+    await db.commit()  # Асинхронно зберігаємо зміни
 
 
 async def create_diploma(
     doctor: Doctor,
     doctor_data: dict,
-    db: Session,
+    db: AsyncSession,
     diploma_scan_bytes: Optional[bytes] = None,
 ) -> None:
     """
-    Создает дипломы для врача.
+    Асинхронно створює дипломи для лікаря.
     """
     for dip in doctor_data.get("diplomas", []):
         diploma = Diploma(
@@ -93,14 +94,14 @@ async def create_diploma(
         )
         db.add(diploma)
 
-    db.commit()  # Сохраняем изменения
+    await db.commit()  # Асинхронно зберігаємо зміни
 
 
 async def create_clinic_affiliation(
-    doctor: Doctor, doctor_data: dict, db: Session
+    doctor: Doctor, doctor_data: dict, db: AsyncSession
 ) -> None:
     """
-    Создает привязки к клиникам для врача.
+    Асинхронно створює прив'язки до клінік для лікаря.
     """
     for aff in doctor_data.get("clinic_affiliations", []):
         affiliation = ClinicAffiliation(
@@ -112,40 +113,40 @@ async def create_clinic_affiliation(
         )
         db.add(affiliation)
 
-    db.commit()  # Сохраняем изменения
+    await db.commit()  # Асинхронно зберігаємо зміни
 
 
 async def create_doctor_service(
     doctor_data: dict,
-    db: Session,
-    doctor: Doctor,
+    db: AsyncSession,
+    user: User,
+    doctors_photo_bytes: Optional[bytes] = None,
     diploma_scan_bytes: Optional[bytes] = None,
     certificate_scan_bytes: Optional[bytes] = None,
 ) -> Doctor:
     """
-    Основная сервисная функция для создания врача и его сертификатов.
+    Асинхронна основна сервісна функція для створення лікаря та його сертифікатів.
     """
-    # doctor = await create_doctor(doctor_data, db, user, doctors_photo_bytes)
+    doctor = await create_doctor(doctor_data, db, user, doctors_photo_bytes)
 
-    # Проверяем, что врач был создан успешно
+    # Перевіряємо, що лікар був створений успішно
     if doctor:
-        print("Врач создан успешно")
+        print("Лікар створений успішно")
 
-        # Создаем сертификаты
+        # Створюємо сертифікати
         await create_certificates(doctor, doctor_data, db, certificate_scan_bytes)
 
-        # Создаем дипломы
+        # Створюємо дипломи
         await create_diploma(doctor, doctor_data, db, diploma_scan_bytes)
 
-        # Создаем привязки к клиникам
+        # Створюємо прив'язки до клінік
         await create_clinic_affiliation(doctor, doctor_data, db)
 
     return doctor
 
 
-
 async def get_doctor_patients_with_status(
-    db: Session,
+    db: AsyncSession,
     doctor: Doctor,
     status_filters: Optional[List[PatientStatus]] = None,
     sex_filters: Optional[List[str]] = None,
@@ -155,36 +156,58 @@ async def get_doctor_patients_with_status(
     limit: int = 10,
 ) -> Tuple[List, int]:
     """
-    Получает список пациентов конкретного врача вместе с их статусами с учетом фильтрации,
-    сортировки и пагинации.
+    Асинхронно отримує список пацієнтів конкретного лікаря разом з їх статусами з урахуванням
+    фільтрації, сортування та пагінації.
     """
-    query = db.query(DoctorPatientStatus).options(joinedload(DoctorPatientStatus.patient)).filter(DoctorPatientStatus.doctor_id == doctor.id)
+    query = (
+        select(DoctorPatientStatus)
+        .options(joinedload(DoctorPatientStatus.patient))
+        .where(DoctorPatientStatus.doctor_id == doctor.id)
+    )
 
-    # Фильтрация по статусу
+    # Фільтрація за статусом
     if status_filters:
-        query = query.filter(DoctorPatientStatus.status.in_(status_filters))
+        query = query.where(DoctorPatientStatus.status.in_(status_filters))
 
-    # Фильтрация по полу пациента
+    # Фільтрація за статтю пацієнта
     if sex_filters:
-        query = query.join(Patient).filter(Patient.sex.in_(sex_filters))
+        query = query.join(Patient, DoctorPatientStatus.patient_id == Patient.id).where(
+            Patient.sex.in_(sex_filters)
+        )
 
-    # Сортировка
+    # Сортування
     order_by_clause = None
     if sort_by == "change_date":
-        order_by_clause = desc(Patient.change_date) if sort_order == "desc" else asc(Patient.change_date)
+        order_by_clause = (
+            desc(Patient.change_date)
+            if sort_order == "desc"
+            else asc(Patient.change_date)
+        )
 
     if order_by_clause is not None:
         query = query.order_by(order_by_clause)
 
-    # Пагинация
+    # Пагінація
     offset = (skip - 1) * limit
-    patients_with_status = await query.offset(offset).limit(limit).all()
+    patients_with_status_result = await db.execute(query.offset(offset).limit(limit))
+    patients_with_status = patients_with_status_result.scalars().all()
+
+    # Отримуємо загальну кількість результатів для пагінації
+    count_query = select(func.count()).select_from(
+        select(DoctorPatientStatus).where(DoctorPatientStatus.doctor_id == doctor.id)
+    )
+    if status_filters:
+        count_query = count_query.where(DoctorPatientStatus.status.in_(status_filters))
+    if sex_filters:
+        count_query = count_query.join(
+            Patient, DoctorPatientStatus.patient_id == Patient.id
+        ).where(Patient.sex.in_(sex_filters))
+
+    total_count_result = await db.execute(count_query)
+    total_count = total_count_result.scalar_one()
 
     result = []
     for dps in patients_with_status:
-        result.append({
-            "patient": dps.patient,
-            "status": dps.status.value
-        })
+        result.append({"patient": dps.patient, "status": dps.status.value})
 
-    return result
+    return result, total_count

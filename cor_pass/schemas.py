@@ -171,7 +171,7 @@ class RecordResponse(BaseModel):
     user_id: str
     is_favorite: bool
 
-    tags: List[TagModel]
+    # tags: List[TagModel]
 
     class Config:
         from_attributes = True
@@ -486,7 +486,6 @@ class ConfirmLoginResponse(BaseModel):
     message: str
 
 
-
 class PatientResponce(BaseModel):
     patient_cor_id: str
     encrypted_surname: bytes
@@ -496,8 +495,11 @@ class PatientResponce(BaseModel):
     birth_date: Optional[date]
     status: Optional[str]
 
+
 class NewPatientRegistration(BaseModel):
-    email: EmailStr = Field(..., description="Email пациента (будет использован для создания пользователя)")
+    email: EmailStr = Field(
+        ..., description="Email пациента (будет использован для создания пользователя)"
+    )
     surname: str = Field(..., description="Фамилия пациента")
     first_name: str = Field(..., description="Имя пациента")
     middle_name: Optional[str] = Field(None, description="Отчество пациента")
@@ -505,11 +507,12 @@ class NewPatientRegistration(BaseModel):
     sex: Optional[str] = Field(None, description="Пол пациента")
     phone_number: Optional[str] = Field(None, description="Номер телефона пациента")
     address: Optional[str] = Field(None, description="Адрес пациента")
-    photo: Optional[str] = Field(None, description="Фото пациента (base64)") # Или другой формат представления
+    photo: Optional[str] = Field(
+        None, description="Фото пациента (base64)"
+    )  # Или другой формат представления
     status: Optional[str] = Field("registered", description="Начальный статус пациента")
+
 
 class ExistingPatientAdd(BaseModel):
     cor_id: str = Field(..., description="Cor ID существующего пользователя")
     status: Optional[str] = Field("registered", description="Начальный статус пациента")
-
-

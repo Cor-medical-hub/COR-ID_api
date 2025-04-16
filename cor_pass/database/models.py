@@ -43,6 +43,7 @@ class PatientStatus(enum.Enum):
     under_treatment = "under_treatment"
     discharged = "discharged"
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -87,8 +88,10 @@ class User(Base):
         "Doctor", back_populates="user", cascade="all, delete-orphan"
     )
 
-    user_doctors = relationship("Doctor", back_populates="user", cascade="all, delete-orphan")
-    patient = relationship("Patient", back_populates="user", uselist=False) 
+    user_doctors = relationship(
+        "Doctor", back_populates="user", cascade="all, delete-orphan"
+    )
+    patient = relationship("Patient", back_populates="user", uselist=False)
 
     # Индексы
     __table_args__ = (
@@ -289,14 +292,17 @@ class OTP(Base):
     __table_args__ = (Index("idx_otp_records_user_id", "user_id"),)
 
 
-
 class Patient(Base):
     __tablename__ = "patients"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    patient_cor_id = Column(String(36), ForeignKey("users.cor_id"), unique=True, nullable=False)
+    patient_cor_id = Column(
+        String(36), ForeignKey("users.cor_id"), unique=True, nullable=False
+    )
     encrypted_surname = Column(LargeBinary, nullable=True)  # Зашифрована фамилия
     encrypted_first_name = Column(LargeBinary, nullable=True)  # Зашифрованное имя
-    encrypted_middle_name = Column(LargeBinary, nullable=True)  # Зашифрованное отчество (может быть null)
+    encrypted_middle_name = Column(
+        LargeBinary, nullable=True
+    )  # Зашифрованное отчество (может быть null)
     birth_date = Column(Date, nullable=True)
     sex = Column(String(10), nullable=True)
     email = Column(String(250), nullable=True)
@@ -326,10 +332,10 @@ class DoctorPatientStatus(Base):
 
     __table_args__ = (
         # Гарантує, що кожен лікар має лише один статус для конкретного пацієнта
-        UniqueConstraint('patient_id', 'doctor_id', name='unique_patient_doctor_status'),
+        UniqueConstraint(
+            "patient_id", "doctor_id", name="unique_patient_doctor_status"
+        ),
     )
-
-
 
 
 # Base.metadata.create_all(bind=engine)
