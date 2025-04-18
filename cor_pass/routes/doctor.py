@@ -1,3 +1,4 @@
+from datetime import date
 import json
 from fastapi import (
     APIRouter,
@@ -13,6 +14,7 @@ from fastapi import (
     status,
 )
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Annotated, List, Optional
 
 from cor_pass.database.db import get_db
@@ -100,25 +102,81 @@ async def signup_doctor(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid JSON format",
         )
+    
+
+    exist_doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
+    if exist_doctor:
+        logger.debug(f"{current_user.cor_id} doctor already exist")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Doctor account already exists"
+        )
 
     doctors_photo_bytes = await doctors_photo.read() if doctors_photo else None
     diploma_scan_bytes = await diploma_scan.read() if diploma_scan else None
     certificate_scan_bytes = await certificate_scan.read() if certificate_scan else None
 
-    doctor = await create_doctor(
-        doctor_data=doctor_data_dict,
-        db=db,
-        doctors_photo_bytes=doctors_photo_bytes,
-        user=current_user,
-    )
-    doctors_data = await create_doctor_service(
-        doctor_data=doctor_data_dict,
-        db=db,
-        doctor=doctor,
-        diploma_scan_bytes=diploma_scan_bytes,
-        certificate_scan_bytes=certificate_scan_bytes,
-    )
 
+    # Перетворення дати атестації
+    try:
+        if "date_of_last_attestation" in doctor_data_dict and doctor_data_dict["date_of_last_attestation"]:
+            doctor_data_dict["date_of_last_attestation"] = date.fromisoformat(doctor_data_dict["date_of_last_attestation"])
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid date format for date_of_last_attestation. Expected YYYY-MM-DD.",
+        )
+
+    # Перетворення дат дипломів
+    if "diplomas" in doctor_data_dict and isinstance(doctor_data_dict["diplomas"], list):
+        for diploma in doctor_data_dict["diplomas"]:
+            if "date" in diploma and diploma["date"]:
+                try:
+                    diploma["date"] = date.fromisoformat(diploma["date"])
+                except ValueError:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="Invalid date format in diplomas. Expected YYYY-MM-DD.",
+                    )
+
+    # Перетворення дат сертифікатів
+    if "certificates" in doctor_data_dict and isinstance(doctor_data_dict["certificates"], list):
+        for certificate in doctor_data_dict["certificates"]:
+            if "date" in certificate and certificate["date"]:
+                try:
+                    certificate["date"] = date.fromisoformat(certificate["date"])
+                except ValueError:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="Invalid date format in certificates. Expected YYYY-MM-DD.",
+                    )
+    try:
+        doctor = await create_doctor(
+            doctor_data=doctor_data_dict,
+            db=db,
+            doctors_photo_bytes=doctors_photo_bytes,
+            user=current_user,
+        )
+        doctors_data = await create_doctor_service(
+            doctor_data=doctor_data_dict,
+            db=db,
+            doctor=doctor,
+            diploma_scan_bytes=diploma_scan_bytes,
+            certificate_scan_bytes=certificate_scan_bytes,
+        )
+    except IntegrityError as e:
+            logger.error(f"Database integrity error: {e}")
+            await db.rollback()  
+            detail = "Database error occurred. Please check the data for duplicates or invalid entries."
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=detail
+            )
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during doctor creation.",
+        )
     # Сериализуем ответ
     doctor_response = DoctorResponse(
         id=doctor.id,
@@ -132,36 +190,36 @@ async def signup_doctor(
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,
         status=doctor.status,
-        diplomas=[
-            DiplomaResponse(
-                id=diploma.id,
-                date=diploma.date,
-                series=diploma.series,
-                number=diploma.number,
-                university=diploma.university,
-            )
-            for diploma in doctor.diplomas
-        ],
-        certificates=[
-            CertificateResponse(
-                id=certificate.id,
-                date=certificate.date,
-                series=certificate.series,
-                number=certificate.number,
-                university=certificate.university,
-            )
-            for certificate in doctor.certificates
-        ],
-        clinic_affiliations=[
-            ClinicAffiliationResponse(
-                id=affiliation.id,
-                clinic_name=affiliation.clinic_name,
-                department=affiliation.department,
-                position=affiliation.position,
-                specialty=affiliation.specialty,
-            )
-            for affiliation in doctor.clinic_affiliations
-        ],
+        # diplomas=[
+        #     DiplomaResponse(
+        #         id=diploma.id,
+        #         date=diploma.date,
+        #         series=diploma.series,
+        #         number=diploma.number,
+        #         university=diploma.university,
+        #     )
+        #     for diploma in doctor.diplomas
+        # ],
+        # certificates=[
+        #     CertificateResponse(
+        #         id=certificate.id,
+        #         date=certificate.date,
+        #         series=certificate.series,
+        #         number=certificate.number,
+        #         university=certificate.university,
+        #     )
+        #     for certificate in doctor.certificates
+        # ],
+        # clinic_affiliations=[
+        #     ClinicAffiliationResponse(
+        #         id=affiliation.id,
+        #         clinic_name=affiliation.clinic_name,
+        #         department=affiliation.department,
+        #         position=affiliation.position,
+        #         specialty=affiliation.specialty,
+        #     )
+        #     for affiliation in doctor.clinic_affiliations
+        # ],
     )
 
     return doctor_response

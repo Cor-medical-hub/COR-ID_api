@@ -122,7 +122,7 @@ async def create_clinic_affiliation(
 async def create_doctor_service(
     doctor_data: dict,
     db: AsyncSession,
-    user: User,
+    doctor: Doctor,
     doctors_photo_bytes: Optional[bytes] = None,
     diploma_scan_bytes: Optional[bytes] = None,
     certificate_scan_bytes: Optional[bytes] = None,
@@ -130,7 +130,7 @@ async def create_doctor_service(
     """
     Асинхронна основна сервісна функція для створення лікаря та його сертифікатів.
     """
-    doctor = await create_doctor(doctor_data, db, user, doctors_photo_bytes)
+    # doctor = await create_doctor(doctor_data, db, user, doctors_photo_bytes)
 
     # Перевіряємо, що лікар був створений успішно
     if doctor:
