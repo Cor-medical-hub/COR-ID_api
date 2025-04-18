@@ -488,13 +488,16 @@ class ConfirmLoginResponse(BaseModel):
 
 class PatientResponce(BaseModel):
     patient_cor_id: str
-    encrypted_surname: bytes
-    encrypted_first_name: bytes
+    encrypted_surname: Optional[bytes] = None
+    encrypted_first_name: Optional[bytes] = None
     encrypted_middle_name: Optional[bytes] = None
     sex: Optional[str]
     birth_date: Optional[date]
     status: Optional[str]
 
+class PaginatedPatientsResponse(BaseModel):
+    items: List[PatientResponce]
+    total: int
 
 class NewPatientRegistration(BaseModel):
     email: EmailStr = Field(

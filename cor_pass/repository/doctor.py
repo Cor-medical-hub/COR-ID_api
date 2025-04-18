@@ -145,6 +145,82 @@ async def create_doctor_service(
     return doctor
 
 
+# async def get_doctor_patients_with_status(
+#     db: AsyncSession,
+#     doctor: Doctor,
+#     status_filters: Optional[List[PatientStatus]] = None,
+#     sex_filters: Optional[List[str]] = None,
+#     sort_by: Optional[str] = "change_date",
+#     sort_order: Optional[str] = "desc",
+#     skip: int = 1,
+#     limit: int = 10,
+# ) -> Tuple[List, int]:
+#     """
+#     Асинхронно получает список пацієнтів конкретного лікаря разом з їх статусами з урахуванням
+#     фільтрації, сортування та пагінації.
+#     """
+#     query = (
+#         select(DoctorPatientStatus, Patient)
+#         .join(Patient, DoctorPatientStatus.patient_id == Patient.id)
+#         .where(DoctorPatientStatus.doctor_id == doctor.id)
+#     )
+
+
+#     if status_filters:
+#         query = query.where(DoctorPatientStatus.status.in_([s.value for s in status_filters]))
+
+#     # Фільтрація за статтю пацієнта
+#     if sex_filters:
+#         query = query.where(Patient.sex.in_(sex_filters))
+
+#     # Сортування
+#     order_by_clause = None
+#     if sort_by == "change_date":
+#         order_by_clause = (
+#             desc(Patient.change_date)
+#             if sort_order == "desc"
+#             else asc(Patient.change_date)
+#         )
+#     elif sort_by == "birth_date":
+#         order_by_clause = (
+#             desc(Patient.birth_date)
+#             if sort_order == "desc"
+#             else asc(Patient.birth_date)
+#         )
+#     # Додайте інші умови сортування, якщо необхідно
+
+#     if order_by_clause is not None:
+#         query = query.order_by(order_by_clause)
+
+#     # Пагінація
+#     offset = (skip - 1) * limit
+#     patients_with_status_result = await db.execute(query.offset(offset).limit(limit))
+#     patients_with_status = patients_with_status_result.all()
+
+#     # Отримуємо загальну кількість результатів для пагінації
+#     count_query = (
+#         select(func.count())
+#         .select_from(DoctorPatientStatus)  # Явно вказуємо начальную таблицу
+#         .join(Patient, DoctorPatientStatus.patient_id == Patient.id)
+#         .where(DoctorPatientStatus.doctor_id == doctor.id)
+#     )
+#     if status_filters:
+#         count_query = count_query.where(DoctorPatientStatus.status.in_([s.value for s in status_filters]))
+#     if sex_filters:
+#         count_query = count_query.where(Patient.sex.in_(sex_filters))
+
+#     total_count_result = await db.execute(count_query)
+#     total_count = total_count_result.scalar_one()
+
+#     result = []
+#     for dps, patient in patients_with_status:
+#         result.append({"patient": patient, "status": dps.status.value})
+
+#     return result, total_count
+
+
+
+
 async def get_doctor_patients_with_status(
     db: AsyncSession,
     doctor: Doctor,
@@ -156,26 +232,24 @@ async def get_doctor_patients_with_status(
     limit: int = 10,
 ) -> Tuple[List, int]:
     """
-    Асинхронно отримує список пацієнтів конкретного лікаря разом з їх статусами з урахуванням
-    фільтрації, сортування та пагінації.
+    Асинхронно получает список пациентов конкретного врача вместе с их статусами с учетом
+    фильтрации, сортировки и пагинации.
     """
     query = (
-        select(DoctorPatientStatus)
-        .options(joinedload(DoctorPatientStatus.patient))
+        select(DoctorPatientStatus, Patient)
+        .join(Patient, DoctorPatientStatus.patient_id == Patient.id)
         .where(DoctorPatientStatus.doctor_id == doctor.id)
     )
 
-    # Фільтрація за статусом
+    # Фильтрация по статусу
     if status_filters:
-        query = query.where(DoctorPatientStatus.status.in_(status_filters))
+        query = query.where(DoctorPatientStatus.status.in_([s.value for s in status_filters]))
 
-    # Фільтрація за статтю пацієнта
+    # Фильтрация по полу пациента
     if sex_filters:
-        query = query.join(Patient, DoctorPatientStatus.patient_id == Patient.id).where(
-            Patient.sex.in_(sex_filters)
-        )
+        query = query.where(Patient.sex.in_(sex_filters))
 
-    # Сортування
+    # Сортировка
     order_by_clause = None
     if sort_by == "change_date":
         order_by_clause = (
@@ -183,31 +257,39 @@ async def get_doctor_patients_with_status(
             if sort_order == "desc"
             else asc(Patient.change_date)
         )
+    elif sort_by == "birth_date":
+        order_by_clause = (
+            desc(Patient.birth_date)
+            if sort_order == "desc"
+            else asc(Patient.birth_date)
+        )
+    # Добавьте другие условия сортировки, если необходимо
 
     if order_by_clause is not None:
         query = query.order_by(order_by_clause)
 
-    # Пагінація
+    # Пагинация
     offset = (skip - 1) * limit
     patients_with_status_result = await db.execute(query.offset(offset).limit(limit))
-    patients_with_status = patients_with_status_result.scalars().all()
+    patients_with_status = patients_with_status_result.all()
 
-    # Отримуємо загальну кількість результатів для пагінації
-    count_query = select(func.count()).select_from(
-        select(DoctorPatientStatus).where(DoctorPatientStatus.doctor_id == doctor.id)
+    # Получаем общее количество результатов для пагинации
+    count_query = (
+        select(func.count())
+        .select_from(DoctorPatientStatus)  # Явно указываем начальную таблицу
+        .join(Patient, DoctorPatientStatus.patient_id == Patient.id)
+        .where(DoctorPatientStatus.doctor_id == doctor.id)
     )
     if status_filters:
-        count_query = count_query.where(DoctorPatientStatus.status.in_(status_filters))
+        count_query = count_query.where(DoctorPatientStatus.status.in_([s.value for s in status_filters]))
     if sex_filters:
-        count_query = count_query.join(
-            Patient, DoctorPatientStatus.patient_id == Patient.id
-        ).where(Patient.sex.in_(sex_filters))
+        count_query = count_query.where(Patient.sex.in_(sex_filters))
 
     total_count_result = await db.execute(count_query)
     total_count = total_count_result.scalar_one()
 
     result = []
-    for dps in patients_with_status:
-        result.append({"patient": dps.patient, "status": dps.status.value})
+    for dps, patient in patients_with_status:
+        result.append({"patient": patient, "status": dps.status.value})
 
     return result, total_count

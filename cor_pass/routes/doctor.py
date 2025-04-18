@@ -32,6 +32,7 @@ from cor_pass.schemas import (
     DoctorResponse,
     ExistingPatientAdd,
     NewPatientRegistration,
+    PaginatedPatientsResponse,
     PatientResponce,
 )
 from cor_pass.repository import person as repository_person
@@ -167,53 +168,45 @@ async def signup_doctor(
 
 
 @router.get(
-    "/{doctor_id}/patients",
-    # response_model=List[PatientResponce],
-    dependencies=[Depends(user_access)],
+    "/{doctor_cor_id}/patients", 
+    # response_model=PatientResponce
 )
 async def get_doctor_patients(
-    doctor_id: str,
+    doctor_cor_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(auth_service.get_current_user),
-    status: Optional[List[PatientStatus]] = Query(
-        None, description="Фильтр за статусом"
-    ),
-    sex: Optional[List[str]] = Query(None, description="Фильтр за полом"),
-    sort_by: Optional[str] = Query(
-        "change_date", description="Поле для сортировки (change_date)"
-    ),
-    sort_order: Optional[str] = Query(
-        "desc",
-        description="Порядок сортировки (asc - по возрастанию, desc - по убыванию)",
-    ),
-    skip: int = Query(1, ge=1, description="Страница"),
-    limit: int = Query(10, ge=1, le=100, description="Количество на странице"),
+    user: User = Depends(user_access),
+    patient_status: Optional[str] = Query(None),  # Принимаем статус как строку
+    sex: Optional[List[str]] = Query(None),
+    sort_by: Optional[str] = Query("change_date"),
+    sort_order: Optional[str] = Query("desc"),
+    skip: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
 ):
-
-    doctor = await get_doctor(doctor_id, db)
+    doctor = await get_doctor(db=db, doctor_id=doctor_cor_id)
     if not doctor:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
 
-    if current_user.cor_id != doctor.doctor_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to view these patients",
-        )
+    status_filters = None
+    if patient_status:
+        try:
+            status_filters = [PatientStatus(patient_status)]
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status value: {status}. Allowed values are: {[e.value for e in PatientStatus]}",
+            )
 
-    patients_with_status = await get_doctor_patients_with_status(
+    patients_with_status, total_count = await get_doctor_patients_with_status(
         db=db,
         doctor=doctor,
-        status_filters=status,
+        status_filters=status_filters,
         sex_filters=sex,
         sort_by=sort_by,
         sort_order=sort_order,
-        skip=(skip - 1) * limit,  # Correcting skip for pagination
+        skip=skip,
         limit=limit,
     )
-
-    return patients_with_status
+    return {"items": patients_with_status, "total": total_count}
 
 
 @router.post(

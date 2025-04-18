@@ -132,3 +132,4 @@ async def add_existing_patient(
     db.add(doctor_patient_status)
 
     await db.commit()
+    return new_patient
