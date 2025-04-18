@@ -1,7 +1,8 @@
-from typing import List
-from sqlalchemy import select
+from typing import List, Optional
+from fastapi import HTTPException
+from sqlalchemy import asc, desc, select
 from sqlalchemy.orm import Session, selectinload
-
+from sqlalchemy.orm import Query as SQLAQuery
 
 from cor_pass.database.models import (
     Doctor,
@@ -21,16 +22,67 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_doctors(skip: int, limit: int, db: AsyncSession) -> List[Doctor]:
-    """
-    Асинхронно повертає список всіх лікарів з бази даних.
+# async def get_doctors(skip: int, limit: int, db: AsyncSession) -> List[Doctor]:
+#     """
+#     Асинхронно повертає список всіх лікарів з бази даних.
 
-    :param skip: int: Пропустити перші n записів у базі даних
-    :param limit: int: Обмежити кількість повернутих результатів
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :return: Список всіх лікарів
+#     :param skip: int: Пропустити перші n записів у базі даних
+#     :param limit: int: Обмежити кількість повернутих результатів
+#     :param db: AsyncSession: Асинхронна сесія бази даних
+#     :return: Список всіх лікарів
+#     """
+#     stmt = select(Doctor).offset(skip).limit(limit)
+#     result = await db.execute(stmt)
+#     doctors = result.scalars().all()
+#     return list(doctors)
+
+
+
+async def get_doctors(
+    skip: int,
+    limit: int,
+    db: AsyncSession,
+    status: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "asc",
+) -> List[Doctor]:
     """
-    stmt = select(Doctor).offset(skip).limit(limit)
+    Асинхронно повертає список лікарів з бази даних з можливістю фільтрації,
+    сортування та пагінації.
+
+    :param skip: int: Пропустити перші n записів у базі даних.
+    :param limit: int: Обмежити кількість повернутих результатів.
+    :param db: AsyncSession: Асинхронна сесія бази даних.
+    :param status: Optional[str]: Фільтрувати за статусом лікаря.
+    :param sort_by: Optional[str]: Поле для сортування (наприклад, 'created_at').
+    :param sort_order: Optional[str]: Порядок сортування ('asc' або 'desc').
+    :return: Список лікарів.
+    """
+    stmt: SQLAQuery = select(Doctor)
+
+    if status:
+            try:
+                doctor_status = DoctorStatus[status.upper()]  # Перетворюємо в верхній регістр для доступу до члена ENUM
+                stmt = stmt.where(Doctor.status == doctor_status)
+            except KeyError:
+                raise HTTPException(status_code=400, detail=f"Недійсний статус лікаря: {status}")
+
+    # Сортування
+    if sort_by:
+        sort_column = getattr(Doctor, sort_by, None)
+        if sort_column is not None:
+            if sort_order == "desc":
+                stmt = stmt.order_by(desc(sort_column))
+            else:
+                stmt = stmt.order_by(asc(sort_column))
+        else:
+            raise HTTPException(
+                status_code=400, detail=f"Невідоме поле для сортування: {sort_by}"
+            )
+
+    # Пагінація
+    stmt = stmt.offset(skip).limit(limit)
+
     result = await db.execute(stmt)
     doctors = result.scalars().all()
     return list(doctors)
