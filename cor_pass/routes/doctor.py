@@ -229,7 +229,7 @@ async def add_new_patient_to_doctor(
             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
         )
 
-    if current_user.cor_id != doctor.doctor_cor_id:
+    if current_user.cor_id != doctor.doctor_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to add patients to this doctor",

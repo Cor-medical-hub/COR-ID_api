@@ -1,3 +1,4 @@
+import base64
 from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import Session, joinedload
 from typing import Dict, List, Optional, Tuple, List
@@ -17,6 +18,8 @@ from cor_pass.database.models import (
 from cor_pass.schemas import DoctorCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cor_pass.services.cipher import decrypt_data
+from cor_pass.config.config import settings
 
 async def create_doctor(
     doctor_data: dict,
@@ -145,81 +148,6 @@ async def create_doctor_service(
     return doctor
 
 
-# async def get_doctor_patients_with_status(
-#     db: AsyncSession,
-#     doctor: Doctor,
-#     status_filters: Optional[List[PatientStatus]] = None,
-#     sex_filters: Optional[List[str]] = None,
-#     sort_by: Optional[str] = "change_date",
-#     sort_order: Optional[str] = "desc",
-#     skip: int = 1,
-#     limit: int = 10,
-# ) -> Tuple[List, int]:
-#     """
-#     Асинхронно получает список пацієнтів конкретного лікаря разом з їх статусами з урахуванням
-#     фільтрації, сортування та пагінації.
-#     """
-#     query = (
-#         select(DoctorPatientStatus, Patient)
-#         .join(Patient, DoctorPatientStatus.patient_id == Patient.id)
-#         .where(DoctorPatientStatus.doctor_id == doctor.id)
-#     )
-
-
-#     if status_filters:
-#         query = query.where(DoctorPatientStatus.status.in_([s.value for s in status_filters]))
-
-#     # Фільтрація за статтю пацієнта
-#     if sex_filters:
-#         query = query.where(Patient.sex.in_(sex_filters))
-
-#     # Сортування
-#     order_by_clause = None
-#     if sort_by == "change_date":
-#         order_by_clause = (
-#             desc(Patient.change_date)
-#             if sort_order == "desc"
-#             else asc(Patient.change_date)
-#         )
-#     elif sort_by == "birth_date":
-#         order_by_clause = (
-#             desc(Patient.birth_date)
-#             if sort_order == "desc"
-#             else asc(Patient.birth_date)
-#         )
-#     # Додайте інші умови сортування, якщо необхідно
-
-#     if order_by_clause is not None:
-#         query = query.order_by(order_by_clause)
-
-#     # Пагінація
-#     offset = (skip - 1) * limit
-#     patients_with_status_result = await db.execute(query.offset(offset).limit(limit))
-#     patients_with_status = patients_with_status_result.all()
-
-#     # Отримуємо загальну кількість результатів для пагінації
-#     count_query = (
-#         select(func.count())
-#         .select_from(DoctorPatientStatus)  # Явно вказуємо начальную таблицу
-#         .join(Patient, DoctorPatientStatus.patient_id == Patient.id)
-#         .where(DoctorPatientStatus.doctor_id == doctor.id)
-#     )
-#     if status_filters:
-#         count_query = count_query.where(DoctorPatientStatus.status.in_([s.value for s in status_filters]))
-#     if sex_filters:
-#         count_query = count_query.where(Patient.sex.in_(sex_filters))
-
-#     total_count_result = await db.execute(count_query)
-#     total_count = total_count_result.scalar_one()
-
-#     result = []
-#     for dps, patient in patients_with_status:
-#         result.append({"patient": patient, "status": dps.status.value})
-
-#     return result, total_count
-
-
-
 
 async def get_doctor_patients_with_status(
     db: AsyncSession,
@@ -289,7 +217,27 @@ async def get_doctor_patients_with_status(
     total_count = total_count_result.scalar_one()
 
     result = []
+    decoded_key = base64.b64decode(settings.aes_key)
     for dps, patient in patients_with_status:
-        result.append({"patient": patient, "status": dps.status.value})
+        decrypted_surname = await decrypt_data(patient.encrypted_surname, decoded_key) if patient.encrypted_surname else None
+        decrypted_first_name = await decrypt_data(patient.encrypted_first_name, decoded_key) if patient.encrypted_first_name else None
+        decrypted_middle_name = await decrypt_data(patient.encrypted_middle_name, decoded_key) if patient.encrypted_middle_name else None
+
+        result.append({
+            "patient": {
+                "id": patient.id,
+                "patient_cor_id": patient.patient_cor_id,
+                "surname": decrypted_surname,
+                "first_name": decrypted_first_name,
+                "middle_name": decrypted_middle_name,
+                "birth_date": patient.birth_date,
+                "sex": patient.sex,
+                "email": patient.email,
+                "phone_number": patient.phone_number,
+                "address": patient.address,
+                "change_date": patient.change_date,
+            },
+            "status": dps.status.value,
+        })
 
     return result, total_count

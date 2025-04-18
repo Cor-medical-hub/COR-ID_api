@@ -1,3 +1,4 @@
+import base64
 import uuid
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -45,28 +46,31 @@ async def register_new_patient(
 
     user_signup_data = UserModel(
         email=body.email,
-        password=hashed_password,
+        password=temp_password,
         birth=body.birth_date.year,
         user_sex=body.sex,
     )
+    hashed_password = auth_service.get_password_hash(temp_password)
+    user_signup_data.password=hashed_password
+
     new_user = await repository_person.create_user(user_signup_data, db)
 
     await db.flush()
 
     await repository_cor_id.create_new_corid(new_user, db)
-
+    decoded_key = base64.b64decode(settings.aes_key)
     # 4. Создаем запись пациента
     new_patient = Patient(
         patient_cor_id=new_user.cor_id,
         encrypted_surname=await encrypt_data(
-            body.surname.encode("utf-8"), settings.aes_key.encode()
+            body.surname.encode("utf-8"), decoded_key
         ),
         encrypted_first_name=await encrypt_data(
-            body.first_name.encode("utf-8"), settings.aes_key.encode()
+            body.first_name.encode("utf-8"), decoded_key
         ),
         encrypted_middle_name=(
             await encrypt_data(
-                body.middle_name.encode("utf-8"), settings.aes_key.encode()
+                body.middle_name.encode("utf-8"), decoded_key
             )
             if body.middle_name
             else None
@@ -79,6 +83,11 @@ async def register_new_patient(
         # photo=body.photo.encode('utf-8') if body.photo else None, # Пример шифрования
     )
     db.add(new_patient)
+    await db.commit()  # Сначала коммитим, чтобы получить ID
+
+    # Получаем ID созданного пациента (может потребоваться повторный запрос,
+    # в зависимости от вашей ORM и настроек сессии)
+    # await db.refresh(new_patient)
 
     # 5. Связываем пациента с врачом через DoctorPatientStatus
     doctor_patient_status = DoctorPatientStatus(
@@ -91,7 +100,7 @@ async def register_new_patient(
     await db.commit()
 
     # 6. Отправляем письмо с временным паролем
-    await send_email_code_with_temp_pass(new_patient.email, temp_password)
+    await send_email_code_with_temp_pass(email=new_patient.email, temp_pass=temp_password)
 
 
 async def add_existing_patient(
@@ -119,6 +128,8 @@ async def add_existing_patient(
     # 3. Создаем запись пациента
     new_patient = Patient(
         patient_cor_id=existing_user.cor_id,
+        sex = existing_user.user_sex,
+        email = existing_user.email
         # Другие поля пациента (возможно, вам потребуется запросить эти данные)
     )
     db.add(new_patient)
