@@ -41,7 +41,7 @@ from cor_pass.repository import person as repository_person
 from cor_pass.repository import user_session as repository_session
 from cor_pass.repository import cor_id as repository_cor_id
 from cor_pass.services.auth import auth_service
-from cor_pass.services.access import user_access
+from cor_pass.services.access import user_access, doctor_access
 from cor_pass.services.auth import auth_service
 from cor_pass.services.image_validation import validate_image_file
 import logging
@@ -193,7 +193,7 @@ async def signup_doctor(
 
 @router.get(
     "/patients",
-    dependencies=[Depends(user_access)], 
+    dependencies=[Depends(doctor_access)], 
     # response_model=PatientResponce
 )
 async def get_doctor_patients(
@@ -236,7 +236,7 @@ async def get_doctor_patients(
 @router.post(
     "/patients/register-new",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(user_access)],
+    dependencies=[Depends(doctor_access)],
 )
 async def add_new_patient_to_doctor(
     body: NewPatientRegistration,
@@ -279,7 +279,7 @@ async def add_new_patient_to_doctor(
         )
 
 
-@router.post("/patients/add-existing", dependencies=[Depends(user_access)])
+@router.post("/patients/add-existing", dependencies=[Depends(doctor_access)])
 async def add_existing_patient_to_doctor(
     patient_data: ExistingPatientAdd,
     db: AsyncSession = Depends(get_db),
