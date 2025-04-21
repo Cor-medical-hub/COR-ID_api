@@ -38,6 +38,7 @@ from cor_pass.routes import (
     doctor,
     dicom,
     websocket,
+    device_ws
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger
@@ -212,7 +213,7 @@ app.include_router(lawyer.router, prefix="/api")
 app.include_router(doctor.router, prefix="/api")
 app.include_router(dicom.router, prefix="/api")
 app.include_router(websocket.router, prefix="/api")
-
+app.include_router(device_ws.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(
