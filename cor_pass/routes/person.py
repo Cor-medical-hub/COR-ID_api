@@ -209,7 +209,6 @@ async def change_password(
     **Смена пароля в сценарии "Забыли пароль"** \n
     """
 
-    # user = await person_service.get_user_by_email(body.email, db) # Using current_user instead
     if not current_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"

@@ -32,69 +32,17 @@ from cor_pass.services.logger import logger
 
 router = APIRouter(prefix="/lawyer", tags=["Lawyer"])
 
-
-# @router.get(
-#     "/get_all_doctors",
-#     response_model=List[DoctorResponse],
-#     dependencies=[Depends(lawyer_access)],
-# )
-# async def get_all_doctors(
-#     skip: int = 0,
-#     limit: int = 10,
-#     db: AsyncSession = Depends(get_db),
-# ):
-#     """
-#     **Получение списка всех врачей**\n
-#     Этот маршрут позволяет получить список всех врачей с возможностью пагинации.
-#     Уровень доступа:
-#     - Пользователи с ролью "lawyer"
-#     :param skip: int: Количество записей для пропуска (для пагинации).
-#     :param limit: int: Максимальное количество записей для возврата (для пагинации).
-#     :param db: AsyncSession: Сессия базы данных.
-#     :return: Список врачей.
-#     :rtype: List[DoctorResponse]
-#     """
-#     list_doctors = await lawyer.get_doctors(skip=skip, limit=limit, db=db)
-
-#     if not list_doctors:
-#         return []
-
-#     doctors_response = [
-#         DoctorResponse(
-#             id=doctor.id,
-#             doctor_id=doctor.doctor_id,
-#             work_email=doctor.work_email,
-#             phone_number=doctor.phone_number,
-#             first_name=doctor.first_name,
-#             surname=doctor.surname,
-#             last_name=doctor.last_name,
-#             scientific_degree=doctor.scientific_degree,
-#             date_of_last_attestation=doctor.date_of_last_attestation,
-#             status=doctor.status,
-#             # Include other fields from Doctor model as needed
-#             # diplomas=[...],
-#             # certificates=[...],
-#             # clinic_affiliations=[...],
-#         )
-#         for doctor in list_doctors
-#     ]
-#     return doctors_response
-
-
-
-
-
 @router.get(
     "/get_all_doctors",
     response_model=List[DoctorResponse],
     dependencies=[Depends(lawyer_access)],
 )
 async def get_all_doctors(
-    skip: int = Query(0, description="Кількість записів для пропуска (для пагінації)"),
-    limit: int = Query(10, description="Максимальна кількість записів для повернення (для пагінації)"),
-    status: Optional[str] = Query(None, description="Фільтрувати за статусом лікаря"),
-    sort_by: Optional[str] = Query(None, description="Сортувати за полем (наприклад, 'created_at')"),
-    sort_order: Optional[str] = Query("asc", description="Порядок сортування ('asc' або 'desc')"),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+    status: Optional[str] = Query(None, description="Фильтр по статусу врача"),
+    sort_by: Optional[str] = Query(None, description="Сортировать по полю"),
+    sort_order: Optional[str] = Query("asc", description="Порядок сортировки ('asc' или 'desc')"),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -103,11 +51,11 @@ async def get_all_doctors(
     фильтрации по статусу и сортировки по дате регистрации.
     Уровень доступа:
     - Пользователи с ролью "lawyer"
-    :param skip: int: Количество записей для пропуска (для пагинации).
-    :param limit: int: Максимальное количество записей для возврата (для пагинации).
+    :param skip: int: Количество записей для пропуска.
+    :param limit: int: Максимальное количество записей для возврата.
     :param status: Optional[str]: Фильтровать по статусу врача.
-    :param sort_by: Optional[str]: Поле для сортування (наприклад, 'created_at').
-    :param sort_order: Optional[str]: Порядок сортування ('asc' або 'desc').
+    :param sort_by: Optional[str]: Поле для сортировки.
+    :param sort_order: Optional[str]: Порядок сортировки ('asc' или 'desc').
     :param db: AsyncSession: Сессия базы данных.
     :return: Список врачей.
     :rtype: List[DoctorResponse]
@@ -136,7 +84,6 @@ async def get_all_doctors(
             scientific_degree=doctor.scientific_degree,
             date_of_last_attestation=doctor.date_of_last_attestation,
             status=doctor.status,
-            # Include other fields from Doctor model as needed
         )
         for doctor in list_doctors
     ]
@@ -145,7 +92,6 @@ async def get_all_doctors(
 
 
 # Функция для преобразования бинарных данных в base64
-
 
 def bytes_to_base64(binary_data: bytes):
     if binary_data is None:
@@ -179,7 +125,6 @@ async def get_doctor_with_relations(
             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
         )
 
-    # Серіалізуємо дані у відповідну схему
     doctor_response = DoctorWithRelationsResponse(
         id=doctor.id,
         doctor_id=doctor.doctor_id,

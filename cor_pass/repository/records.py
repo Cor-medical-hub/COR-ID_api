@@ -44,7 +44,7 @@ async def create_record(
 
 async def get_record_by_id(user: User, db: AsyncSession, record_id: int):
     """
-    Асинхронно отримує запис за його ID, перевіряючи приналежність користувачу, та дешифрує дані.
+    Асинхронно получает запись по ID, проверяя принадлежность пользователю, и дешифрует данные.
     """
     stmt = (
         select(Record)
@@ -70,7 +70,7 @@ async def get_all_user_records(
     db: AsyncSession, user_id: str, skip: int, limit: int
 ) -> List[Record]:
     """
-    Асинхронно отримує всі записи конкретного користувача з бази даних з урахуванням пагінації.
+    Асинхронно получает все записи конкретного пользователя из базы данных с учетом пагинации.
     """
     stmt = select(Record).where(Record.user_id == user_id).offset(skip).limit(limit)
     result = await db.execute(stmt)
@@ -82,7 +82,7 @@ async def update_record(
     record_id: int, body: UpdateRecordModel, user: User, db: AsyncSession
 ):
     """
-    Асинхронно оновлює існуючий запис, перевіряючи його приналежність користувачу (БЕЗ ОБРОБКИ ТЕГІВ).
+    Асинхронно обновляет существующую запись, проверяя ее принадлежность пользователю.
     """
     stmt = (
         select(Record)
@@ -106,14 +106,14 @@ async def update_record(
         await db.commit()
         await db.refresh(record)
         return record
-    return None  # Повертаємо None, якщо запис не знайдено
+    return None
 
 
 async def make_favorite(
     record_id: int, is_favorite: bool, user: User, db: AsyncSession
 ):
     """
-    Асинхронно змінює статус "улюбленого" для запису.
+    Асинхронно изменяет статус для записи.
     """
     stmt = (
         select(Record)
@@ -128,12 +128,12 @@ async def make_favorite(
         await db.commit()
         await db.refresh(record)
         return record
-    return None  # Повертаємо None, якщо запис не знайдено
+    return None  
 
 
 async def delete_record(user: User, db: AsyncSession, record_id: int):
     """
-    Асинхронно видаляє запис, перевіряючи його приналежність користувачу.
+    Асинхронно удаляет запись, проверяя ее принадлежность пользователю.
     """
     stmt = (
         select(Record)

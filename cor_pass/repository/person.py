@@ -35,11 +35,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
     """
-    Асинхронно отримує користувача за його email.
+    Асинхронно получает пользователя по его email.
 
-    :param email: str: Email користувача, якого потрібно отримати
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :return: Першого користувача, знайденого за вказаним email
     """
     email_lower = email.lower()
     stmt = select(User).where(User.email.ilike(email_lower))
@@ -50,11 +47,8 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
 
 async def get_user_by_uuid(uuid: str, db: AsyncSession) -> User | None:
     """
-    Асинхронно отримує користувача за його UUID.
+    Асинхронно получает пользователя по его UUID.
 
-    :param uuid: str: UUID користувача, якого потрібно отримати
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :return: Першого користувача, знайденого за вказаним UUID
     """
     stmt = select(User).where(User.id == uuid)
     result = await db.execute(stmt)
@@ -64,11 +58,8 @@ async def get_user_by_uuid(uuid: str, db: AsyncSession) -> User | None:
 
 async def get_user_by_corid(cor_id: str, db: AsyncSession) -> User | None:
     """
-    Асинхронно отримує користувача за його Cor ID.
+    Асинхронно получает пользователя по его Cor ID.
 
-    :param cor_id: str: Cor ID користувача, якого потрібно отримати
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :return: Першого користувача, знайденого за вказаним Cor ID
     """
     stmt = select(User).where(User.cor_id == cor_id)
     result = await db.execute(stmt)
@@ -77,24 +68,15 @@ async def get_user_by_corid(cor_id: str, db: AsyncSession) -> User | None:
 
 
 async def get_max_user_index(db: AsyncSession) -> int | None:
-    """Асинхронно отримує максимальний user_index з бази даних."""
+    """Асинхронно получает максимальный user_index из базы данных."""
     result = await db.execute(select(func.max(User.user_index)))
     return result.scalar_one_or_none()
 
 
 async def create_user(body: UserModel, db: AsyncSession) -> User:
     """
-    Асинхронно створює нового користувача в базі даних.
+    Асинхронно создает нового юзера в базе данных.
 
-        Args:
-            body (UserModel): Об'єкт UserModel, що містить інформацію для додавання до бази даних.
-            db (AsyncSession): Асинхронна сесія SQLAlchemy для запитів та оновлень даних.
-        Returns:
-            User: Об'єкт User, що представляє новоствореного користувача.
-
-    :param body: UserModel: Передає дані з тіла запиту до функції create_user
-    :param db: AsyncSession: Створює асинхронну сесію бази даних
-    :return: Об'єкт користувача
     """
 
     new_user = User(**body.model_dump())
@@ -130,12 +112,8 @@ async def create_user(body: UserModel, db: AsyncSession) -> User:
 
 async def update_token(user: User, token: str | None, db: AsyncSession) -> None:
     """
-    Асинхронно оновлює refresh token для користувача.
+    Асинхронно обновляет refresh token пользователя.
 
-    :param user: User: Користувач, якого потрібно оновити
-    :param token: str | None: Новий refresh token
-    :param db: AsyncSession: Асинхронна сесія бази даних для збереження змін
-    :return: None
     """
     user.refresh_token = token
     await db.commit()
@@ -144,12 +122,8 @@ async def update_token(user: User, token: str | None, db: AsyncSession) -> None:
 
 async def get_users(skip: int, limit: int, db: AsyncSession) -> list[User]:
     """
-    Асинхронно повертає список всіх користувачів з бази даних.
+    Асинхронно возвращает список всех пользователей базы данных.
 
-    :param skip: int: Пропустити перші n записів у базі даних
-    :param limit: int: Обмежити кількість повернутих результатів
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :return: Список всіх користувачів
     """
     stmt = select(User).offset(skip).limit(limit)
     result = await db.execute(stmt)
@@ -162,17 +136,8 @@ async def make_user_status(
     email: str, account_status: Status, db: AsyncSession
 ) -> None:
     """
-    Асинхронно оновлює статус користувача на вказаний.
+    Асинхронно обновляет статус пользователя на указанный.
 
-    Args:
-        email (str): Email користувача.
-        status (Status): Новий статус для користувача.
-        db (AsyncSession): Асинхронна сесія бази даних.
-
-    :param email: str: Отримати користувача за email
-    :param status: Status: Встановити статус користувача
-    :param db: AsyncSession: Передати асинхронну сесію бази даних до функції
-    :return: None
     """
 
     user = await get_user_by_email(email, db)
@@ -187,7 +152,7 @@ async def make_user_status(
 
 async def get_user_status(email: str, db: AsyncSession) -> Status | None:
     """
-    Асинхронно отримує статус користувача за його email.
+    Асинхронно получает статус пользователя по его email.
     """
     user = await get_user_by_email(email, db)
     if user:
@@ -199,12 +164,8 @@ async def write_verification_code(
     email: str, db: AsyncSession, verification_code: int
 ) -> None:
     """
-    Асинхронно записує або оновлює код верифікації для вказаного email.
+    Асинхронно записывает или обновляет верификационный код для указанного email.
 
-    :param email: str: Email адреса користувача для підтвердження
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :param verification_code: int: Код верифікації для запису
-    :return: None
     """
     stmt = select(Verification).where(Verification.email == email)
     result = await db.execute(stmt)
@@ -214,7 +175,7 @@ async def write_verification_code(
         verification_record.verification_code = verification_code
         try:
             await db.commit()
-            logger.debug("Оновлено код верифікації в існуючому записі")
+            logger.debug("Обновлен код верификации в существующей записи")
         except Exception as e:
             await db.rollback()
             raise e
@@ -226,7 +187,7 @@ async def write_verification_code(
             db.add(verification_record)
             await db.commit()
             await db.refresh(verification_record)
-            logger.debug("Створено новий запис верифікації")
+            logger.debug("Создана новая запись верификации")
         except Exception as e:
             await db.rollback()
             raise e
@@ -236,12 +197,8 @@ async def verify_verification_code(
     email: str, db: AsyncSession, verification_code: int
 ) -> bool:
     """
-    Асинхронно перевіряє код верифікації для вказаного email.
+    Асинхронно проверяет код верификации для указанного e-mail.
 
-    :param email: str: Email адреса користувача для підтвердження
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :param verification_code: int: Код верифікації для перевірки
-    :return: True, якщо код вірний та знайдено запис, False в іншому випадку.
     """
     try:
         stmt = select(Verification).where(Verification.email == email)
@@ -263,7 +220,7 @@ async def verify_verification_code(
 
 async def change_user_password(email: str, password: str, db: AsyncSession) -> None:
     """
-    Асинхронно змінює пароль користувача.
+    Асинхронно изменяет пользовательский пароль.
     """
     user = await get_user_by_email(email, db)
     if user:
@@ -278,12 +235,12 @@ async def change_user_password(email: str, password: str, db: AsyncSession) -> N
             raise e
     else:
         logger.warning(f"User with email {email} not found during password change.")
-        # Вирішіть, чи потрібно тут викидати виняток або просто логувати
+
 
 
 async def change_user_email(email: str, current_user, db: AsyncSession) -> None:
     """
-    Асинхронно змінює email користувача.
+    Асинхронно изменяет email пользователя.
     """
     current_user.email = email
     try:
@@ -298,7 +255,7 @@ async def add_user_backup_email(
     email: str, current_user: User, db: AsyncSession
 ) -> None:
     """
-    Асинхронно додає резервний email користувачу.
+    Асинхронно добавляет резервный email пользователю.
     """
     current_user.backup_email = email
     try:
@@ -311,7 +268,7 @@ async def add_user_backup_email(
 
 async def delete_user_by_email(db: AsyncSession, email: str):
     """
-    Асинхронно видаляє користувача за його email.
+    Асинхронно удаляет пользователя по его email.
     """
     try:
         stmt = select(User).where(User.email == email)
@@ -321,15 +278,15 @@ async def delete_user_by_email(db: AsyncSession, email: str):
         await db.delete(user)
         await db.commit()
     except NoResultFound:
-        print("Користувача не знайдено.")
+        print("Пользователя не найдено.")
     except Exception as e:
         await db.rollback()
-        print(f"Произошла ошибка при удалении користувача: {e}")
+        print(f"Произошла ошибка при удалении пользователя: {e}")
 
 
 async def get_settings(user: User, db: AsyncSession):
     """
-    Асинхронно отримує налаштування користувача. Якщо налаштування відсутні, створює нові.
+    Асинхронно получает пользовательские настройки. Если настройки отсутствуют, создаются новые.
     """
     stmt = (
         select(UserSettings)
@@ -356,7 +313,7 @@ async def get_settings(user: User, db: AsyncSession):
 
 async def get_max_user_index(db: AsyncSession):
     """
-    Асинхронно отримує максимальне значення user_index з таблиці User.
+    Асинхронно получает максимальное значение user_index из таблицы User.
     """
     try:
         result = await db.execute(select(func.max(User.user_index)))
@@ -375,8 +332,8 @@ async def change_password_storage_settings(
     current_user: User, settings: PasswordStorageSettings, db: AsyncSession
 ) -> UserSettings:
     """
-    Асинхронно змінює налаштування зберігання паролів користувача.
-    Якщо налаштування відсутні, створює нові.
+    Асинхронно изменяет настройки хранения пользовательских паролей.
+    Если настройки отсутствуют, создаются новые.
     """
     stmt = (
         select(UserSettings)
@@ -412,8 +369,8 @@ async def change_medical_storage_settings(
     current_user: User, settings: MedicalStorageSettings, db: AsyncSession
 ) -> UserSettings:
     """
-    Асинхронно змінює налаштування зберігання медичних даних користувача.
-    Якщо налаштування відсутні, створює нові.
+    Асинхронно изменяет настройку хранения медицинских данных пользователя.
+    Если настройки отсутствуют, создаются новые.
     """
     stmt = (
         select(UserSettings)
@@ -447,11 +404,8 @@ async def change_medical_storage_settings(
 
 async def deactivate_user(email: str, db: AsyncSession) -> None:
     """
-    Асинхронно деактивує обліковий запис користувача за вказаною email-адресою.
+    Асинхронно деактивирует аккаунт пользователя по указанному email-адресу.
 
-    :param email: str: Email адреса користувача для деактивації
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :return: None
     """
     user = await get_user_by_email(email, db)
     if user:
@@ -466,11 +420,8 @@ async def deactivate_user(email: str, db: AsyncSession) -> None:
 
 async def activate_user(email: str, db: AsyncSession) -> None:
     """
-    Асинхронно активує обліковий запис користувача за вказаною email-адресою.
+    Асинхронно активирует аккаунт пользователя по указанному email-адресу.
 
-    :param email: str: Email адреса користувача для активації
-    :param db: AsyncSession: Асинхронна сесія бази даних
-    :return: None
     """
     user = await get_user_by_email(email, db)
     if user:
@@ -485,8 +436,8 @@ async def activate_user(email: str, db: AsyncSession) -> None:
 
 async def get_last_password_change(email: str, db: AsyncSession) -> Optional[datetime]:
     """
-    Асинхронно отримує дату останньої зміни пароля користувача за його email.
-    Повертає None, якщо користувача не знайдено.
+    Асинхронно получает дату последнего изменения пароля пользователя по его email.
+    Возвращает None, если пользователь не найден.
     """
     user = await get_user_by_email(email, db)
     if user:

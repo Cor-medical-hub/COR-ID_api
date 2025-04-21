@@ -10,12 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 async def get_tags(skip: int, limit: int, db: AsyncSession) -> List[Dict[str, Any]]:
     """
-    Асинхронно отримує список тегів з бази даних.
+    Асинхронно получает перечень тегов из базы данных.
 
-    :param skip: Кількість тегів, які потрібно пропустити.
-    :param limit: Максимальна кількість тегів для отримання.
-    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
-    :return: Список словників, що представляють теги.
     """
     stmt = select(Tag).offset(skip).limit(limit)
     result = await db.execute(stmt)
@@ -26,11 +22,8 @@ async def get_tags(skip: int, limit: int, db: AsyncSession) -> List[Dict[str, An
 
 async def get_tag(tag_id: int, db: AsyncSession) -> Tag | None:
     """
-    Асинхронно отримує тег з бази даних за його ID.
+    Асинхронно получает тег из базы данных по его ID.
 
-    :param tag_id: ID тега, який потрібно отримати.
-    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
-    :return: Отриманий об'єкт тега або None, якщо тег не знайдено.
     """
     stmt = select(Tag).where(Tag.id == tag_id)
     result = await db.execute(stmt)
@@ -40,11 +33,8 @@ async def get_tag(tag_id: int, db: AsyncSession) -> Tag | None:
 
 async def create_tag(body: TagModel, db: AsyncSession) -> TagResponse:
     """
-    Асинхронно створює новий тег в базі даних.
+    Асинхронно создает новый тэг в базе данных.
 
-    :param body: Дані тега, які використовуються для створення тега.
-    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
-    :return: Об'єкт відповіді створеного тега.
     """
     tag = Tag(name=body.name)
     db.add(tag)
@@ -55,12 +45,8 @@ async def create_tag(body: TagModel, db: AsyncSession) -> TagResponse:
 
 async def update_tag(tag_id: int, body: TagModel, db: AsyncSession) -> Tag | None:
     """
-    Асинхронно оновлює існуючий тег в базі даних.
+    Асинхронно обновляет существующий тэг в базе данных.
 
-    :param tag_id: ID тега, який потрібно оновити.
-    :param body: Оновлені дані тега.
-    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
-    :return: Оновлений об'єкт тега, якщо знайдено, інакше None.
     """
     stmt = select(Tag).where(Tag.id == tag_id)
     result = await db.execute(stmt)
@@ -68,18 +54,15 @@ async def update_tag(tag_id: int, body: TagModel, db: AsyncSession) -> Tag | Non
     if tag:
         tag.name = body.name
         await db.commit()
-        await db.refresh(tag)  # Оновлюємо об'єкт для відображення змін
+        await db.refresh(tag)  
         return tag
     return None
 
 
 async def remove_tag(tag_id: int, db: AsyncSession) -> Tag | None:
     """
-    Асинхронно видаляє тег з бази даних.
+    Асинхронно удаляет тэг из базы данных.
 
-    :param tag_id: ID тега, який потрібно видалити.
-    :param db: Асинхронна сесія бази даних для взаємодії з базою даних.
-    :return: Видалений об'єкт тега, якщо знайдено, інакше None.
     """
     stmt = select(Tag).where(Tag.id == tag_id)
     result = await db.execute(stmt)

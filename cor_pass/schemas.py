@@ -511,8 +511,8 @@ class NewPatientRegistration(BaseModel):
     phone_number: Optional[str] = Field(None, description="Номер телефона пациента")
     address: Optional[str] = Field(None, description="Адрес пациента")
     photo: Optional[str] = Field(
-        None, description="Фото пациента (base64)"
-    )  # Или другой формат представления
+        None, description="Фото пациента (base64 или blob)"
+    ) 
     status: Optional[str] = Field("registered", description="Начальный статус пациента")
 
 

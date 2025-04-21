@@ -41,7 +41,7 @@ async def create_otp_record(
 
 async def get_otp_record_by_id(user: User, db: AsyncSession, record_id: int):
     """
-    Асинхронно отримує запис OTP за його ID, перевіряючи приналежність користувачу.
+    Асинхронно получает запись OTP по его ID, проверяя принадлежность пользователю.
     """
     stmt = (
         select(OTP)
@@ -57,7 +57,7 @@ async def get_all_user_otp_records(
     db: AsyncSession, user_id: str, skip: int, limit: int
 ) -> List[OTP]:
     """
-    Асинхронно отримує всі записи OTP конкретного користувача з бази даних з урахуванням пагінації.
+    Асинхронно получает все записи OTP конкретного пользователя из базы с учетом пагинации.
     """
     stmt = select(OTP).where(OTP.user_id == user_id).offset(skip).limit(limit)
     result = await db.execute(stmt)
@@ -69,7 +69,7 @@ async def update_otp_record(
     record_id: int, body: UpdateOTPRecordModel, user: User, db: AsyncSession
 ):
     """
-    Асинхронно оновлює існуючий запис OTP, перевіряючи його приналежність користувачу.
+    Асинхронно обновляет существующую запись OTP, проверяя ее принадлежность пользователю.
     """
     stmt = (
         select(OTP)
@@ -85,12 +85,12 @@ async def update_otp_record(
         await db.commit()
         await db.refresh(record)
         return record
-    return None  # Повертаємо None, якщо запис не знайдено
+    return None 
 
 
 async def delete_otp_record(user: User, db: AsyncSession, record_id: int):
     """
-    Асинхронно видаляє запис OTP, перевіряючи його приналежність користувачу.
+    Асинхронно удаляет запись OTP, проверяя его принадлежность пользователю.
     """
     stmt = (
         select(OTP)

@@ -28,9 +28,8 @@ async def create_doctor(
     doctors_photo_bytes: Optional[bytes] = None,
 ) -> Doctor:
     """
-    Асинхронна сервісна функція для створення лікаря.
+    Асинхронная сервисная функция по созданию врача.
     """
-    # Створюємо лікаря
     doctor = Doctor(
         doctor_id=user.cor_id,
         work_email=doctor_data.get("work_email"),
@@ -44,12 +43,10 @@ async def create_doctor(
         status=DoctorStatus.PENDING,
     )
 
-    # Додаємо лікаря в сесію
     db.add(doctor)
 
-    # Зберігаємо зміни в базі даних
     await db.commit()
-    await db.refresh(doctor)  # Оновлюємо об'єкт лікаря після збереження
+    await db.refresh(doctor) 
 
     return doctor
 
@@ -61,7 +58,7 @@ async def create_certificates(
     certificate_scan_bytes: Optional[bytes] = None,
 ) -> None:
     """
-    Асинхронно створює сертифікати для лікаря.
+    Асинхронно создает сертификаты врача.
     """
     for cert in doctor_data.get("certificates", []):
         certificate = Certificate(
@@ -74,7 +71,7 @@ async def create_certificates(
         )
         db.add(certificate)
 
-    await db.commit()  # Асинхронно зберігаємо зміни
+    await db.commit() 
 
 
 async def create_diploma(
@@ -84,7 +81,7 @@ async def create_diploma(
     diploma_scan_bytes: Optional[bytes] = None,
 ) -> None:
     """
-    Асинхронно створює дипломи для лікаря.
+    Асинхронно создает дипломы врача.
     """
     for dip in doctor_data.get("diplomas", []):
         diploma = Diploma(
@@ -97,14 +94,14 @@ async def create_diploma(
         )
         db.add(diploma)
 
-    await db.commit()  # Асинхронно зберігаємо зміни
+    await db.commit() 
 
 
 async def create_clinic_affiliation(
     doctor: Doctor, doctor_data: dict, db: AsyncSession
 ) -> None:
     """
-    Асинхронно створює прив'язки до клінік для лікаря.
+    Асинхронно создает привязки к клиникам для врача.
     """
     for aff in doctor_data.get("clinic_affiliations", []):
         affiliation = ClinicAffiliation(
@@ -116,7 +113,7 @@ async def create_clinic_affiliation(
         )
         db.add(affiliation)
 
-    await db.commit()  # Асинхронно зберігаємо зміни
+    await db.commit()
 
 
 async def create_doctor_service(
@@ -128,21 +125,21 @@ async def create_doctor_service(
     certificate_scan_bytes: Optional[bytes] = None,
 ) -> Doctor:
     """
-    Асинхронна основна сервісна функція для створення лікаря та його сертифікатів.
+    Асинхронная основная сервисная функция по созданию врача и его сертификатов.
     """
     # doctor = await create_doctor(doctor_data, db, user, doctors_photo_bytes)
 
-    # Перевіряємо, що лікар був створений успішно
-    if doctor:
-        print("Лікар створений успішно")
 
-        # Створюємо сертифікати
+    if doctor:
+        print("Врач создан успешно")
+
+
         await create_certificates(doctor, doctor_data, db, certificate_scan_bytes)
 
-        # Створюємо дипломи
+
         await create_diploma(doctor, doctor_data, db, diploma_scan_bytes)
 
-        # Створюємо прив'язки до клінік
+
         await create_clinic_affiliation(doctor, doctor_data, db)
 
     return doctor
@@ -191,7 +188,6 @@ async def get_doctor_patients_with_status(
             if sort_order == "desc"
             else asc(Patient.birth_date)
         )
-    # Добавьте другие условия сортировки, если необходимо
 
     if order_by_clause is not None:
         query = query.order_by(order_by_clause)
@@ -204,7 +200,7 @@ async def get_doctor_patients_with_status(
     # Получаем общее количество результатов для пагинации
     count_query = (
         select(func.count())
-        .select_from(DoctorPatientStatus)  # Явно указываем начальную таблицу
+        .select_from(DoctorPatientStatus)  
         .join(Patient, DoctorPatientStatus.patient_id == Patient.id)
         .where(DoctorPatientStatus.doctor_id == doctor.id)
     )

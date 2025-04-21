@@ -47,27 +47,20 @@ async def get_doctors(
     sort_order: Optional[str] = "asc",
 ) -> List[Doctor]:
     """
-    Асинхронно повертає список лікарів з бази даних з можливістю фільтрації,
-    сортування та пагінації.
+    Асинхронно возвращает список врачей из базы данных с возможностью фильтрации,
+    сортировки и пагинации.
 
-    :param skip: int: Пропустити перші n записів у базі даних.
-    :param limit: int: Обмежити кількість повернутих результатів.
-    :param db: AsyncSession: Асинхронна сесія бази даних.
-    :param status: Optional[str]: Фільтрувати за статусом лікаря.
-    :param sort_by: Optional[str]: Поле для сортування (наприклад, 'created_at').
-    :param sort_order: Optional[str]: Порядок сортування ('asc' або 'desc').
-    :return: Список лікарів.
     """
     stmt: SQLAQuery = select(Doctor)
 
     if status:
             try:
-                doctor_status = DoctorStatus[status.upper()]  # Перетворюємо в верхній регістр для доступу до члена ENUM
+                doctor_status = DoctorStatus[status.upper()]  
                 stmt = stmt.where(Doctor.status == doctor_status)
             except KeyError:
-                raise HTTPException(status_code=400, detail=f"Недійсний статус лікаря: {status}")
+                raise HTTPException(status_code=400, detail=f"Недействительный статус врача: {status}")
 
-    # Сортування
+    # Сортировка
     if sort_by:
         sort_column = getattr(Doctor, sort_by, None)
         if sort_column is not None:
@@ -77,10 +70,10 @@ async def get_doctors(
                 stmt = stmt.order_by(asc(sort_column))
         else:
             raise HTTPException(
-                status_code=400, detail=f"Невідоме поле для сортування: {sort_by}"
+                status_code=400, detail=f"Неизвестное поле для сортировки: {sort_by}"
             )
 
-    # Пагінація
+    # Пагинация
     stmt = stmt.offset(skip).limit(limit)
 
     result = await db.execute(stmt)
@@ -90,7 +83,7 @@ async def get_doctors(
 
 async def get_doctor(doctor_id: str, db: AsyncSession) -> Doctor | None:
     """
-    Асинхронно отримує лікаря за його ID.
+    Асинхронно получает врача по его ID.
     """
     stmt = select(Doctor).where(Doctor.doctor_id == doctor_id)
     result = await db.execute(stmt)
@@ -100,7 +93,7 @@ async def get_doctor(doctor_id: str, db: AsyncSession) -> Doctor | None:
 
 async def get_all_doctor_info(doctor_id: str, db: AsyncSession) -> Doctor | None:
     """
-    Асинхронно отримує всю інформацію про лікаря, включаючи дипломи, сертифікати та прив'язки до клінік.
+    Асинхронно получает всю информацию о враче, включая дипломы, сертификаты и привязки к клиникам.
     """
     stmt = (
         select(Doctor)
@@ -108,7 +101,6 @@ async def get_all_doctor_info(doctor_id: str, db: AsyncSession) -> Doctor | None
         .outerjoin(Diploma)
         .outerjoin(Certificate)
         .outerjoin(ClinicAffiliation)
-        # Для завантаження пов'язаних об'єктів (замість lazy loading)
         .options(selectinload(Doctor.diplomas))
         .options(selectinload(Doctor.certificates))
         .options(selectinload(Doctor.clinic_affiliations))
@@ -120,7 +112,7 @@ async def get_all_doctor_info(doctor_id: str, db: AsyncSession) -> Doctor | None
 
 async def approve_doctor(doctor: Doctor, db: AsyncSession, status: DoctorStatus):
     """
-    Асинхронно оновлює статус лікаря.
+    Асинхронно обновляет статус врача.
     """
     doctor.status = status
     try:
@@ -132,7 +124,7 @@ async def approve_doctor(doctor: Doctor, db: AsyncSession, status: DoctorStatus)
 
 async def delete_doctor_by_doctor_id(db: AsyncSession, doctor_id: str):
     """
-    Асинхронно видаляє лікаря за його doctor_id.
+    Асинхронно удаляет врача по его doctor_id.
     """
     try:
         stmt = select(Doctor).where(Doctor.doctor_id == doctor_id)
@@ -142,7 +134,7 @@ async def delete_doctor_by_doctor_id(db: AsyncSession, doctor_id: str):
         await db.delete(doctor)
         await db.commit()
     except NoResultFound:
-        print("Доктор не знайдений.")
+        print("Доктор не найден.")
     except Exception as e:
         await db.rollback()
         print(f"Произошла ошибка при удалении врача: {e}")

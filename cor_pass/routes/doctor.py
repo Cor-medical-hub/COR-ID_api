@@ -115,8 +115,6 @@ async def signup_doctor(
     diploma_scan_bytes = await diploma_scan.read() if diploma_scan else None
     certificate_scan_bytes = await certificate_scan.read() if certificate_scan else None
 
-
-    # Перетворення дати атестації
     try:
         if "date_of_last_attestation" in doctor_data_dict and doctor_data_dict["date_of_last_attestation"]:
             doctor_data_dict["date_of_last_attestation"] = date.fromisoformat(doctor_data_dict["date_of_last_attestation"])
@@ -126,7 +124,6 @@ async def signup_doctor(
             detail="Invalid date format for date_of_last_attestation. Expected YYYY-MM-DD.",
         )
 
-    # Перетворення дат дипломів
     if "diplomas" in doctor_data_dict and isinstance(doctor_data_dict["diplomas"], list):
         for diploma in doctor_data_dict["diplomas"]:
             if "date" in diploma and diploma["date"]:
@@ -138,7 +135,6 @@ async def signup_doctor(
                         detail="Invalid date format in diplomas. Expected YYYY-MM-DD.",
                     )
 
-    # Перетворення дат сертифікатів
     if "certificates" in doctor_data_dict and isinstance(doctor_data_dict["certificates"], list):
         for certificate in doctor_data_dict["certificates"]:
             if "date" in certificate and certificate["date"]:
@@ -186,53 +182,23 @@ async def signup_doctor(
         first_name=doctor.first_name,
         surname=doctor.surname,
         last_name=doctor.last_name,
-        # doctors_photo=doctor.doctors_photo, # Assuming this is handled elsewhere or not directly returned
+        # doctors_photo=doctor.doctors_photo, 
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,
         status=doctor.status,
-        # diplomas=[
-        #     DiplomaResponse(
-        #         id=diploma.id,
-        #         date=diploma.date,
-        #         series=diploma.series,
-        #         number=diploma.number,
-        #         university=diploma.university,
-        #     )
-        #     for diploma in doctor.diplomas
-        # ],
-        # certificates=[
-        #     CertificateResponse(
-        #         id=certificate.id,
-        #         date=certificate.date,
-        #         series=certificate.series,
-        #         number=certificate.number,
-        #         university=certificate.university,
-        #     )
-        #     for certificate in doctor.certificates
-        # ],
-        # clinic_affiliations=[
-        #     ClinicAffiliationResponse(
-        #         id=affiliation.id,
-        #         clinic_name=affiliation.clinic_name,
-        #         department=affiliation.department,
-        #         position=affiliation.position,
-        #         specialty=affiliation.specialty,
-        #     )
-        #     for affiliation in doctor.clinic_affiliations
-        # ],
     )
 
     return doctor_response
 
 
 @router.get(
-    "/{doctor_cor_id}/patients", 
+    "/patients",
+    dependencies=[Depends(user_access)], 
     # response_model=PatientResponce
 )
 async def get_doctor_patients(
-    doctor_cor_id: str,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(user_access),
+    current_user: User = Depends(auth_service.get_current_user),
     patient_status: Optional[str] = Query(None),  # Принимаем статус как строку
     sex: Optional[List[str]] = Query(None),
     sort_by: Optional[str] = Query("change_date"),
@@ -240,7 +206,7 @@ async def get_doctor_patients(
     skip: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
 ):
-    doctor = await get_doctor(db=db, doctor_id=doctor_cor_id)
+    doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
     if not doctor:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
 
@@ -268,12 +234,11 @@ async def get_doctor_patients(
 
 
 @router.post(
-    "/{doctor_id}/patients/register-new",
+    "/patients/register-new",
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(user_access)],
 )
 async def add_new_patient_to_doctor(
-    doctor_id: Annotated[str, Path(description="ID врача")],
     body: NewPatientRegistration,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(auth_service.get_current_user),
@@ -281,7 +246,7 @@ async def add_new_patient_to_doctor(
     """
     Добавить нового пациента к врачу.
     """
-    doctor = await get_doctor(doctor_id, db)
+    doctor = await get_doctor(current_user.cor_id, db)
     if not doctor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
@@ -308,23 +273,22 @@ async def add_new_patient_to_doctor(
             "message": f"Новый пациент {new_patient_info.first_name} {new_patient_info.surname} успешно зарегистрирован и добавлен к врачу."
         }
     else:
-        # Эта ветка не должна достигаться из-за валидации Pydantic
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Некорректные данные для добавления пациента.",
         )
 
 
-@router.post("/{doctor_id}/patients/add-existing", dependencies=[Depends(user_access)])
+@router.post("/patients/add-existing", dependencies=[Depends(user_access)])
 async def add_existing_patient_to_doctor(
-    doctor_id: str,
     patient_data: ExistingPatientAdd,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user),
 ):
     """
     Добавить существующего пациента к врачу.
     """
-    doctor = await get_doctor(doctor_id=doctor_id, db=db)
+    doctor = await get_doctor(doctor_id=current_user.cor_id, db=db)
     if not doctor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"

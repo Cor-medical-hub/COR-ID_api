@@ -38,9 +38,8 @@ async def create_user_session(
     body: UserSessionModel, user: User, db: AsyncSession
 ) -> UserSession:
     """
-    Асинхронно створює нову сесію користувача або оновлює існуючу.
+    Асинхронно создает новую сессию пользователя или обновляет существующую.
     """
-    # Шукаємо існуючу сесію для даного користувача та пристрою
     stmt = select(UserSession).where(
         UserSession.user_id == user.cor_id,
         UserSession.device_info == body.device_info,
@@ -53,7 +52,6 @@ async def create_user_session(
     )
 
     if existing_session:
-        # Якщо сесія існує, оновлюємо refresh_token та updated_at
         existing_session.refresh_token = encrypted_refresh_token
         existing_session.updated_at = func.now()
         try:
@@ -87,7 +85,7 @@ async def get_user_sessions_by_device_info(
     user_id: str, device_info: str, db: AsyncSession
 ) -> List[UserSession]:
     """
-    Асинхронно отримує всі сесії користувача на вказаному пристрої.
+    Асинхронно получает все сессии пользователя на указанном устройстве.
     """
     stmt = select(UserSession).where(
         UserSession.user_id == user_id,
@@ -102,13 +100,8 @@ async def update_session_token(
     user: User, token: str | None, device_info: str, db: AsyncSession
 ) -> UserSession | None:
     """
-    Асинхронно оновлює refresh token для сесії користувача на вказаному пристрої.
+    Асинхронно обновляет refresh token для сессии пользователя на указанном устройстве.
 
-    :param user: User: Користувач, для якого оновлюється токен
-    :param token: str | None: Новий токен сесії
-    :param device_info: str: Інформація про пристрій користувача
-    :param db: AsyncSession: Асинхронна сесія бази даних для збереження змін
-    :return: Оновлену UserSession або None, якщо сесію не знайдено
     """
     try:
         stmt = select(UserSession).where(
@@ -122,7 +115,7 @@ async def update_session_token(
             encrypted_refresh_token = await encrypt_data(
                 data=token, key=await decrypt_user_key(user.unique_cipher_key)
             )
-            # Якщо сесія існує, оновлюємо refresh_token
+
             existing_session.refresh_token = encrypted_refresh_token
             existing_session.updated_at = func.now()
             try:
@@ -135,17 +128,16 @@ async def update_session_token(
                 await db.rollback()
                 raise e
         elif existing_session and token is None:
-            # Якщо токен None, нічого не оновлюємо, але повертаємо існуючу сесію
             return existing_session
         else:
-            return None  # Повертаємо None, якщо сесію не знайдено
+            return None 
     except Exception as e:
-        raise Exception("Помилка при пошуку або оновленні сесії")
+        raise Exception("Ошибка при поиске или обновлении сессии")
 
 
 async def get_session_by_id(user: User, db: AsyncSession, session_id: str):
     """
-    Асинхронно отримує сесію користувача за її ID, перевіряючи приналежність користувачу.
+    Асинхронно получает сессию пользователя по ее ID, проверяя принадлежность пользователя.
     """
     stmt = (
         select(UserSession)
@@ -161,7 +153,7 @@ async def get_all_user_sessions(
     db: AsyncSession, user_id: str, skip: int, limit: int
 ) -> List[UserSession]:
     """
-    Асинхронно отримує всі сесії конкретного користувача з бази даних з урахуванням пагінації.
+    Асинхронно получает все сессии конкретного юзера из базы данных с учетом пагинации.
     """
     stmt = (
         select(UserSession)
@@ -176,7 +168,7 @@ async def get_all_user_sessions(
 
 async def delete_session(user: User, db: AsyncSession, session_id: str):
     """
-    Асинхронно видаляє сесію користувача за її ID, перевіряючи приналежність користувачу.
+    Асинхронно удаляет сессию пользователя по ее ID, проверяя принадлежность пользователя.
     """
     stmt = (
         select(UserSession)
@@ -197,12 +189,12 @@ async def delete_session(user: User, db: AsyncSession, session_id: str):
 
 async def create_auth_session(request: InitiateLoginRequest, db: AsyncSession) -> str:
     """
-    Асинхронно створює запис сесії для авторизації за Cor ID.
+    Асинхронно создает запись сессии для авторизации по Cor ID.
     """
     email = request.email
     cor_id = request.cor_id
     session_token = uuid.uuid4().hex
-    expires_at = datetime.now() + timedelta(minutes=10)  # 10 хвилин на підтвердження
+    expires_at = datetime.now() + timedelta(minutes=10)  # 10 минут на подтверждение
 
     db_session = CorIdAuthSession(
         email=email, cor_id=cor_id, session_token=session_token, expires_at=expires_at
@@ -221,7 +213,7 @@ async def get_auth_session(
     session_token: str, db: AsyncSession
 ) -> CorIdAuthSession | None:
     """
-    Асинхронно отримує активну сесію авторизації за її токеном.
+    Асинхронно получает активную сессию авторизации по ее токену.
     """
     stmt = select(CorIdAuthSession).where(
         CorIdAuthSession.session_token == session_token,
@@ -236,7 +228,7 @@ async def get_auth_session_by_token(
     session_token: str, db: AsyncSession
 ) -> CorIdAuthSession | None:
     """
-    Асинхронно отримує сесію авторизації за її токеном.
+    Асинхронно получает сессию авторизации по ее токену.
     """
     stmt = select(CorIdAuthSession).where(
         CorIdAuthSession.session_token == session_token
@@ -251,14 +243,14 @@ async def update_session_status(
     db: AsyncSession,
 ):
     """
-    Асинхронно оновлює статус сесії авторизації.
+    Асинхронно обновляет статус сессии авторизации.
     """
     if confirmation_status == "approved":
         db_session.status = AuthSessionStatus.APPROVED
     elif confirmation_status == "rejected":
         db_session.status = AuthSessionStatus.REJECTED
     try:
-        db.add(db_session)  # Ensure the session is added to the current transaction
+        db.add(db_session)
         await db.commit()
         await db.refresh(db_session)
     except Exception as e:

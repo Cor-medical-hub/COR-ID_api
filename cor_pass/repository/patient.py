@@ -39,7 +39,7 @@ async def register_new_patient(
     """
     Асинхронно регистрирует нового пользователя как пациента и связывает его с врачом.
     """
-    # 1. Генерируем временный пароль
+    # Генерируем временный пароль
     password_settings = PasswordGeneratorSettings()
     temp_password = generate_password(password_settings)
     hashed_password = auth_service.get_password_hash(temp_password)
@@ -59,7 +59,7 @@ async def register_new_patient(
 
     await repository_cor_id.create_new_corid(new_user, db)
     decoded_key = base64.b64decode(settings.aes_key)
-    # 4. Создаем запись пациента
+
     new_patient = Patient(
         patient_cor_id=new_user.cor_id,
         encrypted_surname=await encrypt_data(
@@ -80,16 +80,11 @@ async def register_new_patient(
         email=body.email,
         phone_number=body.phone_number,
         address=body.address,
-        # photo=body.photo.encode('utf-8') if body.photo else None, # Пример шифрования
+
     )
     db.add(new_patient)
-    await db.commit()  # Сначала коммитим, чтобы получить ID
+    await db.commit() 
 
-    # Получаем ID созданного пациента (может потребоваться повторный запрос,
-    # в зависимости от вашей ORM и настроек сессии)
-    # await db.refresh(new_patient)
-
-    # 5. Связываем пациента с врачом через DoctorPatientStatus
     doctor_patient_status = DoctorPatientStatus(
         patient_id=new_patient.id,
         doctor_id=doctor.id,
@@ -99,7 +94,6 @@ async def register_new_patient(
 
     await db.commit()
 
-    # 6. Отправляем письмо с временным паролем
     await send_email_code_with_temp_pass(email=new_patient.email, temp_pass=temp_password)
 
 
@@ -109,34 +103,32 @@ async def add_existing_patient(
     """
     Асинхронно добавляет существующего пользователя как пациента к врачу.
     """
-    # 1. Находим пользователя по cor_id
+
     existing_user = await repository_person.get_user_by_corid(cor_id, db)
     if not existing_user:
         raise HTTPException(
-            status_code=404, detail=f"Користувача з Cor ID {cor_id} не знайдено."
+            status_code=404, detail=f"Пользователь с Cor ID {cor_id} не найден."
         )
 
-    # 2. Проверяем, не является ли пользователь уже пациентом
     stmt_patient = select(Patient).where(Patient.patient_cor_id == cor_id)
     result_patient = await db.execute(stmt_patient)
     existing_patient = result_patient.scalar_one_or_none()
     if existing_patient:
         raise HTTPException(
-            status_code=400, detail=f"Користувач з Cor ID {cor_id} вже є пацієнтом."
+            status_code=400, detail=f"Пользователь с Cor ID {cor_id} уже является пациентом."
         )
 
-    # 3. Создаем запись пациента
+
     new_patient = Patient(
         patient_cor_id=existing_user.cor_id,
         sex = existing_user.user_sex,
         email = existing_user.email
-        # Другие поля пациента (возможно, вам потребуется запросить эти данные)
+
     )
     db.add(new_patient)
     await db.flush()
     doctor_id_str = doctor.id
 
-    # 4. Связываем пациента с врачом через DoctorPatientStatus
     doctor_patient_status = DoctorPatientStatus(
         patient_id=new_patient.id, doctor_id=doctor_id_str, status=PatientStatus(status)
     )

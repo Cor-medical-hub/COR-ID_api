@@ -31,7 +31,7 @@ async def validate_image_file(file: UploadFile):
             detail=f"Неподдерживаемый тип изображения. Разрешены: {', '.join(ALLOWED_IMAGE_TYPES)}",
         )
 
-    # Проверка по расширению файла (дополнительная проверка)
+    # Проверка по расширению файла
     file_ext = file.filename.split(".")[-1].lower()
     print(file_ext)
     if file_ext not in ALLOWED_IMAGE_TYPES:

@@ -27,9 +27,9 @@ async def close_websocket_connection(session_token: str):
 
 
 async def check_session_timeouts():
-    """Асинхронна фонова задача для перевірки та обробки таймаутів сесій."""
+    """Асинхронная фоновая задача для проверки и обработки таймаутов сессий."""
     while True:
-        async with async_session_maker() as db:  # Використовуємо async with для керування сесією
+        async with async_session_maker() as db:  
             try:
                 now = datetime.utcnow()
                 stmt = select(CorIdAuthSession).where(
@@ -41,7 +41,7 @@ async def check_session_timeouts():
 
                 for session in expired_sessions:
                     session.status = AuthSessionStatus.TIMEOUT
-                    await db.commit()  # Комітимо зміни для кожної сесії одразу
+                    await db.commit()
 
                     await send_websocket_message(
                         session.session_token, {"status": "timeout"}
@@ -58,21 +58,19 @@ async def check_session_timeouts():
 
 
 async def cleanup_auth_sessions():
-    """Асинхронна фонова задача для видалення старих сесій авторизації."""
+    """Асинхронная фоновая задача для удаления старых сессий авторизации."""
     while True:
         async with async_session_maker() as db:
             try:
                 now = datetime.utcnow()
 
-                # Видаляємо сесії, які вже минули
                 expired_stmt = delete(CorIdAuthSession).where(
                     CorIdAuthSession.expires_at < now
                 )
                 expired_result = await db.execute(expired_stmt)
                 expired_count = expired_result.rowcount
 
-                # Видаляємо завершені сесії старше певного періоду (наприклад, 1 день)
-                cutoff_time = now - timedelta(days=1)
+                cutoff_time = now - timedelta(days=1) # Завершенные 1 день назад сессии
                 completed_stmt = delete(CorIdAuthSession).where(
                     CorIdAuthSession.status.in_(
                         [
@@ -88,7 +86,7 @@ async def cleanup_auth_sessions():
 
                 await db.commit()
                 print(
-                    f"Асинхронно видалено {expired_count} прострочених сесій та {completed_count} завершених сесій."
+                    f"Удалено {expired_count} просроченых сессий и {completed_count} завершенных сессий."
                 )
             except Exception as e:
                 print(f"Ошибка при асинхронной очистке сессий авторизации: {e}")
@@ -96,4 +94,4 @@ async def cleanup_auth_sessions():
             finally:
                 await asyncio.sleep(
                     3600
-                )  # Запускати кожен час (настрой по необходимости)
+                )  # запуск каждый час 

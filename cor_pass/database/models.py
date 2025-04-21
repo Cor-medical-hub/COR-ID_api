@@ -331,7 +331,7 @@ class DoctorPatientStatus(Base):
     doctor = relationship("Doctor", back_populates="patient_statuses")
 
     __table_args__ = (
-        # Гарантує, що кожен лікар має лише один статус для конкретного пацієнта
+        # Каждый врач имеет только 1 конкретный статус под пациента
         UniqueConstraint(
             "patient_id", "doctor_id", name="unique_patient_doctor_status"
         ),
