@@ -637,38 +637,25 @@ select#user_sex option:checked {
 
 
 .session-card {
-    background-color: rgba(255, 255, 255, 0.6); /* Белый фон с прозрачностью 60% */
-    border-radius: 12px; 
-    padding: 7px; 
-    width: 320px; /* Ширина карточки */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Тень */
-    display: flex;
-    flex-direction: column;
-    gap: 5px; /* Уменьшаем расстояние между элементами внутри карточки */
-}
-
-
-#sessionsModal {
-    display: none;
-    position: fixed;
-    background: radial-gradient(circle, #ffffff, #f1e9fc, #fcf7f2);
-    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
-    border: 1px solid #ccc;
-    border-radius: 30px;
-    top: 100px;
-    left: 100px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
     width: 400px;
-    overflow-y: auto; /* Добавляем прокрутку, если контент не помещается */
-    max-height: 90vh; /* Максимальная высота модального окна */
-    min-height: 200px; /* Минимальная высота модального окна */
+    flex-direction: column;
 }
+
 /* Стили для содержимого карточки сессии */
 .session-card .card-content {
-    font-size: 12px; /* Уменьшаем размер шрифта */
-    color: #291161; /* Цвет текста (цвет темы) */
-    line-height: 1.1; /* Уменьшаем высоту строки */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1px 18px 0px 10px;
+    border-radius: 10px;
+    background-color: white;
+    position: relative;
+    font-size: 10px;
+    color: #291161;
+    line-height: 1.1;
 }
-
 /* Стили для заголовков внутри карточки сессии */
 .session-card .card-content strong {
     color: #7527B2; /* Цвет заголовков (другой оттенок темы) */

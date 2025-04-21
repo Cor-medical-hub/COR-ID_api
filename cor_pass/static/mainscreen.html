@@ -258,18 +258,21 @@
 
        
     <!-- Модальное окно -->
-<div id="sessionsModal" class="modal" style="display: none;">
-    <div class="modal-header">
-        <div class="modal-buttons">
-            <button class="modal-button close" data-action="close" onclick="closeModal('sessionsModal')">✖</button>
-        </div>
-        <br><br>
-        <h3 style="margin-top:0; color:#291161;font-size: 17px;">Информация о сессиях</h3>
+    <div id="sessionsModal"class="modal" style="display: none;">  
+        <div class="modal-header"> 
+            <div class="modal-buttons">
+              <button class="modal-button close" data-action="close" onclick="closeModal('sessionsModal')">✖</button>
+            </div>
+            <h3 style="margin-top: 25px; color:#291161;font-size: 17px;">Информация о сессиях</h3>
+        </div> 
+      <div class="modal-content"> 
+          <div class="cards-scroll-area">
+            <div class="cards-container" id="sessionCardsContainer">
+              <!-- Карточки -->
+            </div>
+          </div>
+      </div>
     </div>
-    <div class="cards-container" id="sessionCardsContainer">
-        <!-- Здесь будут отображаться карточки с сессиями -->
-    </div>
-</div>
 
 
 
@@ -295,6 +298,12 @@
                 window.location.href = '/static/medical.html' + '?access_token=' + accessToken;
             } 
         });
+        // Обработчик для кнопки "Мой кабинет"
+        document.getElementById('Doctor').addEventListener('click', function() {
+                    if (checkToken()) {          
+                        window.location.href = '/static/doctor_patients_page.html' + '?access_token=' + accessToken;
+                    } 
+                });
 
 
 
@@ -382,10 +391,14 @@
                 }
             }
 
-            document.addEventListener('DOMContentLoaded', fetchCorId);
+          //  document.addEventListener('DOMContentLoaded', fetchCorId);
             
             document.addEventListener('DOMContentLoaded', function() {
+              checkToken();
+              fetchCorId();
               initModalControls('sessionsModal');
+              initAllModals();
+              makeModalDraggable('sessionsModal');
               enableFetchInterceptor();
               setupTokenCheckOnActions();
 
@@ -435,12 +448,11 @@
 async function getSessions() {
     try {
         const token = getTokenFromURL();
-       // const token = localStorage.getItem("access_token"); // Берем токен из localStorage
         const response = await fetch("/api/user/sessions/all?skip=0&limit=150", {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json;charset=utf-8"
             }
         });
 
@@ -452,41 +464,81 @@ async function getSessions() {
         console.log("Список сессий:", sessions);
 
         const cardsContainer = document.getElementById("sessionCardsContainer");
-        cardsContainer.innerHTML = ""; // Очистка перед вставкой новых данных
+        cardsContainer.innerHTML = "";
 
         sessions.forEach(session => {
-        const card = document.createElement("div");
-        card.className = "session-card"; // Используем новый класс
-        card.innerHTML = `
-        <div class="card-content">
-            <p><strong>Об устройстве:</strong> ${session.device_info}</p>
-            <p><strong>Устройство:</strong> ${session.device_type || "Неизвестно"}, ${session.device_os || "Неизвестно"}</p>
-            <p><strong>Даты:</strong> Создана: ${new Date(session.created_at).toLocaleString()}, Обновлена: ${new Date(session.updated_at).toLocaleString()}</p>
-        </div>
-        `;
-    cardsContainer.appendChild(card);
-});
+            const card = document.createElement("div");
+            card.className = "session-card";
+         /*   card.innerHTML = `
+                <div class="card-content">   
+                    <button class="modal-button session-delete-button" data-session-id="${session.id}">✖</button>
+                    <p><strong>Об устройстве:</strong> ${session.device_info}</p>
+                    <p><strong>Устройство:</strong> ${session.device_type || "Неизвестно"}, ${session.device_os || "Неизвестно"}</p>
+                    <p><strong>Даты:</strong> Создана: ${new Date(session.created_at).toLocaleString()}, Обновлена: ${new Date(session.updated_at).toLocaleString()}</p>
+                    
+                </div>
+            `;*/
+            card.innerHTML = `
+            <div class="card-content">
+                <div class="session-text">
+                <p><strong>Об устройстве:</strong> ${session.device_info}</p>
+                <p><strong>Устройство:</strong> ${session.device_type || "Неизвестно"}, ${session.device_os || "Неизвестно"}</p>
+                <p><strong>Даты:</strong> Создана: ${new Date(session.created_at).toLocaleString()}, Обновлена: ${new Date(session.updated_at).toLocaleString()}</p>
+                </div>
+                <button class="modal-button session-delete-button" data-session-id="${session.id}">✖</button>
+            </div>
+            `;
+            cardsContainer.appendChild(card);
+        });
 
+        // Добавляем обработчики событий для кнопок удаления
+        document.querySelectorAll('.modal-button.session-delete-button').forEach(button => {
+            button.addEventListener('click', async function() {
+                const sessionId = this.getAttribute('data-session-id');
+                await deleteSession(sessionId);
+            });
+        });
 
-  // Рассчитываем высоту всех карточек
-  const cardsHeight = Array.from(cardsContainer.children).reduce((totalHeight, card) => {
-            return totalHeight + card.offsetHeight;
-        }, 0);
-
-        // Добавляем дополнительные отступы (например, padding и margin)
+   // Рассчитываем высоту всех карточек
+        const cardsHeight = Array.from(cardsContainer.children).reduce((totalHeight, card) => {
+        return totalHeight + card.offsetHeight;}, 0);
         const padding = 40; // Отступы внутри модального окна
-        const modalHeight = cardsHeight + padding+10;
-
-        // Устанавливаем высоту модального окна
         const modal = document.getElementById("sessionsModal");
-        modal.style.height = `${modalHeight}px`;
-
 
     } catch (error) {
         console.error("Ошибка при получении сессий:", error);
     }
 }
 
+async function deleteSession(sessionId) {
+    try {
+        const token = getTokenFromURL();
+        const response = await fetch(`/api/user/sessions/${sessionId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json;charset=utf-8"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Сессия удалена:", result);
+        
+        // Обновляем список сессий после удаления
+        await getSessions();
+        
+        // Можно добавить уведомление об успешном удалении
+        alert("Сессия успешно удалена");
+        
+    } catch (error) {
+        console.error("Ошибка при удалении сессии:", error);
+        alert("Не удалось удалить сессию: " + error.message);
+    }
+}
 
 
         </script>

@@ -30,17 +30,17 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 SQLALCHEMY_DATABASE_URL = settings.sqlalchemy_database_url
 
 engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
-# Base = declarative_base()  # Зазвичай використовується для визначення моделей
+# Base = declarative_base()
 async_session_maker = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
 async def get_db():
     """
-    Функція get_db відкриває нове асинхронне підключення до бази даних
-    якщо для поточного контексту програми ще немає жодного.
-    Після завершення запиту сесія бази даних буде закрита.
+    Функция get_db открывает новое асинхронное подключение к базе данных
+    если для текущего контекста программы ещё такового нет.
+    После завершения запроса подключение закрывается.
 
-    :return: Асинхронний об'єкт сесії AsyncSession
+    :return: Асинхронный обьект сессии AsyncSession
     """
     async with async_session_maker() as session:
         yield session
