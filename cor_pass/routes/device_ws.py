@@ -72,3 +72,18 @@ async def get_device_data(device_id: str):
     if device_id in device_data:
         return device_data[device_id]
     return JSONResponse(status_code=404, content={"message": f"Данные для устройства с ID {device_id} не найдены."})
+
+
+@router.post("/disconnect/{device_id}")
+async def disconnect_device(device_id: str):
+    """
+    Закрывает WebSocket-соединение с указанным устройством.
+    """
+    if device_id in active_device_connections:
+        websocket = active_device_connections[device_id]
+        await websocket.close()
+        del active_device_connections[device_id]
+        if device_id in device_data:
+            del device_data[device_id]
+        return {"status": "disconnected", "device_id": device_id}
+    return JSONResponse(status_code=404, content={"message": f"Устройство с ID {device_id} не подключено."})
