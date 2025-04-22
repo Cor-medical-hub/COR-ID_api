@@ -1,8 +1,8 @@
 import json
 from typing import List, Optional
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-
+from cor_pass.services.access import user_access
 
 
 router = APIRouter(prefix="/device_ws", tags=["Device WebSockets"])
@@ -39,7 +39,7 @@ async def device_websocket_endpoint(websocket: WebSocket, device_id: str):
             del device_data[device_id]
 
 
-@router.post("/send_command/{device_id}")
+@router.post("/send_command/{device_id}", dependencies=[Depends(user_access)])
 async def send_command_to_device(device_id: str, command: dict):
     """
     Отправляет команду указанному устройству через WebSocket.
@@ -55,7 +55,7 @@ async def send_command_to_device(device_id: str, command: dict):
         return {"status": "device_not_connected", "device_id": device_id}
 
 
-@router.get("/connected_devices", response_model=List[str])
+@router.get("/connected_devices", dependencies=[Depends(user_access)], response_model=List[str])
 async def get_connected_devices():
     """
     Возвращает список всех подключенных устройств.
@@ -64,7 +64,7 @@ async def get_connected_devices():
 
 
 
-@router.get("/device_data/{device_id}", response_model=Optional[dict])
+@router.get("/device_data/{device_id}", dependencies=[Depends(user_access)], response_model=Optional[dict])
 async def get_device_data(device_id: str):
     """
     Возвращает последние полученные данные от указанного устройства.
@@ -74,7 +74,7 @@ async def get_device_data(device_id: str):
     return JSONResponse(status_code=404, content={"message": f"Данные для устройства с ID {device_id} не найдены."})
 
 
-@router.post("/disconnect/{device_id}")
+@router.post("/disconnect/{device_id}", dependencies=[Depends(user_access)])
 async def disconnect_device(device_id: str):
     """
     Закрывает WebSocket-соединение с указанным устройством.
