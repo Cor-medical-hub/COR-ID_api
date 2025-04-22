@@ -4,6 +4,7 @@ import time
 from fastapi.middleware import Middleware
 import uvicorn
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from fastapi import FastAPI, Request, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,6 +38,7 @@ from cor_pass.routes import (
     doctor,
     dicom,
     websocket,
+    device_ws
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger
@@ -130,10 +132,10 @@ def read_root(request: Request):
 
 
 @app.get("/api/healthchecker")
-def healthchecker(db: Session = Depends(get_db)):
+async def healthchecker(db: AsyncSession = Depends(get_db)):
     REQUEST_COUNT.inc()
     try:
-        result = db.execute(text("SELECT 1")).fetchone()
+        result = await db.execute(text("SELECT 1"))
         if result is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -192,8 +194,8 @@ async def custom_identifier(request: Request) -> str:
 async def startup():
     print("------------- STARTUP --------------")
     await FastAPILimiter.init(redis_client, identifier=custom_identifier)
-    asyncio.create_task(check_session_timeouts())
-    asyncio.create_task(cleanup_auth_sessions())
+    # asyncio.create_task(check_session_timeouts())
+    # asyncio.create_task(cleanup_auth_sessions())
 
 
 auth_attempts = defaultdict(list)
@@ -211,7 +213,7 @@ app.include_router(lawyer.router, prefix="/api")
 app.include_router(doctor.router, prefix="/api")
 app.include_router(dicom.router, prefix="/api")
 app.include_router(websocket.router, prefix="/api")
-
+app.include_router(device_ws.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(

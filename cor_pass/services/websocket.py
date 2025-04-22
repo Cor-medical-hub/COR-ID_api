@@ -1,10 +1,12 @@
 import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from cor_pass.database.models import CorIdAuthSession, AuthSessionStatus
 from datetime import datetime, timedelta
 
-from cor_pass.database.db import SessionLocal
+from cor_pass.database.db import async_session_maker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Словарь для хранения активных WebSocket-соединений (session_token -> WebSocket)
 active_connections: dict[str, WebSocket] = {}
@@ -25,58 +27,51 @@ async def close_websocket_connection(session_token: str):
 
 
 async def check_session_timeouts():
-    """Фоновая задача для проверки и обработки таймаутов сессий."""
+    """Асинхронная фоновая задача для проверки и обработки таймаутов сессий."""
     while True:
-        db = SessionLocal()  # Создаем новую сессию внутри задачи
-        try:
-            now = datetime.utcnow()
-            expired_sessions = (
-                db.query(CorIdAuthSession)
-                .filter(
+        async with async_session_maker() as db:  
+            try:
+                now = datetime.utcnow()
+                stmt = select(CorIdAuthSession).where(
                     CorIdAuthSession.status == AuthSessionStatus.PENDING,
                     CorIdAuthSession.expires_at < now,
                 )
-                .all()
-            )
+                result = await db.execute(stmt)
+                expired_sessions = result.scalars().all()
 
-            for session in expired_sessions:
-                session.status = AuthSessionStatus.TIMEOUT
-                db.commit()
-                await send_websocket_message(
-                    session.session_token, {"status": "timeout"}
-                )
-                await close_websocket_connection(
-                    session.session_token
-                )  # Закрываем соединение
+                for session in expired_sessions:
+                    session.status = AuthSessionStatus.TIMEOUT
+                    await db.commit()
 
-            db.close()  # Закрываем сессию после использования
-        except Exception as e:
-            print(f"Ошибка в фоновой задаче проверки таймаутов: {e}")
-            if db:
-                db.rollback()
-                db.close()
+                    await send_websocket_message(
+                        session.session_token, {"status": "timeout"}
+                    )
+                    await close_websocket_connection(
+                        session.session_token
+                    )  # Закрываем соединение
 
-        await asyncio.sleep(60)  # Проверять каждую минуту
+            except Exception as e:
+                print(f"Ошибка в асинхронной фоновой задаче проверки таймаутов: {e}")
+                await db.rollback()
+            finally:
+                await asyncio.sleep(60)  # Проверять каждую минуту
 
 
 async def cleanup_auth_sessions():
-    """Фоновая задача для удаления старых сессий авторизации."""
+    """Асинхронная фоновая задача для удаления старых сессий авторизации."""
     while True:
-        db = SessionLocal()
-        try:
-            now = datetime.utcnow()
-            # Удаляем сессии, которые истекли
-            expired_sessions = (
-                db.query(CorIdAuthSession)
-                .filter(CorIdAuthSession.expires_at < now)
-                .delete(synchronize_session="fetch")
-            )
+        async with async_session_maker() as db:
+            try:
+                now = datetime.utcnow()
 
-            # Удаляем завершенные сессии старше определенного периода (например, 1 день)
-            cutoff_time = now - timedelta(days=1)
-            completed_sessions = (
-                db.query(CorIdAuthSession)
-                .filter(
+                expired_stmt = delete(CorIdAuthSession).where(
+                    CorIdAuthSession.expires_at < now
+                )
+                expired_result = await db.execute(expired_stmt)
+                expired_count = expired_result.rowcount
+
+                cutoff_time = now - timedelta(days=1) # Завершенные 1 день назад сессии
+                completed_stmt = delete(CorIdAuthSession).where(
                     CorIdAuthSession.status.in_(
                         [
                             AuthSessionStatus.APPROVED,
@@ -86,18 +81,17 @@ async def cleanup_auth_sessions():
                     ),
                     CorIdAuthSession.created_at < cutoff_time,
                 )
-                .delete(synchronize_session="fetch")
-            )
+                completed_result = await db.execute(completed_stmt)
+                completed_count = completed_result.rowcount
 
-            db.commit()
-            print(
-                f"Удалено {expired_sessions} истекших сессий и {completed_sessions} завершенных сессий."
-            )
-            db.close()
-        except Exception as e:
-            print(f"Ошибка при очистке сессий авторизации: {e}")
-            if db:
-                db.rollback()
-                db.close()
-
-        await asyncio.sleep(3600)  # Запускать каждый час (настрой по необходимости)
+                await db.commit()
+                print(
+                    f"Удалено {expired_count} просроченых сессий и {completed_count} завершенных сессий."
+                )
+            except Exception as e:
+                print(f"Ошибка при асинхронной очистке сессий авторизации: {e}")
+                await db.rollback()
+            finally:
+                await asyncio.sleep(
+                    3600
+                )  # запуск каждый час 

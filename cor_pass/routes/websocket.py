@@ -4,7 +4,7 @@ from cor_pass.database.models import CorIdAuthSession, AuthSessionStatus
 from cor_pass.repository.user_session import get_auth_session_by_token
 from cor_pass.services import websocket as ws
 from datetime import datetime
-
+from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/websockets", tags=["Websockets"])
 
 @router.websocket("/auth/{session_token}")
 async def websocket_endpoint(
-    websocket: WebSocket, session_token: str, db: Session = Depends(get_db)
+    websocket: WebSocket, session_token: str, db: AsyncSession = Depends(get_db)
 ):
     """
     WebSocket-эндпоинт для ожидания статуса подтверждения от Cor-ID.
@@ -41,6 +41,7 @@ async def websocket_endpoint(
         while True:
             data = await websocket.receive_text()
             print(f"Получено сообщение от клиента {session_token}: {data}")
+            # You might want to process the received data here
     except WebSocketDisconnect:
         print(f"Клиент {session_token} отключился")
         if session_token in ws.active_connections:

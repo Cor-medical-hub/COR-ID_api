@@ -35,7 +35,7 @@
     gap: 5px;
     position: absolute;
     top: 10px;
-    right: 10px;
+    right: 20px;
 }
 
 .modal-button {
@@ -52,10 +52,69 @@
     color: #7B43F2;
 }
 
+ 
+.cards-scroll-area {
+    overflow-y: auto;
+    flex-grow: 1;
+    padding: 5px;
+    max-height: 190px;
+}
+  
+  /* Стилизация полосы прокрутки */
+  .cards-scroll-area::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  .cards-scroll-area::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .cards-scroll-area::-webkit-scrollbar-thumb {
+    background-color: #a383d2;
+    border-radius: 10px;
+    border: 2px solid #f1f1f1;
+  }
+  
+  .cards-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: #8259bb;
+  }
+  
+  /* Отступ снизу для красоты */
+  .cards-container {
+    padding-bottom: 20px;
+  }
+
+  
 .modal-button:hover {
     background-color: #B1A1DA;
 }
 
+
+/* Кнопка удаления в правом верхнем углу карточки */
+.session-delete-button {
+    position: absolute;
+    right: 10px;
+    z-index: 10;
+    background-color: #fff;
+    border-radius: 7px;
+    font-size: 14px;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+  .session-text {
+    flex: 1; /* занимает доступное пространство */
+    padding-right: 30px;
+}
+  
+  .session-delete-button:hover {
+    background-color: #5e32c5;
+   
+  }
 .recovery-btn {
     background-color: white;
     color: #7B43F2;

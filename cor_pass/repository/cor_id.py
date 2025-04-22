@@ -4,7 +4,7 @@ from datetime import datetime
 from cor_pass.database.models import User
 from cor_pass.services.logger import logger
 from cor_pass.database.redis_db import redis_client
-
+from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.config.config import settings
 from datetime import datetime
 
@@ -88,7 +88,7 @@ def decode_corid(cor_id):
 
 
 # Создание cor_id
-async def create_new_corid(user: User, db: Session):
+async def create_new_corid(user: User, db: AsyncSession):
     birth_year_gender = f"{user.birth}{user.user_sex}"
     jan_first_2024 = datetime(2024, 1, 1).date()
     today = datetime.now().date()
@@ -108,9 +108,9 @@ async def create_new_corid(user: User, db: Session):
     user.cor_id = new_corid
     logger.debug(f"For {user.email} created {user.cor_id}")
     try:
-        db.commit()
+        await db.commit()
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise e
 
 
