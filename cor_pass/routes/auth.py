@@ -14,7 +14,6 @@ from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
 )
-from sqlalchemy.orm import Session
 from random import randint
 from fastapi_limiter.depends import RateLimiter
 from cor_pass.database.db import get_db
@@ -29,13 +28,11 @@ from cor_pass.schemas import (
     TokenModel,
     EmailSchema,
     VerificationModel,
-    ChangePasswordModel,
     LoginResponseModel,
     RecoveryCodeModel,
-    UserSessionDBModel,
     UserSessionModel,
 )
-from cor_pass.database.models import User, UserSession
+from cor_pass.database.models import UserSession
 from cor_pass.repository import person as repository_person
 from cor_pass.repository import user_session as repository_session
 from cor_pass.repository import cor_id as repository_cor_id
@@ -49,12 +46,10 @@ from cor_pass.services.cipher import decrypt_data, decrypt_user_key, encrypt_dat
 from cor_pass.config.config import settings
 from cor_pass.services.access import user_access
 from cor_pass.services.logger import logger
-from cor_pass.services import cor_otp
 from fastapi import UploadFile
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-import re
 
 from cor_pass.services.websocket import send_websocket_message
 

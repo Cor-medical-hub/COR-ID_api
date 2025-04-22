@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import HTTPException
 from sqlalchemy import asc, desc, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import Query as SQLAQuery
 
 from cor_pass.database.models import (

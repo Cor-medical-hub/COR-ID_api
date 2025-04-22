@@ -2,23 +2,20 @@ from datetime import date
 import json
 from fastapi import (
     APIRouter,
-    Body,
     Depends,
     Form,
     HTTPException,
-    Path,
     Query,
     UploadFile,
     File,
-    responses,
     status,
 )
-from sqlalchemy.orm import Session
+
 from sqlalchemy.exc import IntegrityError
-from typing import Annotated, List, Optional
+from typing import List, Optional
 
 from cor_pass.database.db import get_db
-from cor_pass.database.models import Patient, PatientStatus, User
+from cor_pass.database.models import PatientStatus, User
 from cor_pass.repository.doctor import (
     create_doctor,
     create_doctor_service,
@@ -27,19 +24,11 @@ from cor_pass.repository.doctor import (
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
-    CertificateResponse,
-    ClinicAffiliationResponse,
-    DiplomaResponse,
-    DoctorCreate,
     DoctorResponse,
     ExistingPatientAdd,
     NewPatientRegistration,
-    PaginatedPatientsResponse,
-    PatientResponce,
 )
 from cor_pass.repository import person as repository_person
-from cor_pass.repository import user_session as repository_session
-from cor_pass.repository import cor_id as repository_cor_id
 from cor_pass.services.auth import auth_service
 from cor_pass.services.access import user_access, doctor_access
 from cor_pass.services.auth import auth_service

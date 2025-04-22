@@ -1,9 +1,9 @@
 import asyncio
 import time
 
-from fastapi.middleware import Middleware
+
 import uvicorn
-from sqlalchemy.orm import Session
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from fastapi import FastAPI, Request, Depends, HTTPException, status, Request
@@ -14,12 +14,10 @@ from prometheus_client import Counter, Histogram
 from prometheus_client import generate_latest
 from starlette.responses import Response
 
-from starlette.middleware import Middleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 
 from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
 
 
 from cor_pass.routes import auth, person
@@ -194,8 +192,8 @@ async def custom_identifier(request: Request) -> str:
 async def startup():
     print("------------- STARTUP --------------")
     await FastAPILimiter.init(redis_client, identifier=custom_identifier)
-    # asyncio.create_task(check_session_timeouts())
-    # asyncio.create_task(cleanup_auth_sessions())
+    asyncio.create_task(check_session_timeouts())
+    asyncio.create_task(cleanup_auth_sessions())
 
 
 auth_attempts = defaultdict(list)

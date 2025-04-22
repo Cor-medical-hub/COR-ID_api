@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+
 
 from cor_pass.database.models import Tag
 from cor_pass.schemas import TagModel, TagResponse

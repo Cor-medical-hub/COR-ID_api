@@ -1,6 +1,5 @@
 from typing import List
 from sqlalchemy import and_, select
-from sqlalchemy.orm import Session
 
 
 from cor_pass.database.models import User, OTP

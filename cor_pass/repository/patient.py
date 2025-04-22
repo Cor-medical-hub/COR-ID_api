@@ -1,10 +1,7 @@
 import base64
-import uuid
 from fastapi import HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 from cor_pass.database.models import (
-    User,
     Patient,
     DoctorPatientStatus,
     PatientStatus,
@@ -22,12 +19,9 @@ from cor_pass.repository.password_generator import generate_password
 from cor_pass.repository import cor_id as repository_cor_id
 from cor_pass.services.cipher import encrypt_data
 from cor_pass.services.email import (
-    send_email_code,
-    send_email_code_forgot_password,
     send_email_code_with_temp_pass,
 )
 from cor_pass.config.config import settings
-from cor_pass.services.access import user_access
 from cor_pass.services.auth import auth_service
 from cor_pass.services.logger import logger
 from sqlalchemy.ext.asyncio import AsyncSession

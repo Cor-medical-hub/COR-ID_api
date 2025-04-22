@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List
 import uuid
-from sqlalchemy.orm import Session
+
 
 from sqlalchemy import func, and_, select
 
@@ -9,25 +9,15 @@ from cor_pass.database.models import (
     AuthSessionStatus,
     CorIdAuthSession,
     User,
-    Status,
-    Verification,
-    UserSettings,
     UserSession,
 )
 from cor_pass.schemas import (
     InitiateLoginRequest,
-    UserModel,
-    PasswordStorageSettings,
-    MedicalStorageSettings,
-    UserSessionDBModel,
     UserSessionModel,
 )
-from cor_pass.services.auth import auth_service
+
 from cor_pass.services.logger import logger
 from cor_pass.services.cipher import (
-    generate_aes_key,
-    encrypt_user_key,
-    generate_recovery_code,
     encrypt_data,
     decrypt_user_key,
 )

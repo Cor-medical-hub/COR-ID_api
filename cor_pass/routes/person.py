@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from cor_pass.database.db import get_db
 from cor_pass.services.auth import auth_service
@@ -11,12 +10,10 @@ from cor_pass.database.models import User, Status
 from cor_pass.services.access import user_access
 from cor_pass.services.logger import logger
 from cor_pass.schemas import (
-    UserDb,
     PasswordStorageSettings,
     MedicalStorageSettings,
     EmailSchema,
     ChangePasswordModel,
-    ResponseCorIdModel,
     ChangeMyPasswordModel,
     UserSessionResponseModel,
 )
