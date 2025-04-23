@@ -1,31 +1,20 @@
 from typing import List, Optional
-from fastapi import APIRouter, File, HTTPException, Depends, Query, UploadFile, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Depends, Query, status
+
 from cor_pass.database.db import get_db
-from cor_pass.services.auth import auth_service
+
 from cor_pass.database.models import (
-    Certificate,
-    ClinicAffiliation,
-    Diploma,
     DoctorStatus,
-    User,
-    Status,
-    Doctor,
 )
-from cor_pass.services.access import admin_access, lawyer_access
+from cor_pass.services.access import lawyer_access
 from cor_pass.schemas import (
     CertificateResponse,
     ClinicAffiliationResponse,
     DiplomaResponse,
-    DoctorCreate,
     DoctorResponse,
     DoctorWithRelationsResponse,
-    UserDb,
 )
-from cor_pass.repository import person
 from cor_pass.repository import lawyer
-from pydantic import EmailStr
-from cor_pass.database.redis_db import redis_client
 import base64
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.services.logger import logger

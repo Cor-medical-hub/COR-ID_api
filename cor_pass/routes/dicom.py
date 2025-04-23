@@ -2,8 +2,6 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 import os
 import pydicom
-from pathlib import Path
-from typing import List
 from cor_pass.services.access import user_access
 
 router = APIRouter(prefix="/dicom", tags=["DICOM"])

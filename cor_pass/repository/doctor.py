@@ -1,8 +1,6 @@
 import base64
 from sqlalchemy import asc, desc, func, select
-from sqlalchemy.orm import Session, joinedload
-from typing import Dict, List, Optional, Tuple, List
-from fastapi import UploadFile, File
+from typing import List, Optional, Tuple, List
 
 from cor_pass.database.models import (
     Certificate,
@@ -15,7 +13,6 @@ from cor_pass.database.models import (
     User,
     DoctorStatus,
 )
-from cor_pass.schemas import DoctorCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cor_pass.services.cipher import decrypt_data
