@@ -310,6 +310,7 @@ class Patient(Base):
     address = Column(String(500), nullable=True)
     photo = Column(LargeBinary, nullable=True)  # Хранение фото как бинарные данные
     change_date = Column(DateTime, default=func.now(), onupdate=func.now())
+    create_date = Column(DateTime, default=func.now())
 
     user = relationship("User", back_populates="patient")
     doctor_statuses = relationship("DoctorPatientStatus", back_populates="patient")
