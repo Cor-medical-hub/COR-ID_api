@@ -1,18 +1,59 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="layout-page">
 <head>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
   <meta charset="UTF-8" />
   <title>Кор Lab — Пациенты</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="styles_lab.css" />
+  <link rel="stylesheet" type="text/css" href="styles_lab.css">
+  <link rel="stylesheet" type="text/css" href="styles.css">
+  <link rel="stylesheet" type="text/css" href="modal.css">
+
+  
 </head>
-<body>
+<body class="layout-page">
 
   <div class="layout">
     <aside class="sidebar">
 
       <!-- Логотип сервиса -->
-      <div class="logo" title="COR LAB"></div>
+      <div class="logo" title="COR LAB">
+        <svg width="60" height="55" viewBox="0 0 60 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M52.9511 10.1248H48.3747L54.9015 19.688H60L55.8843 13.6817C58.2493 12.5273 59.8925 
+          10.1248 59.8925 7.30109C59.8925 3.38533 56.7597 0.24961 52.9511 0.24961H43.4297V19.7504H47.5915V4.43058H52.9511C54.4868 
+          4.43058 55.7307 5.67863 55.7307 7.25429C55.7307 8.82996 54.4868 10.1248 52.9511 10.1248Z" fill="#ED1064"/>
+          <path d="M9.84387 15.7722C6.71103 15.7722 4.19248 13.1669 4.19248 10.0312C4.19248 6.84868 6.7571 4.29017 
+          9.84387 4.29017C11.3796 4.29017 12.8231 4.9142 13.8521 5.95944L17.8603 4.18097C16.0635 1.62247 13.1303 0 
+          9.82851 0C4.42283 0 0 4.49298 0 9.9844C0 15.5226 4.42283 19.9688 9.82851 19.9688C13.1149 19.9688 16.0481 
+          18.2995 17.8603 15.7878L13.8521 14.103C12.8231 15.1482 11.4256 15.7722 9.84387 15.7722Z" fill="#ED1064"/>
+          <path d="M35.1984 6.63027L33.7548 10.1248H31.5434L28.9173 16.3495L25.1088 7.30109L23.7266 10.1248H19.9181C19.9642 
+          15.5538 24.387 20 29.7466 20C35.1523 20 39.5137 15.6162 39.5751 10.1248H36.6419L35.1984 6.63027Z" fill="#ED1064"/>
+          <path d="M25.2163 3.49454L28.8713 12.3245L30.4684 8.56474H32.7259L35.1369 3.29173L37.548 8.56474H39.4062C38.7919 
+          3.69735 34.6762 0 29.7312 0C24.7863 0 20.6706 3.71295 20.0102 8.56474H22.7899L25.2163 3.49454Z" fill="#ED1064"/>
+          <path d="M50.8316 54.286H8.94307C4.00896 54.286 0 50.277 0 45.3429V34.5495C0 29.6154 4.00896 25.6064 8.94307 
+          25.6064H50.8316C55.7657 25.6064 59.7747 29.6154 59.7747 34.5495V45.3943C59.7747 50.277 55.7657 54.286 50.8316 54.286Z" fill="#D9D9DF"/>
+          <path d="M13.6712 44.8279V33.572H11.2556V47.0894H19.1707V44.8279H13.6712Z" fill="#323238"/>
+          <path d="M48.0559 41.2815C47.7475 40.7675 47.3364 40.3564 46.8224 40.048C47.2336 39.7396 47.542 39.3284 47.7989 38.8659C48.1073 
+          38.3005 48.2101 37.7351 48.2101 37.1184C48.2101 36.0904 47.8503 35.2681 47.0794 34.5999C46.3084 33.9317 45.3833 33.572 44.2526 
+          33.572H38.8045V47.0894H44.4067C45.5889 47.0894 46.5654 46.7296 47.3878 45.9586C48.2101 45.2391 48.6213 44.3139 48.6213 
+          43.2346C48.5699 42.515 48.4157 41.8469 48.0559 41.2815ZM41.1687 39.02V35.8334H44.0984C44.6123 35.8334 44.9721 35.9876 
+          45.3319 36.296C45.6403 36.6044 45.7944 36.9642 45.7944 37.4267C45.7944 37.8893 45.6403 38.2491 45.3319 38.5575C45.0235 
+          38.8659 44.6123 39.02 44.0984 39.02L41.1687 39.02ZM46.1028 43.029C46.1028 43.543 45.9486 43.9542 45.5889 44.2625C45.2291 
+          44.5709 44.7665 44.7765 44.2525 44.7765H41.1687V41.2815H44.2525C44.8179 41.2815 45.2291 41.4357 45.5889 41.7955C45.9486 
+          42.1039 46.1028 42.515 46.1028 43.029Z" fill="#323238"/>
+          <path d="M33.0997 47.0898H35.8238L34.1277 44.1088H30.5813L29.9131 42.7725H33.4081L33.0483 42.1043H28.1142L26.5723 
+          45.2909H32.0204L33.0997 47.0898ZM28.0628 37.1702C27.7545 37.1702 27.4461 37.4786 27.4461 37.7869C27.4461 38.1467 
+          27.7545 38.4037 28.0628 38.4037C28.2684 38.4037 28.474 38.3009 28.5768 38.1467L28.0628 37.1702ZM29.1936 39.0719L28.7824 
+          38.3523C28.6282 38.5579 28.3712 38.6607 28.1142 38.6607C27.6517 38.6607 27.2405 38.2495 27.2405 37.7869C27.2405 37.3758 
+          27.5489 37.016 27.96 36.9132L27.6517 36.3478C27.6517 36.3478 25.5958 37.7869 25.8528 40.4596C25.8528 40.4596 25.8528 41.8987 
+          26.9835 43.1322L27.6517 41.8473C26.6751 40.6652 27.6003 39.0205 29.1936 39.0719ZM31.3008 39.483L31.6606 39.2261L31.5064 
+          38.9177L29.8103 39.9456L30.0159 40.2026L30.3243 40.0484L30.7869 40.8194L31.7634 40.3054L31.3008 39.483ZM28.731 34.3947L27.3433 
+          35.2171L29.8617 39.6372L31.3522 38.8149L28.731 34.3947ZM28.1142 34.035L27.3947 32.8014L26.5723 33.264L27.2919 34.4975L26.8807 
+          34.7545L27.0863 35.0629L28.7824 34.0864L28.5768 33.778L28.1142 34.035Z" fill="#ED1064"/>
+          <path d="M25.0311 47.0902H22.307L25.3908 40.9226C25.5964 42.2589 26.1104 42.9785 26.7272 43.698L25.0311 47.0902Z" fill="#323238"/>
+          </svg>
+          
+      </div>
 
       <!-- Навигационные иконки -->
       <nav class="nav">
@@ -58,6 +99,7 @@
         <span class="nav-label">Профиль</span>
       </div>
     </aside>
+ 
 
     <!-- ОСНОВНОЕ СОДЕРЖИМОЕ -->
     <main class="main">
@@ -76,8 +118,9 @@
         </div>
 
         <!-- Фиолетовая кнопка добавления -->
-        <button class="btn-primary" id="addPatientBtn">
-          <span class="icon-circle"><span>+</span></span>Добавить пациента
+        <button class="add-button" id="addPatientBtn">
+          <span class="icon-circle"><span>+</span></span>
+          <span class="button-text">Добавить пациента</span>
         </button>
       </div>
 
@@ -117,9 +160,10 @@
           </div>
         </div>
       </div>
-
+  
+    
       <!-- Карточка‑контейнер с таблицей пациентов -->
-      <section class="card">
+      <section class="patients_card">
 
         <div class="table-wrapper">
           <table>
@@ -146,14 +190,97 @@
     </main>
     <!-- КОНЕЦ основного контента -->
   </div>
+  
+<!-- Модальное окно добавления пациента -->
+<div id="addPatientModal" class="modal" style="display: none;">
+  <div class="modal-header">    
+    <div class="modal-buttons">
+      <button class="modal-button close" data-action="close" id="cancelPatientBtn">✖</button>
+    </div>
+    <h1>Новый пациент</h1>
+  </div>
+
+  <!-- Вкладки-переключатели -->
+  <div class="tab-buttons">
+    <button class="tab-button active" data-tab="byCorIdTab">Добавить по COR-ID</button>
+    <button class="tab-button" data-tab="registerPatientTab">Регистрация пациента</button>
+  </div>
+
+  <!-- Содержимое вкладок -->
+  <div class="tab-content active" id="byCorIdTab">
+    <div class="form-group-width">
+      <label for="corIdInput" style="color:#7f69bd;font-size:14px;">Введите COR-ID:</label>
+      <input type="text" id="corIdInput" name="corIdInput" required>
+    </div>
+  </div>
+
+  <div class="tab-content" id="registerPatientTab">
+    <div class="form-group-width">
+      <label for="Clinick_Name" style="color:#7f69bd;font-size:13px;">Фамилия</label>
+      <input type="text" id="Clinick_Name" name="Clinick_Name" required>
+    </div>
+
+    <div class="form-group-width">
+      <label for="Department" style="color:#7f69bd;font-size:13px;">Имя</label>
+      <input type="text" id="Department" name="Department" required>
+    </div>
+
+    <div class="form-group-width">
+      <label for="Job_title" style="color:#7f69bd;font-size:13px;">Отчество</label>
+      <input type="text" id="Job_title" name="Job_title" required>
+    </div>
+
+    <div class="form-group-width">
+      <label for="birthdate" style="color:#7f69bd;font-size:13px;">Дата рождения:</label>
+      <input type="date" id="birthdate" name="birthdate" required>
+    </div>
+    <label class="label-padded">Пол:</label>
+    <div class="additional-fields">
+      <div class="storage-options">
+          <!-- Вариант "На устройстве" -->
+          <label class="storage-option">
+              <input type="radio" name="storageLocation" value="device" checked>
+              <span class="custom-radio"></span>
+              <span>Мужской</span>
+          </label>
+          
+          <!-- Вариант "На сервере" -->
+          <label class="storage-option">
+              <input type="radio" name="storageLocation" value="server">
+              <span class="custom-radio"></span>
+              <span>Женский</span>
+          </label>
+      </div>
+  </div>
+
+    <div class="additional-fields">
+      <div class="input-wrapper">
+          <label for="birthYear" style="color:#7f69bd;font-size:13px;">Имейл</label>
+          <input type="text" id="mail" name="mail" required>
+      </div>
+      <div class="input-wrapper">
+          <label for="gender" style="color:#7f69bd;font-size:13px;">Телефон</label>
+          <input type="text" id="patientPhone" name="patientPhone" required>
+      </div>
+    </div>
+
+    <div class="form-group-width">
+      <label for="Addres" style="color:#7f69bd;font-size:13px;">Адрес</label>
+      <input type="text" id="Addres" name="Addres" required>
+    </div>
+  </div>
+  <button class="button" id="Add_Patient" data-translate="Add_Patient">Добавить пациента</button>
+</div>
 
   <!-- ─── ЛОГИКА (сортировка, поиск, обработчики) ─── -->
+  <script src="/static/translation.js"></script>  
+  <script src="/static/general_fun.js"></script>   
   <script>
     /* Массив‑заглушка с трёмя пациентами */
     const sampleRows=[
       {name:"Иванов Валерий Витальевич",id:"159RLHD9P-1978M",age:65,gender:"Мужской",date:"19.01.2024",status:"Новый",avatar:"https://randomuser.me/api/portraits/men/65.jpg"},
       {name:"Иванова Екатерина Васильевна",id:"151RLHD9P-1990F",age:34,gender:"Женский",date:"15.01.1990",status:"Новый",avatar:"https://randomuser.me/api/portraits/women/44.jpg"},
-      {name:"Сидоров Пётр Кириллович",id:"162ABCD9P-1995M",age:29,gender:"Мужской",date:"05.03.2024",status:"Новый",avatar:"https://randomuser.me/api/portraits/men/22.jpg"}
+      {name:"Сидоров Пётр Кириллович",id:"162ABCD9P-1995M",age:29,gender:"Мужской",date:"05.03.2024",status:"Новый",avatar:"https://randomuser.me/api/portraits/men/26.jpg"}
     ];
 
     /* Текущее состояние таблицы */
@@ -259,7 +386,190 @@
 
     /* Заглушки */
     document.getElementById("filterBtn").addEventListener("click",()=>alert("Здесь будет фильтр по полям"));
-    document.getElementById("addPatientBtn").addEventListener("click",()=>alert("Переход к форме добавления пациента"));
+    document.getElementById("addPatientBtn").addEventListener("click", function() {
+      if( checkToken()){  
+    const modal = document.getElementById('addPatientModal');
+    if (modal) {
+        modal.style.display = 'block';
+        // Инициализируем модальное окно (если нужно)
+        initModalControls('addPatientModal');
+        // Делаем окно перетаскиваемым
+        makeModalDraggable('addPatientModal');
+    }
+}});
+
+async function addPatientByCorId() {
+  const corId = document.getElementById('corIdInput').value;
+  const token = localStorage.getItem('access_token'); // Предполагаю, что токен лежит в localStorage
+
+  if (!corId) {
+    alert('Пожалуйста, введите COR-ID');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/doctor/patients/add-existing', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // обязательно токен сюда
+      },
+      body: JSON.stringify({
+        cor_id: corId,
+        status: 'registered'
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Пациент успешно добавлен:', result);
+      alert('Пациент успешно добавлен!');
+      // Можно тут закрыть модалку и сбросить поле
+    } else {
+      const error = await response.json();
+      console.error('Ошибка при добавлении пациента:', error);
+      alert('Ошибка: ' + (error.detail || 'Неизвестная ошибка'));
+    }
+  } catch (error) {
+    console.error('Ошибка сети:', error);
+    alert('Ошибка сети: ' + error.message);
+  }
+}
+
+document.getElementById('Add_Patient').addEventListener('click', function() {
+  if( checkToken()){  
+  const activeTab = document.querySelector('.tab-content.active');
+
+  if (activeTab && activeTab.id === 'byCorIdTab') {
+    // Если выбрана вкладка "по COR-ID"
+    addPatientByCorId();
+  } else {
+    // Если выбрана вкладка "регистрация пациента" - там будет другая функция
+    registerNewPatient(); // (если хочешь, напишем её тоже)
+  }
+}});
+
+
+document.querySelectorAll('.tab-button').forEach(button => {
+  button.addEventListener('click', () => {
+    // Убираем активные классы со всех кнопок и табов
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+
+    // Активируем выбранную кнопку и таб
+    button.classList.add('active');
+    document.getElementById(button.dataset.tab).classList.add('active');
+  });
+});
   </script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      // Инициализация модального окна
+      const modal = document.getElementById('addPatientModal');
+      const addPatientBtn = document.getElementById('addPatientBtn');
+      const cancelPatientBtn = document.getElementById('cancelPatientBtn');
+      const savePatientBtn = document.getElementById('savePatientBtn');
+      const tabs = document.querySelectorAll('.tab');
+      const tabContents = document.querySelectorAll('.tab-content');
+      const importFileInput = document.getElementById('importFile');
+      const importFileName = document.getElementById('importFileName');
+      
+      
+      // Обработчик закрытия модального окна
+      cancelPatientBtn.addEventListener('click', function() {
+          modal.style.display = 'none';
+      });
+      
+    
+      
+      // Переключение между вкладками
+      tabs.forEach(tab => {
+          tab.addEventListener('click', function() {
+              // Удаляем активный класс у всех вкладок
+              tabs.forEach(t => t.classList.remove('active'));
+              tabContents.forEach(c => c.classList.remove('active'));
+              
+              // Добавляем активный класс текущей вкладке
+              this.classList.add('active');
+              const tabId = this.dataset.tab + 'Tab';
+              document.getElementById(tabId).classList.add('active');
+          });
+      });
+      
+   
+      // Функция валидации ручного ввода
+      function validateManualInput() {
+          const requiredFields = [
+              'patientLastName', 
+              'patientFirstName', 
+              'patientBirthDate',
+              'patientGender'
+          ];
+          
+          let isValid = true;
+          
+          requiredFields.forEach(fieldId => {
+              const field = document.getElementById(fieldId);
+              if (!field.value.trim()) {
+                  isValid = false;
+                  field.style.borderColor = 'red';
+              } else {
+                  field.style.borderColor = '#f0f0f0';
+              }
+          });
+          
+          if (!isValid) {
+              alert('Пожалуйста, заполните все обязательные поля');
+          }
+          
+          return isValid;
+      }
+      
+      // Функция валидации импорта
+      function validateImport() {
+          if (!importFileInput.files || importFileInput.files.length === 0) {
+              alert('Пожалуйста, выберите файл для импорта');
+              return false;
+          }
+          
+          if (!document.getElementById('importTemplate').value) {
+              alert('Пожалуйста, выберите шаблон импорта');
+              return false;
+          }
+          
+          return true;
+      }
+      
+      // Функция сохранения данных пациента
+      function savePatientData() {
+          const patientData = {
+              lastName: document.getElementById('patientLastName').value,
+              firstName: document.getElementById('patientFirstName').value,
+              middleName: document.getElementById('patientMiddleName').value,
+              birthDate: document.getElementById('patientBirthDate').value,
+              gender: document.getElementById('patientGender').value,
+              phone: document.getElementById('patientPhone').value,
+              email: document.getElementById('patientEmail').value
+          };
+          
+          // Здесь можно отправить данные на сервер
+          console.log('Данные пациента:', patientData);
+          alert('Пациент успешно добавлен!');
+      }
+      
+      // Функция обработки импорта
+      function processImport() {
+          const file = importFileInput.files[0];
+          const template = document.getElementById('importTemplate').value;
+          
+          // Здесь можно обработать файл импорта
+          console.log('Импорт файла:', file.name, 'с шаблоном:', template);
+          alert('Файл успешно импортирован!');
+      }
+  });
+</script>
 </body>
 </html>
