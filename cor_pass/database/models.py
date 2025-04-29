@@ -458,7 +458,7 @@ class Cassette(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     sample_id = Column(String(36), ForeignKey("samples.id"), nullable=False)
-    cassette_number = Column(Integer) # Порядковый номер кассеты в рамках банки
+    cassette_number = Column(String(50)) # Порядковый номер кассеты в рамках банки
     comment = Column(String(500), nullable=True)
     glass_count = Column(Integer, default=0)
     glass = relationship("Glass", back_populates="cassette", cascade="all, delete-orphan")

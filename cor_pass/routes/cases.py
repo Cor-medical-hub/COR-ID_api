@@ -12,21 +12,14 @@ router = APIRouter(prefix="/cases", tags=["Cases"])
 async def create_case(case_in: CaseCreate, db: AsyncSession = Depends(get_db)):
     return await case_service.create_case_with_initial_data(db, case_in)
 
-@router.get("/{case_id}", response_model=Case)
+@router.get("/{case_id}", 
+            # response_model=Case
+            )
 async def read_case(case_id: str, db: AsyncSession = Depends(get_db)):
     db_case = await case_service.get_case(db, case_id)
-    print(db_case)
     if db_case is None:
         raise HTTPException(status_code=404, detail="Case not found")
-
-    #Преобразуем список db_models.Sample в список schemas.Sample
-    samples_pydantic = [Sample.from_orm(sample) for sample in db_case.samples]
-
-    # Создаем Pydantic-модель Case с преобразованными samples
-    case_pydantic = Case.from_orm(db_case)
-    case_pydantic.samples = samples_pydantic
-
-    return case_pydantic
+    return db_case
 
 
 

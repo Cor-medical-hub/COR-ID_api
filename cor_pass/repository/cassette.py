@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import selectinload
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as repository_cases
+from cor_pass.repository import sample as repository_samples
 
 
 
@@ -40,12 +41,14 @@ async def create_cassette(
     и указанное количество стекол для каждой кассеты, обновляя счетчики.
     """
     # 1. Получаем текущий семпл
-    sample_result = await db.execute(
-        select(db_models.Sample).where(db_models.Sample.id == sample_id).options(
-            selectinload(db_models.Sample.case)
-        )
-    )
-    db_sample = sample_result.scalar_one_or_none()
+    # sample_result = await db.execute(
+    #     select(db_models.Sample).where(db_models.Sample.id == sample_id).options(
+    #         selectinload(db_models.Sample.case)
+    #     )
+    # )
+    # db_sample = sample_result.scalar_one_or_none()
+
+    db_sample = await repository_samples.get_single_sample(db=db, sample_id=sample_id)
     if not db_sample:
         raise ValueError(f"Семпл с ID {sample_id} не найден")
 
@@ -57,7 +60,8 @@ async def create_cassette(
 
     # 2. Создаем указанное количество кассет
     for i in range(num_cassettes):
-        next_cassette_number = db_sample.cassette_count + i + 1
+        # next_cassette_number = db_sample.cassette_count + i + 1
+        next_cassette_number = f"{db_sample.sample_number}{db_sample.cassette_count + i + 1}"
         db_cassette = db_models.Cassette(sample_id=db_sample.id, cassette_number=next_cassette_number)
         db.add(db_cassette)
         created_cassettes.append(db_cassette)
@@ -68,12 +72,12 @@ async def create_cassette(
 
         # 3. Создаем указанное количество стекол для каждой кассеты
         for j in range(num_glasses_per_cassette):
-            next_glass_number = j
-            db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=next_glass_number)
+            next_glass_number = db_cassette.glass_count + j
+            db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=next_glass_number, staining=db_models.StainingType.HE)
             db.add(db_glass)
             db_sample.glass_count += 1
             db_case.glass_count += 1
-            created_glasses_count += 1
+            db_cassette.glass_count += 1
             await db.commit()
             await db.refresh(db_glass)
 

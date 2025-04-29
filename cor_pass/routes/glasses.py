@@ -5,6 +5,7 @@ from cor_pass.schemas import Cassette, CassetteCreate, Glass, Sample, SampleCrea
 from cor_pass.repository import sample as sample_service
 from cor_pass.repository import cassette as cassette_service
 from cor_pass.repository import glass as glass_service
+from cor_pass.database import models as db_models
 from typing import List
 
 router = APIRouter(prefix="/glasses", tags=["Glass"])
@@ -12,8 +13,8 @@ router = APIRouter(prefix="/glasses", tags=["Glass"])
 @router.post("/cassettes/{cassettes_id}/glass", 
             #  response_model=Cassette
              )
-async def create_glass_for_cassette(cassette_id: str, num_glasses: int = 1, db: AsyncSession = Depends(get_db)):
-    return await glass_service.create_glass(db=db, cassette_id=cassette_id, num_glasses=num_glasses)
+async def create_glass_for_cassette(cassette_id: str, staining_type: db_models.StainingType, num_glasses: int = 1, db: AsyncSession = Depends(get_db)):
+    return await glass_service.create_glass(db=db, cassette_id=cassette_id, num_glasses=num_glasses, staining_type=staining_type)
 
 
 @router.get("/{glass_id}", response_model=Glass)

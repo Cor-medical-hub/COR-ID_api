@@ -34,6 +34,16 @@ async def get_sample(db: AsyncSession, sample_id: str) -> SampleModelScheema | N
 
 
 
+async def get_single_sample(db: AsyncSession, sample_id: str) -> db_models.Case | None:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+    sample_result = await db.execute(
+        select(db_models.Sample).where(db_models.Sample.id == sample_id).options(
+            selectinload(db_models.Sample.case)
+        )
+    )
+    return sample_result.scalar_one_or_none()
+
+
 
 
 
@@ -79,7 +89,7 @@ async def create_sample(db: AsyncSession, case_id: str, sample_in: SampleCreate)
     await db.refresh(db_case)
 
     # 4. Автоматически создаем одну кассету
-    db_cassette = db_models.Cassette(sample_id=db_sample.id, cassette_number=1)
+    db_cassette = db_models.Cassette(sample_id=db_sample.id, cassette_number=f"{db_sample.sample_number}1")
     db.add(db_cassette)
     db_case.cassette_count += 1
     db_sample.cassette_count += 1
@@ -89,7 +99,7 @@ async def create_sample(db: AsyncSession, case_id: str, sample_in: SampleCreate)
     await db.refresh(db_sample)
 
     # 5. Автоматически создаем одно стекло
-    db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=1)
+    db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=0, staining=db_models.StainingType.HE)
     db.add(db_glass)
     db_case.glass_count += 1
     db_sample.glass_count += 1

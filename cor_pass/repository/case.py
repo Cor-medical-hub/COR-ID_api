@@ -39,7 +39,7 @@ async def create_case_with_initial_data(db: AsyncSession, case_in: CaseBaseSchee
     await db.refresh(db_case)
 
     # Автоматически создаем одну кассету
-    db_cassette = db_models.Cassette(sample_id=db_sample.id, cassette_number=1)
+    db_cassette = db_models.Cassette(sample_id=db_sample.id, cassette_number=f"{db_sample.sample_number}1")
     db.add(db_cassette)
     db_case.cassette_count +=1
     db_sample.cassette_count +=1
@@ -49,7 +49,7 @@ async def create_case_with_initial_data(db: AsyncSession, case_in: CaseBaseSchee
     await db.refresh(db_sample)
 
     # Автоматически создаем одно стекло
-    db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=0)
+    db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=0, staining=db_models.StainingType.HE)
     db.add(db_glass)
     db_case.glass_count +=1
     db_sample.glass_count +=1
@@ -60,17 +60,42 @@ async def create_case_with_initial_data(db: AsyncSession, case_in: CaseBaseSchee
 
     return db_case
 
+
+
 async def get_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
     """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
     result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.id == case_id)
-        .outerjoin(db_models.Sample)
-        .outerjoin(db_models.Cassette)
-        .outerjoin(db_models.Glass)
-        .options(selectinload(db_models.Case.samples))
     )
-    return result.scalar_one_or_none()
+    case_db = result.scalar_one_or_none()
+    # 2. Получаем семплы первого кейса и связанные с ними кассеты и стекла
+    samples_result = await db.execute(
+        select(db_models.Sample)
+        .where(db_models.Sample.case_id == case_db.id)
+        .options(
+            selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+        )
+    )
+    first_case_samples_db = samples_result.scalars().all()
+    first_case_samples = []
+    for sample_db in first_case_samples_db:
+        sample = SampleModelScheema.model_validate(sample_db).model_dump()
+        sample["cassettes"] = []
+        for cassette_db in sample_db.cassette:
+            cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
+            cassette["glasses"] = [GlassModelScheema.model_validate(glass).model_dump() for glass in cassette_db.glass]
+            sample["cassettes"].append(cassette)
+        first_case_samples.append(sample)
+
+    first_case_details = {
+        "id": case_db.id,
+        "case_code": case_db.case_code,
+        "creation_date": case_db.creation_date,
+        "samples": first_case_samples,
+    }
+
+    return {"case_details": first_case_details}
 
 
 async def get_single_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
