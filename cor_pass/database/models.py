@@ -460,6 +460,7 @@ class Cassette(Base):
     sample_id = Column(String(36), ForeignKey("samples.id"), nullable=False)
     cassette_number = Column(Integer) # Порядковый номер кассеты в рамках банки
     comment = Column(String(500), nullable=True)
+    glass_count = Column(Integer, default=0)
     glass = relationship("Glass", back_populates="cassette", cascade="all, delete-orphan")
     sample = relationship("Sample", back_populates="cassette")
 

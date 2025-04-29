@@ -42,7 +42,7 @@ async def create_sample(db: AsyncSession, case_id: str, sample_in: SampleCreate)
     """Асинхронно создает новую банку для указанного кейса, нумеруя ее следующей буквой."""
 
     # 1. Получаем текущий кейс
-    db_case = await repository_cases.get_case(db=db, case_id=case_id)
+    db_case = await repository_cases.get_single_case(db=db, case_id=case_id)
     if not db_case:
         # Обработка случая, если кейс не найден
         raise ValueError(f"Кейс с ID {case_id} не найден")
@@ -109,5 +109,6 @@ async def delete_sample(db: AsyncSession, sample_id: str) -> SampleModelScheema 
     if db_sample:
         await db.delete(db_sample)
         await db.commit()
-    return db_sample
+        return {"message": f"Семпл с ID {sample_id} успешно удалён"}
+    return None
 
