@@ -30,7 +30,9 @@ async def read_case(case_id: str, db: AsyncSession = Depends(get_db)):
 
 
 
-@router.delete("/{case_id}", response_model=Case)
+@router.delete("/{case_id}", 
+            #    response_model=Case
+               )
 async def delete_case(case_id: str, db: AsyncSession = Depends(get_db)):
     db_case = await case_service.delete_case(db, case_id)
     if db_case is None:
