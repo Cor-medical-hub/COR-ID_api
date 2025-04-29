@@ -49,7 +49,7 @@ async def create_case_with_initial_data(db: AsyncSession, case_in: CaseBaseSchee
     await db.refresh(db_sample)
 
     # Автоматически создаем одно стекло
-    db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=1)
+    db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=0)
     db.add(db_glass)
     db_case.glass_count +=1
     db_sample.glass_count +=1
@@ -73,6 +73,15 @@ async def get_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
     return result.scalar_one_or_none()
 
 
+async def get_single_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+    result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.id == case_id)
+    )
+    return result.scalar_one_or_none()
+
+
 async def delete_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
     """Асинхронно удаляет кейс."""
     result = await db.execute(select(db_models.Case).where(db_models.Case.id == case_id))
@@ -80,7 +89,8 @@ async def delete_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
     if db_case:
         await db.delete(db_case)
         await db.commit()
-    return db_case
+        return {"message": f"Кейс с ID {case_id} успешно удалён"}
+    return None
 
 
 
