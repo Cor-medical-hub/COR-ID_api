@@ -269,7 +269,7 @@ class UpdateOTPRecordModel(BaseModel):
 
 class DiplomaCreate(BaseModel):
     scan: Optional[bytes] = Field(None, description="Скан диплома")
-    date: Optional[datetime.date] = Field(..., description="Дата выдачи диплома")
+    date: Optional[datetime] = Field(..., description="Дата выдачи диплома")
     series: str = Field(..., max_length=50, description="Серия диплома")
     number: str = Field(..., max_length=50, description="Номер диплома")
     university: str = Field(..., max_length=250, description="Название ВУЗа")
@@ -279,7 +279,7 @@ class DiplomaCreate(BaseModel):
 
 class DiplomaResponse(BaseModel):
     id: str = Field(..., description="ID диплома")
-    date: datetime.date = Field(..., description="Дата выдачи диплома")
+    date: Optional[datetime] = Field(..., description="Дата выдачи диплома")
     series: str = Field(..., description="Серия диплома")
     number: str = Field(..., description="Номер диплома")
     university: str = Field(..., description="Название ВУЗа")
@@ -295,7 +295,7 @@ class DiplomaResponse(BaseModel):
 
 class CertificateCreate(BaseModel):
     scan: Optional[bytes] = Field(None, description="Скан сертификата")
-    date: datetime.date = Field(..., description="Дата выдачи сертификата")
+    date: Optional[datetime] = Field(..., description="Дата выдачи сертификата")
     series: str = Field(..., max_length=50, description="Серия сертификата")
     number: str = Field(..., max_length=50, description="Номер сертификата")
     university: str = Field(..., max_length=250, description="Название ВУЗа")
@@ -307,7 +307,7 @@ class CertificateCreate(BaseModel):
 
 class CertificateResponse(BaseModel):
     id: str = Field(..., description="ID сертификата")
-    date: datetime.date = Field(..., description="Дата выдачи сертификата")
+    date: Optional[datetime] = Field(..., description="Дата выдачи сертификата")
     series: str = Field(..., description="Серия сертификата")
     number: str = Field(..., description="Номер сертификата")
     university: str = Field(..., description="Название ВУЗа")
@@ -519,3 +519,79 @@ class NewPatientRegistration(BaseModel):
 class ExistingPatientAdd(BaseModel):
     cor_id: str = Field(..., description="Cor ID существующего пользователя")
     status: Optional[str] = Field("registered", description="Начальный статус пациента")
+
+
+
+
+# Модели для лабораторных исследований
+
+# class GrossingStatus(str, Enum):
+#     processing = "processing"
+#     completed = "completed"
+
+class SampleBase(BaseModel):
+    sample_number: str
+    archive: bool = False
+    cassette_count: int = 0
+    glass_count: int = 0
+
+class SampleCreate(SampleBase):
+    pass
+
+class Sample(SampleBase):
+    id: str
+    case_id: str
+    cassettes: List["Cassette"] = []  # Связь с кассетами
+
+    class Config:
+        from_attributes=True
+
+class CassetteBase(BaseModel):
+    cassette_number: int
+    comment: Optional[str] = None
+
+class CassetteCreate(CassetteBase):
+    pass
+
+class Cassette(CassetteBase):
+    id: str
+    sample_id: str  
+    glasses: List["Glass"] = []  
+
+    class Config:
+        from_attributes=True
+
+class GlassBase(BaseModel):
+    glass_number: int
+    staining: Optional[str] = None
+
+class GlassCreate(GlassBase):
+    pass
+
+class Glass(GlassBase):
+    id: str
+    cassette_id: str
+
+    class Config:
+        from_attributes=True
+
+class CaseBase(BaseModel):
+    patient_id: str
+    case_code: Optional[str] = None
+    # grossing_status: str = Field(default="processing")
+
+class CaseCreate(CaseBase):
+    pass
+
+class Case(CaseBase):
+    id: str
+    creation_date: datetime
+    bank_count: int
+    cassette_count: int
+    glass_count: int
+    samples: List = []  # Связь с банками
+    directions: List = []
+    # case_parameters: Optional[List] = None
+
+    class Config:
+        from_attributes=True

@@ -51,7 +51,7 @@ async def signup_doctor(
     doctor_data: str = Form(
         ...,
         example='{"work_email": "doctor@example.com","phone_number": "+380636666541", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
-        description="Данные врача в формате JSON. Пример: см. значение по умолчанию.",
+        description='Данные врача в формате JSON.\n Пример: {"work_email": "doctor@example.com","phone_number": "+380636666541", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
     ),
     # doctor_data: DoctorCreate = Body(...),
     doctors_photo: UploadFile = File(None),
