@@ -88,6 +88,7 @@ async def get_glass(db: AsyncSession, glass_id: int) -> GlassModelScheema | None
 async def create_glass(
     db: AsyncSession,
     cassette_id: str,
+    staining_type: db_models.StainingType = db_models.StainingType.HE,
     num_glasses: int = 1,
 ) -> list[db_models.Glass]:
     """
@@ -133,7 +134,7 @@ async def create_glass(
     # 2. Створюємо вказану кількість скелець для касети
     for i in range(num_glasses):
         next_glass_number = db_cassette.glass_count + i + 1
-        db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=next_glass_number)
+        db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=next_glass_number, staining=staining_type)
         db.add(db_glass)
         created_glasses.append(db_glass)
 

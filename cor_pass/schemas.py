@@ -547,7 +547,7 @@ class Sample(SampleBase):
         from_attributes=True
 
 class CassetteBase(BaseModel):
-    cassette_number: int
+    cassette_number: str
     comment: Optional[str] = None
 
 class CassetteCreate(CassetteBase):
