@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import Case as CaseModelScheema, CaseBase as CaseBaseScheema, Sample as SampleModelScheema, Cassette as CassetteModelScheema, Glass as GlassModelScheema
@@ -7,58 +8,83 @@ from datetime import datetime
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import selectinload
 from cor_pass.services.logger import logger
+
 async def generate_case_code(db: AsyncSession) -> str:
-    """Асинхронно генерирует уникальный код кейса."""
+    """Генератор коду кейса"""
     now = datetime.now()
     return f"{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
 
-async def create_case_with_initial_data(db: AsyncSession, case_in: CaseBaseScheema) -> CaseModelScheema:
-    """Асинхронно создает новый кейс и связанные с ним начальные данные."""
-    now = datetime.now()
-    # print(case_in.grossing_status)
-    db_case = db_models.Case(
-        id=str(uuid.uuid4()),
-        patient_id=case_in.patient_id,
-        creation_date=now,
-        bank_count=0,
-        cassette_count=0,
-        glass_count=0,
-        # grossing_status=case_in.grossing_status
-    )
-    db_case.case_code = await generate_case_code(db)
-    db.add(db_case)
-    await db.commit()
-    await db.refresh(db_case)
+async def create_cases_with_initial_data(
+    db: AsyncSession,
+    case_in: CaseBaseScheema,
+    num_cases: int = 1,
+    urgency: db_models.UrgencyType = db_models.UrgencyType.S,
+    material_type: db_models.SampleType = db_models.MaterialType.R,
+) -> List[CaseModelScheema]:
+    """Асинхронно створює вказану кількість кейсів та пов'язані з ними початкові дані."""
+    created_cases: List[db_models.Case] = []
 
-    # Автоматически создаем одну банку
-    db_sample = db_models.Sample(case_id=db_case.id, sample_number="A")
-    db_case.bank_count +=1
-    db.add(db_sample)
-    await db.commit()
-    await db.refresh(db_sample)
-    await db.refresh(db_case)
+    for _ in range(num_cases):
+        now = datetime.now()
 
-    # Автоматически создаем одну кассету
-    db_cassette = db_models.Cassette(sample_id=db_sample.id, cassette_number=f"{db_sample.sample_number}1")
-    db.add(db_cassette)
-    db_case.cassette_count +=1
-    db_sample.cassette_count +=1
-    await db.commit()
-    await db.refresh(db_cassette)
-    await db.refresh(db_case)
-    await db.refresh(db_sample)
+        db_case = db_models.Case(
+            id=str(uuid.uuid4()),
+            patient_id=case_in.patient_id,
+            creation_date=now,
+            bank_count=0,
+            cassette_count=0,
+            glass_count=0,
+            # grossing_status=case_in.grossing_status
+        )
+        db_case.case_code = await generate_case_code(db)
+        db.add(db_case)
+        await db.commit()
+        await db.refresh(db_case)
 
-    # Автоматически создаем одно стекло
-    db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=0, staining=db_models.StainingType.HE)
-    db.add(db_glass)
-    db_case.glass_count +=1
-    db_sample.glass_count +=1
-    await db.commit()
-    await db.refresh(db_glass)
-    await db.refresh(db_case)
-    await db.refresh(db_sample)
+        # Автоматично створюємо одну банку
+        db_sample = db_models.Sample(case_id=db_case.id, sample_number="A")
+        db_case.bank_count += 1
+        db.add(db_sample)
+        await db.commit()
+        await db.refresh(db_sample)
+        await db.refresh(db_case)
 
-    return db_case
+        # Автоматично створюємо одну касету
+        db_cassette = db_models.Cassette(sample_id=db_sample.id, cassette_number=f"{db_sample.sample_number}1", glass_count=0)
+        db.add(db_cassette)
+        db_case.cassette_count += 1
+        db_sample.cassette_count += 1
+        await db.commit()
+        await db.refresh(db_cassette)
+        await db.refresh(db_case)
+        await db.refresh(db_sample)
+
+        # Автоматично створюємо одне скло
+        db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=0, staining=db_models.StainingType.HE)
+        db.add(db_glass)
+        db_case.glass_count += 1
+        db_sample.glass_count += 1
+        db_cassette.glass_count += 1
+        await db.commit()
+        await db.refresh(db_glass)
+        await db.refresh(db_case)
+        await db.refresh(db_sample)
+        await db.refresh(db_cassette)
+
+        # Автоматично створюємо параметри кейса
+        db_case_parameters = db_models.CaseParameters(
+            case_id=db_case.id,
+            urgency=urgency,
+            material_type=material_type,
+        )
+        db.add(db_case_parameters)
+        await db.commit()
+        await db.refresh(db_case_parameters)
+        await db.refresh(db_case)
+
+        created_cases.append(db_case)
+
+    return created_cases
 
 
 
@@ -96,6 +122,49 @@ async def get_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
     }
 
     return {"case_details": first_case_details}
+
+
+async def get_case_parameters(db: AsyncSession, case_id: str) -> db_models.CaseParameters | None:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+    result = await db.execute(
+        select(db_models.CaseParameters)
+        .where(db_models.CaseParameters.case_id == case_id)
+    )
+    case_db = result.scalar_one_or_none()
+    
+    return {f"case {case_id} parameters": case_db}
+
+
+async def update_case_parameters(db: AsyncSession, 
+                                case_id: str,
+                                macro_description: str,
+                                container_count_actual: int,
+                                urgency: db_models.UrgencyType = db_models.UrgencyType.S,
+                                material_type: db_models.SampleType = db_models.MaterialType.R,
+                                macro_archive: db_models.MacroArchive = db_models.MacroArchive.ESS,
+                                decalcification: db_models.DecalcificationType = db_models.DecalcificationType.ABSENT,
+                                sample_type: db_models.SampleType = db_models.SampleType.NATIVE,
+                                fixation: db_models.FixationType = db_models.FixationType.NBF_10,
+                                 ) -> db_models.CaseParameters | None:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+    result = await db.execute(
+        select(db_models.CaseParameters)
+        .where(db_models.CaseParameters.case_id == case_id)
+    )
+    case_parameters_db = result.scalar_one_or_none()
+    if case_parameters_db:
+        case_parameters_db.macro_description = macro_description
+        case_parameters_db.container_count_actual = container_count_actual
+        case_parameters_db.urgency = urgency
+        case_parameters_db.material_type = material_type
+        case_parameters_db.macro_archive = macro_archive
+        case_parameters_db.decalcification = decalcification
+        case_parameters_db.sample_type = sample_type
+        case_parameters_db.fixation = fixation
+        await db.commit()
+        await db.refresh(case_parameters_db)
+    
+    return {f"case {case_id} parameters updated": case_parameters_db}
 
 
 async def get_single_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
