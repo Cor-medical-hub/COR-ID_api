@@ -595,3 +595,23 @@ class Case(CaseBase):
 
     class Config:
         from_attributes=True
+
+class CaseParametersScheema(BaseModel):
+    macro_archive: str
+    decalcification: str
+    sample_type: str
+    material_type: str
+    urgency: str
+    container_count_actual: str
+    fixation: str
+    macro_description: str
+    
+    # case_id = Column(String(36), ForeignKey("cases.id"), unique=True, nullable=False)
+    # macro_archive = Column(Enum(MacroArchive), default=MacroArchive.ESS)
+    # decalcification = Column(Enum(DecalcificationType), default=DecalcificationType.ABSENT)
+    # sample_type = Column(Enum(SampleType), default=SampleType.NATIVE)
+    # material_type = Column(Enum(MaterialType), default=MaterialType.B)
+    # urgency = Column(Enum(UrgencyType), default=UrgencyType.S)
+    # container_count_actual = Column(Integer, nullable=True)
+    # fixation = Column(Enum(FixationType), default=FixationType.NBF_10)
+    # macro_description = Column(Text, nullable=True)
