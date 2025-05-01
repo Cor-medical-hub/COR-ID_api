@@ -10,7 +10,7 @@ from pydantic import (
 )
 from typing import List, Optional
 from datetime import datetime
-from cor_pass.database.models import Status, DoctorStatus, AuthSessionStatus
+from cor_pass.database.models import Status, DoctorStatus, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
 import re
 from datetime import date
 
@@ -608,13 +608,13 @@ class Case(CaseBase):
 
 
 class CaseParametersScheema(BaseModel):
-    macro_archive: str
-    decalcification: str
-    sample_type: str
-    material_type: str
-    urgency: str
-    container_count_actual: str
-    fixation: str
+    macro_archive: MacroArchive
+    decalcification: DecalcificationType
+    sample_type: SampleType
+    material_type: MaterialType
+    urgency: UrgencyType
+    container_count_actual: int
+    fixation: FixationType
     macro_description: str
 
 

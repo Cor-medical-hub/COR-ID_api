@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from cor_pass.repository.patient import get_patient_by_corid
-from cor_pass.schemas import Case, CaseCreate, Sample
+from cor_pass.schemas import Case, CaseCreate, CaseParametersScheema, Sample
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as case_service
 
@@ -75,27 +75,28 @@ async def read_case_parameters(case_id: str, db: AsyncSession = Depends(get_db))
 )
 async def update_case_parameters(
     case_id: str,
-    macro_description: str,
-    container_count_actual: int,
-    urgency: db_models.UrgencyType = db_models.UrgencyType.S,
-    material_type: db_models.MaterialType = db_models.MaterialType.R,
-    macro_archive: db_models.MacroArchive = db_models.MacroArchive.ESS,
-    decalcification: db_models.DecalcificationType = db_models.DecalcificationType.ABSENT,
-    sample_type: db_models.SampleType = db_models.SampleType.NATIVE,
-    fixation: db_models.FixationType = db_models.FixationType.NBF_10,
+    body: CaseParametersScheema,
+    # macro_description: str,
+    # container_count_actual: int,
+    # urgency: db_models.UrgencyType = db_models.UrgencyType.S,
+    # material_type: db_models.MaterialType = db_models.MaterialType.R,
+    # macro_archive: db_models.MacroArchive = db_models.MacroArchive.ESS,
+    # decalcification: db_models.DecalcificationType = db_models.DecalcificationType.ABSENT,
+    # sample_type: db_models.SampleType = db_models.SampleType.NATIVE,
+    # fixation: db_models.FixationType = db_models.FixationType.NBF_10,
     db: AsyncSession = Depends(get_db),
 ):
     db_case_parameters = await case_service.update_case_parameters(
         db,
         case_id,
-        macro_description,
-        container_count_actual,
-        urgency,
-        material_type,
-        macro_archive,
-        decalcification,
-        sample_type,
-        fixation,
+        body.macro_description,
+        body.container_count_actual,
+        body.urgency,
+        body.material_type,
+        body.macro_archive,
+        body.decalcification,
+        body.sample_type,
+        body.fixation,
     )
     if db_case_parameters is None:
         raise HTTPException(status_code=404, detail="Case parameters not found")
