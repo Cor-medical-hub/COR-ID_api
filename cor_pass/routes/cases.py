@@ -47,6 +47,7 @@ async def create_case(
 
 @router.get(
     "/{case_id}",
+    dependencies=[Depends(doctor_access)]
     # response_model=Case
 )
 async def read_case(case_id: str, db: AsyncSession = Depends(get_db)):
@@ -76,14 +77,6 @@ async def read_case_parameters(case_id: str, db: AsyncSession = Depends(get_db))
 async def update_case_parameters(
     case_id: str,
     body: CaseParametersScheema,
-    # macro_description: str,
-    # container_count_actual: int,
-    # urgency: db_models.UrgencyType = db_models.UrgencyType.S,
-    # material_type: db_models.MaterialType = db_models.MaterialType.R,
-    # macro_archive: db_models.MacroArchive = db_models.MacroArchive.ESS,
-    # decalcification: db_models.DecalcificationType = db_models.DecalcificationType.ABSENT,
-    # sample_type: db_models.SampleType = db_models.SampleType.NATIVE,
-    # fixation: db_models.FixationType = db_models.FixationType.NBF_10,
     db: AsyncSession = Depends(get_db),
 ):
     db_case_parameters = await case_service.update_case_parameters(
