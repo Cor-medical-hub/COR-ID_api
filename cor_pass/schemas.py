@@ -495,9 +495,11 @@ class PatientResponce(BaseModel):
     birth_date: Optional[date]
     status: Optional[str]
 
+
 class PaginatedPatientsResponse(BaseModel):
     items: List[PatientResponce]
     total: int
+
 
 class NewPatientRegistration(BaseModel):
     email: EmailStr = Field(
@@ -510,9 +512,7 @@ class NewPatientRegistration(BaseModel):
     sex: Optional[str] = Field(None, description="Пол пациента")
     phone_number: Optional[str] = Field(None, description="Номер телефона пациента")
     address: Optional[str] = Field(None, description="Адрес пациента")
-    photo: Optional[str] = Field(
-        None, description="Фото пациента (base64 или blob)"
-    ) 
+    photo: Optional[str] = Field(None, description="Фото пациента (base64 или blob)")
     status: Optional[str] = Field("registered", description="Начальный статус пациента")
 
 
@@ -521,13 +521,12 @@ class ExistingPatientAdd(BaseModel):
     status: Optional[str] = Field("registered", description="Начальный статус пациента")
 
 
-
-
 # Модели для лабораторных исследований
 
 # class GrossingStatus(str, Enum):
 #     processing = "processing"
 #     completed = "completed"
+
 
 class SampleBase(BaseModel):
     sample_number: str
@@ -535,8 +534,10 @@ class SampleBase(BaseModel):
     cassette_count: int = 0
     glass_count: int = 0
 
+
 class SampleCreate(SampleBase):
     pass
+
 
 class Sample(SampleBase):
     id: str
@@ -544,44 +545,53 @@ class Sample(SampleBase):
     cassettes: List["Cassette"] = []  # Связь с кассетами
 
     class Config:
-        from_attributes=True
+        from_attributes = True
+
 
 class CassetteBase(BaseModel):
     cassette_number: str
     comment: Optional[str] = None
 
+
 class CassetteCreate(CassetteBase):
     pass
 
+
 class Cassette(CassetteBase):
     id: str
-    sample_id: str  
-    glasses: List["Glass"] = []  
+    sample_id: str
+    glasses: List["Glass"] = []
 
     class Config:
-        from_attributes=True
+        from_attributes = True
+
 
 class GlassBase(BaseModel):
     glass_number: int
     staining: Optional[str] = None
 
+
 class GlassCreate(GlassBase):
     pass
+
 
 class Glass(GlassBase):
     id: str
     cassette_id: str
 
     class Config:
-        from_attributes=True
+        from_attributes = True
+
 
 class CaseBase(BaseModel):
     patient_id: str
     case_code: Optional[str] = None
     # grossing_status: str = Field(default="processing")
 
+
 class CaseCreate(CaseBase):
     pass
+
 
 class Case(CaseBase):
     id: str
@@ -594,7 +604,8 @@ class Case(CaseBase):
     # case_parameters: Optional[List] = None
 
     class Config:
-        from_attributes=True
+        from_attributes = True
+
 
 class CaseParametersScheema(BaseModel):
     macro_archive: str
@@ -605,7 +616,7 @@ class CaseParametersScheema(BaseModel):
     container_count_actual: str
     fixation: str
     macro_description: str
-    
+
     # case_id = Column(String(36), ForeignKey("cases.id"), unique=True, nullable=False)
     # macro_archive = Column(Enum(MacroArchive), default=MacroArchive.ESS)
     # decalcification = Column(Enum(DecalcificationType), default=DecalcificationType.ABSENT)

@@ -21,6 +21,7 @@ from cor_pass.services.logger import logger
 
 router = APIRouter(prefix="/lawyer", tags=["Lawyer"])
 
+
 @router.get(
     "/get_all_doctors",
     response_model=List[DoctorResponse],
@@ -31,7 +32,9 @@ async def get_all_doctors(
     limit: int = Query(10, description="Максимальное количество записей для возврата"),
     status: Optional[str] = Query(None, description="Фильтр по статусу врача"),
     sort_by: Optional[str] = Query(None, description="Сортировать по полю"),
-    sort_order: Optional[str] = Query("asc", description="Порядок сортировки ('asc' или 'desc')"),
+    sort_order: Optional[str] = Query(
+        "asc", description="Порядок сортировки ('asc' или 'desc')"
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -79,8 +82,8 @@ async def get_all_doctors(
     return doctors_response
 
 
-
 # Функция для преобразования бинарных данных в base64
+
 
 def bytes_to_base64(binary_data: bytes):
     if binary_data is None:

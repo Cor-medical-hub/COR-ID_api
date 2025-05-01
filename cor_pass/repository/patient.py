@@ -45,7 +45,7 @@ async def register_new_patient(
         user_sex=body.sex,
     )
     hashed_password = auth_service.get_password_hash(temp_password)
-    user_signup_data.password=hashed_password
+    user_signup_data.password = hashed_password
 
     new_user = await repository_person.create_user(user_signup_data, db)
 
@@ -56,16 +56,12 @@ async def register_new_patient(
 
     new_patient = Patient(
         patient_cor_id=new_user.cor_id,
-        encrypted_surname=await encrypt_data(
-            body.surname.encode("utf-8"), decoded_key
-        ),
+        encrypted_surname=await encrypt_data(body.surname.encode("utf-8"), decoded_key),
         encrypted_first_name=await encrypt_data(
             body.first_name.encode("utf-8"), decoded_key
         ),
         encrypted_middle_name=(
-            await encrypt_data(
-                body.middle_name.encode("utf-8"), decoded_key
-            )
+            await encrypt_data(body.middle_name.encode("utf-8"), decoded_key)
             if body.middle_name
             else None
         ),
@@ -74,10 +70,9 @@ async def register_new_patient(
         email=body.email,
         phone_number=body.phone_number,
         address=body.address,
-
     )
     db.add(new_patient)
-    await db.commit() 
+    await db.commit()
 
     doctor_patient_status = DoctorPatientStatus(
         patient_id=new_patient.id,
@@ -88,7 +83,9 @@ async def register_new_patient(
 
     await db.commit()
 
-    await send_email_code_with_temp_pass(email=new_patient.email, temp_pass=temp_password)
+    await send_email_code_with_temp_pass(
+        email=new_patient.email, temp_pass=temp_password
+    )
 
 
 async def add_existing_patient(
@@ -109,15 +106,14 @@ async def add_existing_patient(
     existing_patient = result_patient.scalar_one_or_none()
     if existing_patient:
         raise HTTPException(
-            status_code=400, detail=f"Пользователь с Cor ID {cor_id} уже является пациентом."
+            status_code=400,
+            detail=f"Пользователь с Cor ID {cor_id} уже является пациентом.",
         )
-
 
     new_patient = Patient(
         patient_cor_id=existing_user.cor_id,
-        sex = existing_user.user_sex,
-        email = existing_user.email
-
+        sex=existing_user.user_sex,
+        email=existing_user.email,
     )
     db.add(new_patient)
     await db.flush()

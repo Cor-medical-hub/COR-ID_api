@@ -1,7 +1,14 @@
 from string import ascii_uppercase
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from cor_pass.schemas import Case as CaseModelScheema, CaseBase as CaseBaseScheema, Sample as SampleModelScheema, Cassette as CassetteModelScheema, Glass as GlassModelScheema, SampleCreate
+from cor_pass.schemas import (
+    Case as CaseModelScheema,
+    CaseBase as CaseBaseScheema,
+    Sample as SampleModelScheema,
+    Cassette as CassetteModelScheema,
+    Glass as GlassModelScheema,
+    SampleCreate,
+)
 from typing import List, Optional
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import selectinload
@@ -12,8 +19,7 @@ from cor_pass.repository import case as repository_cases
 async def get_glass(db: AsyncSession, glass_id: int) -> GlassModelScheema | None:
     """Асинхронно получает конкретное стекло, связанное с кассетой по её ID и номеру."""
     result = await db.execute(
-        select(db_models.Glass)
-        .where(db_models.Glass.id == glass_id)
+        select(db_models.Glass).where(db_models.Glass.id == glass_id)
     )
     glass_db = result.scalar_one_or_none()
     if glass_db:
@@ -81,10 +87,6 @@ async def get_glass(db: AsyncSession, glass_id: int) -> GlassModelScheema | None
 #     # return CassetteModelScheema.model_validate(db_cassette)
 
 
-
-
-
-
 async def create_glass(
     db: AsyncSession,
     cassette_id: str,
@@ -95,10 +97,6 @@ async def create_glass(
     Асинхронно створює вказану кількість скелець для існуючої касети
     та оновлює лічильники скелець у касеті, семплі та кейсі.
     """
-
-
-
-
 
     # 1. Отримуємо поточну касету, а також пов'язані з нею семпл та кейс
     cassette_result = await db.execute(
@@ -111,12 +109,12 @@ async def create_glass(
     db_cassette = cassette_result.scalar_one_or_none()
     if not db_cassette:
         raise ValueError(f"Касету з ID {cassette_id} не знайдено")
-    
+
     # Получаем текущий семпл
     sample_result = await db.execute(
-        select(db_models.Sample).where(db_models.Sample.id == db_cassette.sample_id).options(
-            selectinload(db_models.Sample.case)
-        )
+        select(db_models.Sample)
+        .where(db_models.Sample.id == db_cassette.sample_id)
+        .options(selectinload(db_models.Sample.case))
     )
     db_sample = sample_result.scalar_one_or_none()
     if not db_sample:
@@ -124,7 +122,6 @@ async def create_glass(
 
     db_case_id = db_sample.case_id
     db_case = await repository_cases.get_single_case(db=db, case_id=db_case_id)
-
 
     db_sample = db_sample
     db_case = db_case
@@ -134,7 +131,11 @@ async def create_glass(
     # 2. Створюємо вказану кількість скелець для касети
     for i in range(num_glasses):
         next_glass_number = db_cassette.glass_count + i + 1
-        db_glass = db_models.Glass(cassette_id=db_cassette.id, glass_number=next_glass_number, staining=staining_type)
+        db_glass = db_models.Glass(
+            cassette_id=db_cassette.id,
+            glass_number=next_glass_number,
+            staining=staining_type,
+        )
         db.add(db_glass)
         created_glasses.append(db_glass)
 
@@ -157,7 +158,9 @@ async def create_glass(
 
 async def delete_glass(db: AsyncSession, glass_id: str) -> GlassModelScheema | None:
     """Асинхронно удаляет стекло."""
-    result = await db.execute(select(db_models.Glass).where(db_models.Glass.id == glass_id))
+    result = await db.execute(
+        select(db_models.Glass).where(db_models.Glass.id == glass_id)
+    )
     db_glass = result.scalar_one_or_none()
     if db_glass:
         await db.delete(db_glass)
