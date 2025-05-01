@@ -126,3 +126,22 @@ async def read_patient_overview_details(
     if overview_data is None:
         raise HTTPException(status_code=404, detail="Patient not found")
     return overview_data
+
+
+@router.patch("/cases/{case_id}/code", dependencies=[Depends(doctor_access)]
+            #   response_model=CaseModelScheema
+              )
+async def update_case_code(
+    case_id: str,
+    update_data: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Редагує останні 5 символів коду кейса."""
+    try:
+        updated_case = await case_service.update_case_code_suffix(db, case_id, update_data)
+        if updated_case:
+            return updated_case
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс з ID {case_id} не знайдено")
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

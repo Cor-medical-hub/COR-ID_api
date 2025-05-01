@@ -1,5 +1,5 @@
-from typing import List
-from sqlalchemy import select
+from typing import List, Optional
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import (
     Case as CaseModelScheema,
@@ -16,10 +16,12 @@ from sqlalchemy.orm import selectinload
 from cor_pass.services.logger import logger
 
 
-async def generate_case_code(db: AsyncSession) -> str:
-    """Генератор коду кейса"""
-    now = datetime.now()
-    return f"{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+async def generate_case_code(urgency_char: str, year_short: str, sample_type_char: str, next_number: int) -> str:
+    """Генератор коду кейса у форматі:
+    1-й символ - срочність, 2-3 - рік, 4 - тип, 5-9 - порядковий номер.
+    """
+    formatted_number = f"{next_number:05d}"
+    return f"{urgency_char}{year_short}{sample_type_char}{formatted_number}"
 
 
 async def create_cases_with_initial_data(
@@ -31,6 +33,18 @@ async def create_cases_with_initial_data(
 ) -> List[CaseModelScheema]:
     """Асинхронно створює вказану кількість кейсів та пов'язані з ними початкові дані."""
     created_cases: List[db_models.Case] = []
+    now = datetime.now()
+    year_short = now.strftime("%y")
+    urgency_char = urgency.value[0].upper()
+    material_type_char = material_type.value[0].upper()
+
+    result = await db.execute(
+            select(db_models.Case).where(
+                db_models.Case.patient_id == case_in.patient_id
+            )
+        )
+    cases_for_patient = result.scalars().all()
+    next_number = len(cases_for_patient) + 1 if cases_for_patient else 1
 
     for _ in range(num_cases):
         now = datetime.now()
@@ -44,7 +58,7 @@ async def create_cases_with_initial_data(
             glass_count=0,
             # grossing_status=case_in.grossing_status
         )
-        db_case.case_code = await generate_case_code(db)
+        db_case.case_code = await generate_case_code(urgency_char, year_short, material_type_char, next_number)
         db.add(db_case)
         await db.commit()
         await db.refresh(db_case)
@@ -263,3 +277,25 @@ async def get_patient_first_case_details(
         }
 
     return {"all_cases": all_cases, "first_case_details": first_case_details}
+
+async def update_case_code_suffix(db: AsyncSession, case_id: str, new_suffix: str):
+    """Асинхронно оновлює останні 5 символів коду кейса."""
+    if len(new_suffix) != 5 or not new_suffix.isdigit():
+        raise ValueError("Новий суфікс повинен складатися з 5 цифрових символів.")
+
+    result = await db.execute(
+        select(db_models.Case).where(db_models.Case.id == case_id)
+    )
+    db_case = result.scalar_one_or_none()
+
+    if db_case:
+        current_code = db_case.case_code
+        if len(current_code) >= 4:
+            new_case_code = f"{current_code[:-5]}{new_suffix}"
+            db_case.case_code = new_case_code
+            await db.commit()
+            await db.refresh(db_case)
+            return db_case
+        else:
+            raise ValueError(f"Поточний код кейса '{current_code}' занадто короткий для оновлення суфікса.")
+    return None
