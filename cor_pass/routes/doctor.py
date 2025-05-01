@@ -51,7 +51,7 @@ async def signup_doctor(
     doctor_data: str = Form(
         ...,
         example='{"work_email": "doctor@example.com","phone_number": "+380636666541", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
-        description="Данные врача в формате JSON. Пример: см. значение по умолчанию.",
+        description='Данные врача в формате JSON.\n Пример: {"work_email": "doctor@example.com","phone_number": "+380636666541", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
     ),
     # doctor_data: DoctorCreate = Body(...),
     doctors_photo: UploadFile = File(None),
@@ -91,7 +91,6 @@ async def signup_doctor(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid JSON format",
         )
-    
 
     exist_doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
     if exist_doctor:
@@ -105,15 +104,22 @@ async def signup_doctor(
     certificate_scan_bytes = await certificate_scan.read() if certificate_scan else None
 
     try:
-        if "date_of_last_attestation" in doctor_data_dict and doctor_data_dict["date_of_last_attestation"]:
-            doctor_data_dict["date_of_last_attestation"] = date.fromisoformat(doctor_data_dict["date_of_last_attestation"])
+        if (
+            "date_of_last_attestation" in doctor_data_dict
+            and doctor_data_dict["date_of_last_attestation"]
+        ):
+            doctor_data_dict["date_of_last_attestation"] = date.fromisoformat(
+                doctor_data_dict["date_of_last_attestation"]
+            )
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Invalid date format for date_of_last_attestation. Expected YYYY-MM-DD.",
         )
 
-    if "diplomas" in doctor_data_dict and isinstance(doctor_data_dict["diplomas"], list):
+    if "diplomas" in doctor_data_dict and isinstance(
+        doctor_data_dict["diplomas"], list
+    ):
         for diploma in doctor_data_dict["diplomas"]:
             if "date" in diploma and diploma["date"]:
                 try:
@@ -124,7 +130,9 @@ async def signup_doctor(
                         detail="Invalid date format in diplomas. Expected YYYY-MM-DD.",
                     )
 
-    if "certificates" in doctor_data_dict and isinstance(doctor_data_dict["certificates"], list):
+    if "certificates" in doctor_data_dict and isinstance(
+        doctor_data_dict["certificates"], list
+    ):
         for certificate in doctor_data_dict["certificates"]:
             if "date" in certificate and certificate["date"]:
                 try:
@@ -149,12 +157,10 @@ async def signup_doctor(
             certificate_scan_bytes=certificate_scan_bytes,
         )
     except IntegrityError as e:
-            logger.error(f"Database integrity error: {e}")
-            await db.rollback()  
-            detail = "Database error occurred. Please check the data for duplicates or invalid entries."
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail=detail
-            )
+        logger.error(f"Database integrity error: {e}")
+        await db.rollback()
+        detail = "Database error occurred. Please check the data for duplicates or invalid entries."
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
         await db.rollback()
@@ -171,7 +177,7 @@ async def signup_doctor(
         first_name=doctor.first_name,
         surname=doctor.surname,
         last_name=doctor.last_name,
-        # doctors_photo=doctor.doctors_photo, 
+        # doctors_photo=doctor.doctors_photo,
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,
         status=doctor.status,
@@ -182,7 +188,7 @@ async def signup_doctor(
 
 @router.get(
     "/patients",
-    dependencies=[Depends(doctor_access)], 
+    dependencies=[Depends(doctor_access)],
     # response_model=PatientResponce
 )
 async def get_doctor_patients(
@@ -197,7 +203,9 @@ async def get_doctor_patients(
 ):
     doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
     if not doctor:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+        )
 
     status_filters = None
     if patient_status:

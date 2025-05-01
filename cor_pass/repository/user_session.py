@@ -120,7 +120,7 @@ async def update_session_token(
         elif existing_session and token is None:
             return existing_session
         else:
-            return None 
+            return None
     except Exception as e:
         raise Exception("Ошибка при поиске или обновлении сессии")
 

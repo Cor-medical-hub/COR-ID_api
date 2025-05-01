@@ -37,7 +37,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 #     return list(doctors)
 
 
-
 async def get_doctors(
     skip: int,
     limit: int,
@@ -54,11 +53,13 @@ async def get_doctors(
     stmt: SQLAQuery = select(Doctor)
 
     if status:
-            try:
-                doctor_status = DoctorStatus[status.upper()]  
-                stmt = stmt.where(Doctor.status == doctor_status)
-            except KeyError:
-                raise HTTPException(status_code=400, detail=f"Недействительный статус врача: {status}")
+        try:
+            doctor_status = DoctorStatus[status.upper()]
+            stmt = stmt.where(Doctor.status == doctor_status)
+        except KeyError:
+            raise HTTPException(
+                status_code=400, detail=f"Недействительный статус врача: {status}"
+            )
 
     # Сортировка
     if sort_by:

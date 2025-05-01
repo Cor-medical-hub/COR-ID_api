@@ -127,7 +127,7 @@ async def make_favorite(
         await db.commit()
         await db.refresh(record)
         return record
-    return None  
+    return None
 
 
 async def delete_record(user: User, db: AsyncSession, record_id: int):

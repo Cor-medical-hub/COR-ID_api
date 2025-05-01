@@ -444,7 +444,8 @@ async def refresh_token(
 
 
 @router.post(
-    "/send_verification_code"
+    "/send_verification_code",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))],
 )  # Маршрут проверки почты в случае если это новая регистрация
 async def send_verification_code(
     body: EmailSchema,
@@ -512,7 +513,8 @@ async def confirm_email(body: VerificationModel, db: AsyncSession = Depends(get_
         )
 
 
-@router.post("/forgot_password")
+@router.post("/forgot_password",
+             dependencies=[Depends(RateLimiter(times=5, seconds=60))],)
 async def forgot_password_send_verification_code(
     body: EmailSchema,
     background_tasks: BackgroundTasks,
