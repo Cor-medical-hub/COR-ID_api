@@ -8,13 +8,11 @@ from cor_pass.database.models import (
     Status,
     Verification,
     UserSettings,
-
 )
 from cor_pass.schemas import (
     UserModel,
     PasswordStorageSettings,
     MedicalStorageSettings,
-
 )
 from cor_pass.services.auth import auth_service
 from cor_pass.services.logger import logger
@@ -23,7 +21,6 @@ from cor_pass.services.cipher import (
     encrypt_user_key,
     generate_recovery_code,
     encrypt_data,
-
 )
 from cor_pass.services.email import send_email_code_with_qr
 from sqlalchemy.exc import NoResultFound
@@ -233,7 +230,6 @@ async def change_user_password(email: str, password: str, db: AsyncSession) -> N
             raise e
     else:
         logger.warning(f"User with email {email} not found during password change.")
-
 
 
 async def change_user_email(email: str, current_user, db: AsyncSession) -> None:

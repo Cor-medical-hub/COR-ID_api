@@ -54,7 +54,7 @@ async def update_tag(tag_id: int, body: TagModel, db: AsyncSession) -> Tag | Non
     if tag:
         tag.name = body.name
         await db.commit()
-        await db.refresh(tag)  
+        await db.refresh(tag)
         return tag
     return None
 

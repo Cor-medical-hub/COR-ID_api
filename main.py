@@ -36,11 +36,11 @@ from cor_pass.routes import (
     doctor,
     dicom,
     websocket,
-    device_ws, 
+    device_ws,
     cases,
     samples,
     cassettes,
-    glasses
+    glasses,
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger
