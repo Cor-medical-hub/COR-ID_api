@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import base64
 from fastapi.responses import JSONResponse
+from fastapi_limiter.depends import RateLimiter
 
 router = APIRouter(prefix="/user", tags=["User"])
 
@@ -365,7 +366,8 @@ async def get_last_password_change(
     }
 
 
-@router.get("/send_recovery_keys_email")
+@router.get("/send_recovery_keys_email",
+            dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 async def send_recovery_keys_email(
     current_user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
