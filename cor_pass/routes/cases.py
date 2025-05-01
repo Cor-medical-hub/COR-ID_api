@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
+from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.schemas import Case, CaseCreate, Sample
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as case_service
@@ -26,13 +27,22 @@ async def create_case(
         db_models.MaterialType.R, description="Тип исследования"
     ),
 ):
-    return await case_service.create_cases_with_initial_data(
+
+    patient = await get_patient_by_corid(db=db, cor_id=case_in.patient_id)
+    if patient is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
+        )
+    case = await case_service.create_cases_with_initial_data(
         db=db,
         case_in=case_in,
         num_cases=num_cases,
         urgency=urgency,
         material_type=material_type,
     )
+    return case
+
+
 
 
 @router.get(
