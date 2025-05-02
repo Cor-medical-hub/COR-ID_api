@@ -165,5 +165,5 @@ async def delete_glass(db: AsyncSession, glass_id: str) -> GlassModelScheema | N
     if db_glass:
         await db.delete(db_glass)
         await db.commit()
-        return {"message": f"Кассета с ID {glass_id} успешно удалена"}
+        return {"message": f"Стекло с ID {glass_id} успешно удалено"}
     return None
