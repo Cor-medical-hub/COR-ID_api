@@ -33,7 +33,7 @@ async def create_glass_for_cassette(
 
 
 @router.get("/{glass_id}", response_model=Glass, dependencies=[Depends(doctor_access)])
-async def read_cassette(glass_id: str, db: AsyncSession = Depends(get_db)):
+async def read_glass_info(glass_id: str, db: AsyncSession = Depends(get_db)):
     db_glass = await glass_service.get_glass(db=db, glass_id=glass_id)
     if db_glass is None:
         raise HTTPException(status_code=404, detail="Glass not found")
