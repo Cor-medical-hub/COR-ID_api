@@ -63,7 +63,7 @@ class LoginResponseModel(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
-    is_admin: bool
+    # is_admin: bool
     session_id: Optional[str] = None
     requires_master_key: bool = False
     message: Optional[str] = None

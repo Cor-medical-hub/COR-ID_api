@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy.future import select
 from sqlalchemy import func
 import uuid
@@ -15,6 +15,8 @@ from cor_pass.schemas import (
     MedicalStorageSettings,
 )
 from cor_pass.services.auth import auth_service
+from cor_pass.config.config import settings
+from cor_pass.services import roles as role_check
 from cor_pass.services.logger import logger
 from cor_pass.services.cipher import (
     generate_aes_key,
@@ -437,3 +439,20 @@ async def get_last_password_change(email: str, db: AsyncSession) -> Optional[dat
     if user:
         return user.last_password_change
     return None
+
+
+
+async def get_user_roles(email: str, db: AsyncSession) -> List[str]:
+    roles = []
+    user = await get_user_by_email(email, db)
+    
+    if await role_check.admin_role_checker.is_admin(user=user):
+        roles.append("admin")
+    if await role_check.lawyer_role_checker.is_lawyer(user=user):
+        roles.append("lawyer")
+    doctor = await role_check.doctor_role_checker.is_doctor(user=user, db=db)
+    if doctor:
+        roles.append("doctor")
+    if user.is_active:
+        roles.append("active_user")
+    return roles

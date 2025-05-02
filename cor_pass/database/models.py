@@ -63,7 +63,7 @@ class SampleType(enum.Enum):
     BLOCKS = "Блоки/Стекла"
 
 
-# Типы материалов для параметров кейса
+# Типы материалов (исследований) для параметров кейса
 class MaterialType(enum.Enum):
     R = "Resectio"
     B = "Biopsy"
@@ -435,7 +435,7 @@ class Case(Base):
     glass_count = Column(Integer, default=0)
     grossing_status = Column(
         Enum(Grossing_status), default=Grossing_status.PROCESSING
-    )  # Статус гроссинга
+    )
 
     samples = relationship(
         "Sample", back_populates="case", cascade="all, delete-orphan"
@@ -455,7 +455,7 @@ class Sample(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     case_id = Column(String(36), ForeignKey("cases.id"), nullable=False)
-    sample_number = Column(String(50))  # Буквенная нумерация банки
+    sample_number = Column(String(50))
     cassette_count = Column(Integer, default=0)
     glass_count = Column(Integer, default=0)
     archive = Column(Boolean, default=False)
@@ -472,7 +472,7 @@ class Cassette(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     sample_id = Column(String(36), ForeignKey("samples.id"), nullable=False)
-    cassette_number = Column(String(50))  # Порядковый номер кассеты в рамках банки
+    cassette_number = Column(String(50))  # Порядковый номер кассеты в рамках конкретной банки
     comment = Column(String(500), nullable=True)
     glass_count = Column(Integer, default=0)
     glass = relationship(
