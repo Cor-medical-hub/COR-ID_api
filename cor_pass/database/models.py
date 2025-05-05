@@ -176,6 +176,11 @@ class User(Base):
     )
     patient = relationship("Patient", back_populates="user", uselist=False)
 
+
+    devices = relationship("Device", back_populates="user")
+    shared_devices = relationship("DeviceAccess", foreign_keys="[DeviceAccess.granting_user_id]", back_populates="granting_user")
+    access_to_devices = relationship("DeviceAccess", foreign_keys="[DeviceAccess.accessing_user_id]", back_populates="accessing_user")
+
     # Индексы
     __table_args__ = (
         Index("idx_users_email", "email"),
@@ -531,6 +536,57 @@ class CaseParameters(Base):
 #     released = Column(String(250), nullable=True)
 
 #     case = relationship("Case", back_populates="directions")
+
+
+
+#Модели для девайсов 
+
+class DeviceStatus(enum.Enum):
+    MANUFACTURED = "manufactured"
+    ACTIVATED = "activated"
+    BLOCKED = "blocked"
+
+class ManufacturedDevice(Base):
+    __tablename__ = "manufactured_devices"
+
+    id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    token = Column(String, unique=True, index=True)
+    serial_number = Column(String, unique=True)
+    status = Column(Enum(DeviceStatus), default=DeviceStatus.MANUFACTURED)
+    
+
+class Device(Base):
+    __tablename__ = "devices"
+
+    id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    token = Column(String, unique=True, index=True) # JWT токен, которые выдается устройству после привязки
+    name = Column(String(250))
+    create_date = Column(DateTime, default=func.now())
+    user_id = Column(String, ForeignKey("users.cor_id"))
+    serial_number = Column(String, ForeignKey("manufactured_devices.serial_number"))
+
+    user = relationship("User", back_populates="devices")
+    device = relationship("ManufacturedDevice")
+
+
+class AccessLevel(enum.Enum):
+    READ = "read"
+    READ_WRITE = "read_write"
+    SHARE = "share"
+
+class DeviceAccess(Base):
+    __tablename__ = "device_access"
+
+    id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    device_id = Column(String, ForeignKey("devices.id"))
+    granting_user_id = Column(String, ForeignKey("users.cor_id"))
+    accessing_user_id = Column(String, ForeignKey("users.cor_id"))
+    access_level = Column(Enum(AccessLevel), default=AccessLevel.READ)
+    create_date = Column(DateTime, default=func.now())
+
+    device = relationship("Device")
+    granting_user = relationship("User", foreign_keys=[granting_user_id], back_populates="shared_devices")
+    accessing_user = relationship("User", foreign_keys=[accessing_user_id], back_populates="access_to_devices")
 
 
 # Base.metadata.create_all(bind=engine)
