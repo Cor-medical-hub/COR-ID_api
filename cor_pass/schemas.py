@@ -4,13 +4,14 @@ from pydantic import (
     ConfigDict,
     Field,
     EmailStr,
+    PositiveInt,
     ValidationInfo,
     field_validator,
     model_validator,
 )
 from typing import List, Optional
 from datetime import datetime
-from cor_pass.database.models import Status, DoctorStatus, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
+from cor_pass.database.models import AccessLevel, Status, DoctorStatus, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
 import re
 from datetime import date
 
@@ -618,3 +619,27 @@ class CaseParametersScheema(BaseModel):
     macro_description: str
 
 
+
+
+class DeviceRegistration(BaseModel):
+    device_token: str
+
+class DeviceResponse(BaseModel):
+    token: str # JWT токен
+    device_name: str
+    user_id: str
+
+class GrantDeviceAccess(BaseModel):
+    user_id: str
+    device_id: int
+    access_level: AccessLevel
+
+class DeviceAccessResponse(BaseModel):
+    id: int
+    device_id: int
+    granting_user_id: str
+    accessing_user_id: str
+    access_level: AccessLevel
+
+class GenerateManufacturedDevices(BaseModel):
+    count: PositiveInt
