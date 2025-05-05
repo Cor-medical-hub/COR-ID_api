@@ -410,14 +410,12 @@
             // Расшифровываем токен
             const decodedToken = decodeToken(accessToken);
 
-            // Логируем расшифрованный токен
             console.log("Decoded token:", decodedToken);
 
-            // Проверяем, является ли пользователь администратором
-            const isAdmin = localStorage.getItem('isAdmin');
+            const isAdmin = decodedToken && Array.isArray(decodedToken.roles) && decodedToken.roles.includes('admin');
             const adminButtonContainer = document.getElementById('admin-button-container');
             adminButtonContainer.innerHTML = '';
-            if (isAdmin === 'true') {
+            if (isAdmin) {
                 const adminButton = document.createElement('button');
                 adminButton.innerText = 'Администрирование';
                 adminButton.onclick = function() {
