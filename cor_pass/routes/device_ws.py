@@ -271,4 +271,7 @@ async def generate_new_manufactured_devices(
     db: AsyncSession = Depends(get_db)
 ):
     created_devices = await repository_devices.create_manufactured_devices_bulk(db=db, count=generation_number)
-    return {"message": f"{created_devices} устройств успешно создано"}
+    devices_tokens = []
+    for dev in created_devices:
+        devices_tokens.append(f"device {dev.serial_number} - token {dev.token}")
+    return {"message": f"{devices_tokens}"}
