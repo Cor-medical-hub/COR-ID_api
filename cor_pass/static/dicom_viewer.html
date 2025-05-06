@@ -1,174 +1,232 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DICOM Viewer</title>
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <style>
-        #dicomContainer {
-            width: 80%;
-            height: 600px;
-            margin: 20px auto;
-            position: relative;
-            background-color: black;
-        }
-        #dicomImage {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-        .toolbar {
-            text-align: center;
-            margin: 20px;
-        }
-        select, button {
-            padding: 8px 15px;
-            margin: 0 5px;
-        }
-        .metadata-panel {
-            width: 80%;
-            margin: 20px auto;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-    </style>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <meta charset="UTF-8">
+  <title>DICOM Viewer</title>
+  <style>
+    .viewer { display: flex; gap: 40px; }
+    .view { display: flex; flex-direction: column; align-items: center; }
+    canvas { border: 1px solid #444; width: 512px; height: 512px; }
+    input[type="range"] { width: 500px; }
+  </style>
 </head>
 <body>
-    <div class="toolbar">
-        <select id="fileSelector">
-            <option value="">Select DICOM file</option>
-        </select>
-        <button id="zoomIn">Zoom In</button>
-        <button id="zoomOut">Zoom Out</button>
-        <button id="pan">Pan</button>
-        <button id="wwc">Window Level</button>
-        <button id="reset">Reset</button>
-    </div>
-    
-    <div id="dicomContainer">
-        <div id="dicomImage">
-            <canvas></canvas>
-        </div>
-    </div>
-    
-    <div class="metadata-panel">
-        <h3>DICOM Metadata</h3>
-        <pre id="metadataDisplay"></pre>
-    </div>
-    
-    <!-- Подключаем библиотеки в правильном порядке -->
-    <script src="https://unpkg.com/dicom-parser@1.8.3/dist/dicomParser.min.js"></script>
-    <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.min.js"></script>
-    <script src="https://unpkg.com/cornerstone-math@0.1.9/dist/cornerstoneMath.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.13.2/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
-    <script src="https://unpkg.com/cornerstone-tools@6.0.9/dist/cornerstoneTools.min.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('Cornerstone version:', cornerstone.version);
-            console.log('CornerstoneTools version:', cornerstoneTools.version);
-            
-            await initViewer();
-            await loadDicomFileList();
+  <div class="viewer">
+    <div class="view">
+      <label>Axial <input type="range" id="axial" min="0" max="500" value="50" onchange="update('axial')"></label>
+      <canvas id="canvas-axial" width="512" height="512"></canvas>
+    </div>
+    <div class="view">
+      <label>Sagittal <input type="range" id="sagittal" min="0" max="500" value="100" onchange="update('sagittal')"></label>
+      <canvas id="canvas-sagittal" width="512" height="512"></canvas>
+    </div>
+    <div class="view">
+      <label>Coronal <input type="range" id="coronal" min="0" max="500" value="100" onchange="update('coronal')"></label>
+      <canvas id="canvas-coronal" width="512" height="512"></canvas>
+    </div>
+
+   <!-- <div class="view">
+      <label>3D View</label>
+      <div id="threeD-container" style="width: 512px; height: 512px;"></div>
+    </div>-->
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  
+  <script>
+    let markers3D = [];
+
+    // Обновление среза
+    async function update(plane, callback) {
+      const idx = parseInt(document.getElementById(plane).value);
+      const canvas = document.getElementById('canvas-' + plane);
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = function () {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        drawCrossOnPlane(ctx, plane); // рисуем перекрестие
+        if (callback) callback();
+      };
+      img.src = `/api/dicom/reconstruct/${plane}?index=${idx}&t=${Date.now()}`;
+    }
+
+    // Добавление метки по клику
+    function addMarker(event, plane) {
+  const canvas = event.target;
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.round(event.clientX - rect.left);
+  const y = Math.round(event.clientY - rect.top);
+
+  const indices = {
+    axial: parseInt(document.getElementById('axial').value),
+    sagittal: parseInt(document.getElementById('sagittal').value),
+    coronal: parseInt(document.getElementById('coronal').value),
+  };
+
+  let point3D;
+
+  if (plane === 'axial') {
+    point3D = { x: x, y: y, z: indices.axial };
+  } else if (plane === 'sagittal') {
+    // Для сагиттальной плоскости:
+    // x (на изображении) -> z (в объеме)
+    // y (на изображении) -> y (в объеме)
+    // позиция слайдера -> x (в объеме)
+    point3D = {
+      x: indices.sagittal,
+      y: 512-x,  // учитываем переворот изображения
+      z: 512-y          // x на изображении становится z в объеме
+    };
+  } else if (plane === 'coronal') {
+    // Для корональной плоскости:
+    // x (на изображении) -> x (в объеме)
+    // y (на изображении) -> z (в объеме)
+    // позиция слайдера -> y (в объеме)
+    point3D = {
+      x: x,
+      y: indices.coronal,
+      z: 512 - y    // учитываем переворот изображения
+    };
+  }
+
+  markers3D = [point3D];
+  drawCrossOnSlices(point3D);
+}
+
+    // Рисование перекрестия на всех срезах
+    function drawCrossOnSlices(point3D) {
+      ['axial', 'sagittal', 'coronal'].forEach(plane => {
+        update(plane, () => {
+          const canvas = document.getElementById('canvas-' + plane);
+          const ctx = canvas.getContext('2d');
+          drawCrossOnPlane(ctx, plane, point3D);
         });
+      });
+    }
 
-        async function initViewer() {
-            console.log('Initializing viewer...');
-            
-            const element = document.getElementById('dicomImage');
-            const canvas = document.createElement('canvas');
-            element.appendChild(canvas);
+ // Рисование перекрестия на конкретном срезе
+function drawCrossOnPlane(ctx, plane, point3D = markers3D[0]) {
+  if (!point3D) return;
 
-            // Настраиваем загрузчик
-            cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
-            cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+  ctx.strokeStyle = 'lime';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
 
-            cornerstoneWADOImageLoader.webWorkerManager.initialize({
-                maxWebWorkers: navigator.hardwareConcurrency || 1,
-                startWebWorkersOnDemand: true,
-                webWorkerPath: 'https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.13.2/dist/cornerstoneWADOImageLoaderWebWorker.min.js',
-                taskConfiguration: {
-                    'decodeTask': {
-                        codecsPath: 'https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.13.2/dist/cornerstoneWADOImageLoaderCodecs.min.js'
-                    }
-                }
-            });
+  if (plane === 'axial') {
+    // Для аксиальной плоскости просто используем x и y
+    ctx.moveTo(0, point3D.y);
+    ctx.lineTo(512, point3D.y);
+    ctx.moveTo(point3D.x, 0);
+    ctx.lineTo(point3D.x, 512);
+} else if (plane === 'sagittal') {
+  const imgZ = 512 - point3D.z;
+  ctx.moveTo(0, imgZ); // отзеркаленная горизонтальная линия
+  ctx.lineTo(512, imgZ);
 
-            cornerstone.enable(element);
-            cornerstoneTools.init({
-                showSVGCursors: true,
-                globalToolSyncEnabled: true
-            });
-        }
+  ctx.moveTo(512 - point3D.y, 0); // y — вертикальная линия (с учетом переворота)
+  ctx.lineTo(512 - point3D.y, 512);
+} else if (plane === 'coronal') {
+    // Для корональной плоскости:
+    // x на изображении соответствует x в объеме
+    // y на изображении соответствует z в объеме (с учетом переворота)
+    const imgZ = 512 - point3D.z;
+    ctx.moveTo(0, imgZ);
+    ctx.lineTo(512, imgZ);
+    ctx.moveTo(point3D.x, 0);
+    ctx.lineTo(point3D.x, 512);
+  }
 
-        async function loadDicomFileList() {
-            try {
-                const response = await fetch('/api/dicom/list');
-                if (!response.ok) throw new Error('Failed to load DICOM list');
-                
-                const data = await response.json();
-                const selector = document.getElementById('fileSelector');
-                
-                selector.innerHTML = '<option value="">Select DICOM file</option>';
-                
-                data.files.forEach(file => {
-                    const option = document.createElement('option');
-                    option.value = file;
-                    option.textContent = file;
-                    selector.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error loading DICOM list:', error);
-                alert('Failed to load DICOM files list');
-            }
-        }
+  ctx.stroke();
+}
+    // Назначаем события кликов и инициализация
+    ['axial', 'sagittal', 'coronal'].forEach(plane => {
+      document.getElementById('canvas-' + plane).addEventListener('click', e => addMarker(e, plane));
+      update(plane);
+    });
+  </script>
 
-        async function loadMetadata(filename) {
-            try {
-                const response = await fetch(`/api/dicom/${filename}/metadata`);
-                if (!response.ok) throw new Error('Failed to load metadata');
-                
-                const metadata = await response.json();
-                const metadataDisplay = document.getElementById('metadataDisplay');
-                
-                let formattedMetadata = '';
-                for (const [key, value] of Object.entries(metadata)) {
-                    formattedMetadata += `${key}: ${value}\n`;
-                }
-                
-                metadataDisplay.textContent = formattedMetadata;
-            } catch (error) {
-                console.error('Error loading metadata:', error);
-                document.getElementById('metadataDisplay').textContent = 'Failed to load metadata';
-            }
-        }
 
-        async function loadAndViewDicomFile(filename) {
-            if (!filename) return;
-            
-            try {
-                await loadMetadata(filename);
-                
-                const element = document.getElementById('dicomImage');
-                const imageId = `wadouri:${window.location.origin}/api/dicom/${filename}`;
-                
-                const image = await cornerstone.loadImage(imageId);
-                cornerstone.displayImage(element, image);
-                
-            } catch (error) {
-                console.error('Error loading DICOM image:', error);
-                alert('Failed to load DICOM image');
-            }
-        }
+<script>
+  /*
+  let scene, camera, renderer;
+  
+  async function init3D() {
+    const container = document.getElementById('threeD-container');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+  
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(width, height);
+    container.appendChild(renderer.domElement);
+  
+    // Scene & camera
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
+    camera.position.z = 300;
+  
+    const light = new THREE.AmbientLight(0xffffff); // свет
+    scene.add(light);
+  
+    const volume = await fetchVolume();
+    const { data, width: volW, height: volH, depth: volD } = volume;
+  
+    // Добавим срезы как текстурированные плоскости
+    for (let z = 0; z < volD; z++) {
+      const slice = new Uint8Array(volW * volH);
+  
+      for (let i = 0; i < volW * volH; i++) {
+        slice[i] = data[z * volW * volH + i];
+      }
+  
+      const texture = new THREE.DataTexture(slice, volW, volH, THREE.LuminanceFormat);
+      texture.needsUpdate = true;
+  
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0.05,
+        side: THREE.DoubleSide,
+      });
+  
+      const geometry = new THREE.PlaneGeometry(volW, volH);
+      const mesh = new THREE.Mesh(geometry, material);
+  
+      mesh.position.z = z - volD / 2;
+      scene.add(mesh);
+    }
+  
+    animate();
+  }
+  
+  function animate() {
+    requestAnimationFrame(animate);
+    scene.rotation.y += 0.01;
+    renderer.render(scene, camera);
+  }
+  
+  async function fetchVolume() {
+    const res = await fetch("/api/dicom/volume");
+    const arrayBuffer = await res.arrayBuffer();
+    const data = new Uint8Array(arrayBuffer);
+  
+    return {
+      data: data,
+      width: 128,   // должен соответствовать resize на сервере
+      height: 128,
+      depth: 128
+    };
+  }
+  
+  init3D();
+  */
+  </script>
+  
 
-        document.getElementById('fileSelector').addEventListener('change', (e) => {
-            loadAndViewDicomFile(e.target.value);
-        });
-
-    </script> 
 </body>
 </html>
