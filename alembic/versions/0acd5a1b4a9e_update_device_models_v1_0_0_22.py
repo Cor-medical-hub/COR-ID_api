@@ -32,7 +32,7 @@ def upgrade() -> None:
                     existing_type=sa.INTEGER(),
                     type_=sa.String(length=36),  # Важно указать длину, если id в devices имеет длину
                     existing_nullable=True)
-    op.create_index(op.f('ix_device_access_id'), 'device_access', ['id'], unique=False)
+    # op.create_index(op.f('ix_device_access_id'), 'device_access', ['id'], unique=False)
 
     op.add_column('devices', sa.Column('serial_number', sa.String(), nullable=True))
     op.alter_column('devices', 'id',
@@ -40,16 +40,16 @@ def upgrade() -> None:
                     type_=sa.String(length=36),
                     existing_nullable=False,
                     existing_server_default=sa.text("nextval('devices_id_seq'::regclass)"))
-    op.create_index(op.f('ix_devices_id'), 'devices', ['id'], unique=False)
-    op.create_index(op.f('ix_devices_token'), 'devices', ['token'], unique=True)
+    # op.create_index(op.f('ix_devices_id'), 'devices', ['id'], unique=False)
+    # op.create_index(op.f('ix_devices_token'), 'devices', ['token'], unique=True)
     op.create_foreign_key(None, 'devices', 'manufactured_devices', ['serial_number'], ['serial_number'])
 
     op.alter_column('manufactured_devices', 'id',
                     existing_type=sa.INTEGER(),
                     type_=sa.String(length=36),
                     existing_nullable=False)
-    op.create_index(op.f('ix_manufactured_devices_id'), 'manufactured_devices', ['id'], unique=False)
-    op.create_index(op.f('ix_manufactured_devices_token'), 'manufactured_devices', ['token'], unique=True)
+    # op.create_index(op.f('ix_manufactured_devices_id'), 'manufactured_devices', ['id'], unique=False)
+    # op.create_index(op.f('ix_manufactured_devices_token'), 'manufactured_devices', ['token'], unique=True)
 
     # Создаем новый внешний ключ
     op.create_foreign_key('device_access_device_id_fkey', 'device_access', 'devices', ['device_id'], ['id'])
