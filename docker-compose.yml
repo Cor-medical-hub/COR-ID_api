@@ -1,5 +1,6 @@
 name: $CORID_ENV-cor-id_v2
 
+
 services:
   fastapi:
     build:
@@ -7,17 +8,21 @@ services:
       dockerfile: Dockerfile
     image: massivecapybara/corid_api:latest
     ports:
-      - "8001:8000"
+#      - "8001:8000"
+      - "$CORID_API_PORT:8000"
     depends_on:
       - prometheus
       - postgres
     env_file:
       - $CORID_ENV-corid.cor-medical.ua.env
+    post_start:
+      - command: alembic upgrade head
 
   redis:
     image: redis:alpine
     ports:
-      - "63791:6379"
+#      - "63791:6379"
+      - $CORID_REDIS_PORT:6379
 
 
   postgres:
@@ -25,7 +30,8 @@ services:
     env_file:
       - $CORID_ENV-corid.cor-medical.ua.env
     ports:
-      - "54322:5432"
+#      - "54322:5432"
+      - $CORID_POSTGRES_PORT:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -34,19 +40,22 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "9091:9090"
+#      - "9091:9090"
+      - $CORID_PROMETEUS_PORT:9090
 
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3001:3000"
+#      - "3001:3000"
+      - $CORID_GRAFANA_PORT:3000
     depends_on:
       - loki
 
   loki:
     image: grafana/loki:latest
     ports:
-      - "3101:3100"
+#      - "3101:3100"
+      - $CORID_LOKI_PORT:3100
     command: -config.file=/etc/loki/local-config.yaml
     user: "0:0"
     volumes:
