@@ -4,7 +4,7 @@ import os
 import pydicom
 from cor_pass.services.access import user_access
 
-router = APIRouter(prefix="/dicom", tags=["DICOM"])
+router = APIRouter(prefix="/dicom/old", tags=["DICOM_old"])
 
 DICOM_DIR = "dicom_files"
 os.makedirs(DICOM_DIR, exist_ok=True)
