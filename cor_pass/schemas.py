@@ -52,6 +52,9 @@ class UserDb(BaseModel):
 class ResponseUser(BaseModel):
     user: UserDb
     detail: str = "User successfully created"
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 
 class TokenModel(BaseModel):
