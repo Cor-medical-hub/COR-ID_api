@@ -11,7 +11,7 @@ from pydantic import (
 )
 from typing import List, Optional
 from datetime import datetime
-from cor_pass.database.models import AccessLevel, Status, DoctorStatus, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
+from cor_pass.database.models import AccessLevel, Status, Doctor_Status, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
 import re
 from datetime import date
 
@@ -287,10 +287,11 @@ class DiplomaResponse(BaseModel):
     series: str = Field(..., description="Серия диплома")
     number: str = Field(..., description="Номер диплома")
     university: str = Field(..., description="Название ВУЗа")
-    scan: Optional[str] = Field(
+    file_data: Optional[str] = Field(
         None,
         description="Скан документа в формате base64. Может быть None если скан отсутствует",
     )
+    # scan: bytes
 
     class Config:
         from_attributes = True
@@ -315,7 +316,7 @@ class CertificateResponse(BaseModel):
     series: str = Field(..., description="Серия сертификата")
     number: str = Field(..., description="Номер сертификата")
     university: str = Field(..., description="Название ВУЗа")
-    scan: Optional[str] = Field(
+    file_data: Optional[str] = Field(
         None,
         description="Скан документа в формате base64. Может быть None если скан отсутствует",
     )
@@ -377,6 +378,8 @@ class DoctorCreate(BaseModel):
     first_name: str
     surname: str
     last_name: str
+    passport_code: str
+    taxpayer_identification_number: str
     scientific_degree: Optional[str] = None
     date_of_last_attestation: Optional[date] = None
     diplomas: List[DiplomaCreate] = []
@@ -391,6 +394,8 @@ class DoctorCreate(BaseModel):
                 "first_name": "John",
                 "surname": "Doe",
                 "last_name": "Smith",
+                "passport_code": "CN123456",
+                "taxpayer_identification_number": "1234567890",
                 "scientific_degree": "PhD",
                 "date_of_last_attestation": "2022-12-31",
                 "diplomas": [
@@ -436,10 +441,33 @@ class DoctorResponse(BaseModel):
     date_of_last_attestation: Optional[date] = Field(
         None, description="Дата последней атестации"
     )
-    status: DoctorStatus
+    status: Doctor_Status
     # diplomas: List[DiplomaResponse] = []
     # certificates: List[CertificateResponse] = []
     # clinic_affiliations: List[ClinicAffiliationResponse] = []
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+class DoctorCreateResponse(BaseModel):
+    id: str = Field(..., description="ID врача")
+    doctor_cor_id: str = Field(..., description="COR-ID врача")
+    work_email: EmailStr = Field(..., description="Рабочий имейл")
+    phone_number: Optional[str] = Field(None, description="Номер телефона")
+    first_name: Optional[str] = Field(None, description="Имя врача")
+    surname: Optional[str] = Field(None, description="Фамилия врача")
+    last_name: Optional[str] = Field(None, description="Отчество врача")
+    scientific_degree: Optional[str] = Field(None, description="Научная степень")
+    date_of_last_attestation: Optional[date] = Field(
+        None, description="Дата последней атестации"
+    )
+    status: Doctor_Status
+    diploma_id: List = Field(..., description="ID дипломов")
+    certificates_id: List = Field(..., description="ID сертификатов")
+    clinic_affiliations_id: List = Field(..., description="ID записей о клиниках")
+
 
     class Config:
         from_attributes = True

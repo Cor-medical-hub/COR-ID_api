@@ -6,7 +6,7 @@ from sqlalchemy.orm import Query as SQLAQuery
 
 from cor_pass.database.models import (
     Doctor,
-    DoctorStatus,
+    Doctor_Status,
     Diploma,
     Certificate,
     ClinicAffiliation,
@@ -54,7 +54,7 @@ async def get_doctors(
 
     if status:
         try:
-            doctor_status = DoctorStatus[status.upper()]
+            doctor_status = Doctor_Status[status.upper()]
             stmt = stmt.where(Doctor.status == doctor_status)
         except KeyError:
             raise HTTPException(
@@ -111,7 +111,7 @@ async def get_all_doctor_info(doctor_id: str, db: AsyncSession) -> Doctor | None
     return doctor
 
 
-async def approve_doctor(doctor: Doctor, db: AsyncSession, status: DoctorStatus):
+async def approve_doctor(doctor: Doctor, db: AsyncSession, status: Doctor_Status):
     """
     Асинхронно обновляет статус врача.
     """
@@ -139,3 +139,15 @@ async def delete_doctor_by_doctor_id(db: AsyncSession, doctor_id: str):
     except Exception as e:
         await db.rollback()
         print(f"Произошла ошибка при удалении врача: {e}")
+
+
+
+async def get_diploma_by_id(diploma_id: str, db: AsyncSession):
+    """Получает информацию о документе по его ID."""
+    result = await db.execute(select(Diploma).where(Diploma.id == diploma_id))
+    return result.scalar_one_or_none()
+
+async def get_certificate_by_id(certificate_id: str, db: AsyncSession):
+    """Получает информацию о документе по его ID."""
+    result = await db.execute(select(Certificate).where(Certificate.id == certificate_id))
+    return result.scalar_one_or_none()
