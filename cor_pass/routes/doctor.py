@@ -14,8 +14,8 @@ from typing import List, Optional
 from cor_pass.database.db import get_db
 from cor_pass.database.models import PatientStatus, User
 from cor_pass.repository.doctor import (
-    create_doctor_new,
-    create_doctor_service_new,
+    create_doctor,
+    create_doctor_service,
     get_doctor_patients_with_status,
     upload_certificate_service,
     upload_diploma_service,
@@ -44,156 +44,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/doctor", tags=["Doctor"])
 
 
-# @router.post(
-#     "/signup",
-#     # response_model=DoctorResponse,
-#     status_code=status.HTTP_201_CREATED,
-#     dependencies=[Depends(user_access)],
-# )
-# async def signup_doctor(
-#     doctor_data: str = Form(
-#         ...,
-#         example='{"work_email": "doctor@example.com","phone_number": "+380636666541", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
-#         description='Данные врача в формате JSON.\n Пример: {"work_email": "doctor@example.com","phone_number": "+380636666541", "first_name": "John", "surname": "Doe", "last_name": "Smith", "scientific_degree": "PhD", "date_of_last_attestation": "2022-12-31", "diplomas": [{"date": "2023-01-01", "series": "AB", "number": "123456", "university": "Medical University"}], "certificates": [{"date": "2023-01-01", "series": "CD", "number": "654321", "university": "Another University"}], "clinic_affiliations": [{"clinic_name": "City Hospital", "department": "Cardiology", "position": "Senior Doctor", "specialty": "Cardiologist"}]}',
-#     ),
-#     # doctor_data: DoctorCreate = Body(...),
-#     doctors_photo: UploadFile = File(None),
-#     diploma_scan: UploadFile = File(None),
-#     certificate_scan: UploadFile = File(None),
-#     current_user: User = Depends(auth_service.get_current_user),
-#     db: AsyncSession = Depends(get_db),
-# ):
-#     """
-#     **Создание врача со всеми связанными данными**\n
-#     Этот маршрут позволяет создать врача вместе с дипломами, сертификатами и привязками к клиникам.
-#     Уровень доступа:
-#     - Текущий авторизованный пользователь
-#     :param doctor_data: str: Данные для создания врача в формате JSON.
-#     :param db: AsyncSession: Сессия базы данных.
-#     :return: Созданный врач.
-#     :rtype: DoctorResponse
-#     """
-#     try:
-#         # Валидация изображений
-#         if doctors_photo:
-#             doctors_photo = await validate_image_file(doctors_photo)
-#         if diploma_scan:
-#             diploma_scan = await validate_image_file(diploma_scan)
-#         if certificate_scan:
-#             certificate_scan = await validate_image_file(certificate_scan)
-#     except HTTPException as exception:
-#         logger.error(f"Error validating image: {str(exception)}")
-#         raise exception
-
-#     # Парсим JSON-строку в словарь
-#     try:
-#         doctor_data_dict = json.loads(doctor_data)
-#     except json.JSONDecodeError as e:
-#         logger.error(f"Error decoding JSON: {e}")
-#         raise HTTPException(
-#             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-#             detail="Invalid JSON format",
-#         )
-
-#     exist_doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
-#     if exist_doctor:
-#         logger.debug(f"{current_user.cor_id} doctor already exist")
-#         raise HTTPException(
-#             status_code=status.HTTP_409_CONFLICT, detail="Doctor account already exists"
-#         )
-
-#     doctors_photo_bytes = await doctors_photo.read() if doctors_photo else None
-#     diploma_scan_bytes = await diploma_scan.read() if diploma_scan else None
-#     certificate_scan_bytes = await certificate_scan.read() if certificate_scan else None
-
-#     try:
-#         if (
-#             "date_of_last_attestation" in doctor_data_dict
-#             and doctor_data_dict["date_of_last_attestation"]
-#         ):
-#             doctor_data_dict["date_of_last_attestation"] = date.fromisoformat(
-#                 doctor_data_dict["date_of_last_attestation"]
-#             )
-#     except ValueError:
-#         raise HTTPException(
-#             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-#             detail="Invalid date format for date_of_last_attestation. Expected YYYY-MM-DD.",
-#         )
-
-#     if "diplomas" in doctor_data_dict and isinstance(
-#         doctor_data_dict["diplomas"], list
-#     ):
-#         for diploma in doctor_data_dict["diplomas"]:
-#             if "date" in diploma and diploma["date"]:
-#                 try:
-#                     diploma["date"] = date.fromisoformat(diploma["date"])
-#                 except ValueError:
-#                     raise HTTPException(
-#                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-#                         detail="Invalid date format in diplomas. Expected YYYY-MM-DD.",
-#                     )
-
-#     if "certificates" in doctor_data_dict and isinstance(
-#         doctor_data_dict["certificates"], list
-#     ):
-#         for certificate in doctor_data_dict["certificates"]:
-#             if "date" in certificate and certificate["date"]:
-#                 try:
-#                     certificate["date"] = date.fromisoformat(certificate["date"])
-#                 except ValueError:
-#                     raise HTTPException(
-#                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-#                         detail="Invalid date format in certificates. Expected YYYY-MM-DD.",
-#                     )
-#     try:
-#         doctor = await create_doctor(
-#             doctor_data=doctor_data_dict,
-#             db=db,
-#             doctors_photo_bytes=doctors_photo_bytes,
-#             user=current_user,
-#         )
-#         doctors_data = await create_doctor_service(
-#             doctor_data=doctor_data_dict,
-#             db=db,
-#             doctor=doctor,
-#             diploma_scan_bytes=diploma_scan_bytes,
-#             certificate_scan_bytes=certificate_scan_bytes,
-#         )
-#     except IntegrityError as e:
-#         logger.error(f"Database integrity error: {e}")
-#         await db.rollback()
-#         detail = "Database error occurred. Please check the data for duplicates or invalid entries."
-#         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
-#     except Exception as e:
-#         logger.error(f"An unexpected error occurred: {e}")
-#         await db.rollback()
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="An unexpected error occurred during doctor creation.",
-#         )
-#     # Сериализуем ответ
-#     doctor_response = DoctorResponse(
-#         id=doctor.id,
-#         doctor_id=doctor.doctor_id,
-#         work_email=doctor.work_email,
-#         phone_number=doctor.phone_number,
-#         first_name=doctor.first_name,
-#         surname=doctor.surname,
-#         last_name=doctor.last_name,
-#         # doctors_photo=doctor.doctors_photo,
-#         scientific_degree=doctor.scientific_degree,
-#         date_of_last_attestation=doctor.date_of_last_attestation,
-#         status=doctor.status,
-#     )
-
-#     return doctor_response
-
-
-
-
-
 @router.post(
-    "/signup_new",
+    "/signup",
     response_model=DoctorCreateResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(user_access)],
@@ -223,12 +75,12 @@ async def signup_doctor(
         )
 
     try:
-        doctor = await create_doctor_new(
+        doctor = await create_doctor(
             doctor_data=doctor_data,
             db=db,
             user=current_user,
         )
-        cer, dip, clin = await create_doctor_service_new(
+        cer, dip, clin = await create_doctor_service(
             doctor_data=doctor_data,
             db=db,
             doctor=doctor

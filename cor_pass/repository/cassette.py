@@ -1,16 +1,11 @@
-from string import ascii_uppercase
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import (
-    Case as CaseModelScheema,
-    CaseBase as CaseBaseScheema,
     Sample as SampleModelScheema,
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
-    SampleCreate,
 )
 from typing import List, Optional
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import selectinload
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as repository_cases
@@ -29,7 +24,6 @@ async def get_cassette(
     cassette_db = cassette_result.scalar_one_or_none()
 
     if cassette_db:
-        # Используем model_validate для преобразования Cassette SQLAlchemy-объекта в CassetteModelScheema
         cassette_schema = CassetteModelScheema.model_validate(cassette_db)
         cassette_schema.glasses = [
             GlassModelScheema.model_validate(glass) for glass in cassette_db.glass
@@ -48,13 +42,6 @@ async def create_cassette(
     Асинхронно создает указанное количество кассет для существующего семпла
     и указанное количество стекол для каждой кассеты, обновляя счетчики.
     """
-    # 1. Получаем текущий семпл
-    # sample_result = await db.execute(
-    #     select(db_models.Sample).where(db_models.Sample.id == sample_id).options(
-    #         selectinload(db_models.Sample.case)
-    #     )
-    # )
-    # db_sample = sample_result.scalar_one_or_none()
 
     db_sample = await repository_samples.get_single_sample(db=db, sample_id=sample_id)
     if not db_sample:

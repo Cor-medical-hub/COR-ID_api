@@ -289,9 +289,8 @@ class DiplomaResponse(BaseModel):
     university: str = Field(..., description="Название ВУЗа")
     file_data: Optional[str] = Field(
         None,
-        description="Скан документа в формате base64. Может быть None если скан отсутствует",
+        description="Ссылка на документ",
     )
-    # scan: bytes
 
     class Config:
         from_attributes = True
@@ -318,7 +317,7 @@ class CertificateResponse(BaseModel):
     university: str = Field(..., description="Название ВУЗа")
     file_data: Optional[str] = Field(
         None,
-        description="Скан документа в формате base64. Может быть None если скан отсутствует",
+        description="Ссылка на документ",
     )
 
     class Config:
@@ -358,7 +357,7 @@ class DoctorWithRelationsResponse(BaseModel):
     surname: Optional[str]
     last_name: Optional[str]
     doctors_photo: Optional[str] = Field(
-        None, description="Фото в формате base64. Может быть None если фото отсутствует"
+        None, description="Ссылка на фото"
     )
     scientific_degree: Optional[str]
     date_of_last_attestation: Optional[date]
@@ -435,16 +434,13 @@ class DoctorResponse(BaseModel):
     surname: Optional[str] = Field(None, description="Фамилия врача")
     last_name: Optional[str] = Field(None, description="Отчество врача")
     doctors_photo: Optional[str] = Field(
-        None, description="Фото в формате base64. Может быть None если фото отсутствует"
+        None, description="Ссылка на фото врача"
     )
     scientific_degree: Optional[str] = Field(None, description="Научная степень")
     date_of_last_attestation: Optional[date] = Field(
         None, description="Дата последней атестации"
     )
     status: Doctor_Status
-    # diplomas: List[DiplomaResponse] = []
-    # certificates: List[CertificateResponse] = []
-    # clinic_affiliations: List[ClinicAffiliationResponse] = []
 
     class Config:
         from_attributes = True
@@ -518,6 +514,9 @@ class ConfirmLoginResponse(BaseModel):
     message: str
 
 
+
+# PATIENTS MODELS
+
 class PatientResponce(BaseModel):
     patient_cor_id: str
     encrypted_surname: Optional[bytes] = None
@@ -541,16 +540,21 @@ class NewPatientRegistration(BaseModel):
     first_name: str = Field(..., description="Имя пациента")
     middle_name: Optional[str] = Field(None, description="Отчество пациента")
     birth_date: Optional[date] = Field(None, description="Дата рождения пациента")
-    sex: Optional[str] = Field(None, description="Пол пациента")
+    sex: Optional[str] = Field(None, max_length=1, description="Пол пациента, может быть 'M'(мужской) или 'F'(женский)")
     phone_number: Optional[str] = Field(None, description="Номер телефона пациента")
     address: Optional[str] = Field(None, description="Адрес пациента")
-    photo: Optional[str] = Field(None, description="Фото пациента (base64 или blob)")
-    status: Optional[str] = Field("registered", description="Начальный статус пациента")
+    # photo: Optional[str] = Field(None, description="Фото пациента (base64 или blob)")
+    # status: Optional[str] = Field("registered", description="Начальный статус пациента")
+
+    @field_validator("sex")
+    def user_sex_must_be_m_or_f(cls, v):
+        if v not in ["M", "F"]:
+            raise ValueError('user_sex must be "M" or "F"')
+        return v
 
 
 class ExistingPatientAdd(BaseModel):
     cor_id: str = Field(..., description="Cor ID существующего пользователя")
-    status: Optional[str] = Field("registered", description="Начальный статус пациента")
 
 
 # Модели для лабораторных исследований
@@ -616,8 +620,8 @@ class Glass(GlassBase):
 
 
 class CaseBase(BaseModel):
-    patient_id: str
-    case_code: Optional[str] = None
+    patient_cor_id: str
+    # case_code: Optional[str] = None
     # grossing_status: str = Field(default="processing")
 
 
@@ -650,7 +654,7 @@ class CaseParametersScheema(BaseModel):
     macro_description: str
 
 
-
+# Модели для внешних девайсов
 
 class DeviceRegistration(BaseModel):
     device_token: str

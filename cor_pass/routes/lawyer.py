@@ -92,84 +92,6 @@ def bytes_to_base64(binary_data: bytes):
     return base64.b64encode(binary_data).decode("utf-8")
 
 
-# @router.get(
-#     "/get_doctor_info/{doctor_id}",
-#     response_model=DoctorWithRelationsResponse,
-#     dependencies=[Depends(lawyer_access)],
-# )
-# async def get_doctor_with_relations(
-#     doctor_id: str,
-#     db: AsyncSession = Depends(get_db),
-# ):
-#     """
-#     **Получение информации о враче со всеми связями**\n
-#     Этот маршрут позволяет получить полную информацию о враче, включая дипломы, сертификаты и привязки к клиникам.
-#     Уровень доступа:
-#     - Пользователи с ролью "lawyer"
-#     :param doctor_id: str: ID врача.
-#     :param db: AsyncSession: Сессия базы данных.
-#     :return: Информация о враче со всеми связями.
-#     :rtype: DoctorWithRelationsResponse
-#     """
-#     doctor = await lawyer.get_all_doctor_info(doctor_id=doctor_id, db=db)
-
-#     if not doctor:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
-#         )
-
-#     doctor_response = DoctorWithRelationsResponse(
-#         id=doctor.id,
-#         doctor_id=doctor.doctor_id,
-#         work_email=doctor.work_email,
-#         phone_number=doctor.phone_number,
-#         first_name=doctor.first_name,
-#         surname=doctor.surname,
-#         doctors_photo=(
-#             bytes_to_base64(doctor.doctors_photo) if doctor.doctors_photo else None
-#         ),
-#         # doctors_photo = doctor.doctors_photo,
-#         last_name=doctor.last_name,
-#         scientific_degree=doctor.scientific_degree,
-#         date_of_last_attestation=doctor.date_of_last_attestation,
-#         status=doctor.status,
-#         diplomas=[
-#             DiplomaResponse(
-#                 id=diploma.id,
-#                 date=diploma.date,
-#                 series=diploma.series,
-#                 number=diploma.number,
-#                 university=diploma.university,
-#             #     scan=bytes_to_base64(diploma.scan) if diploma.scan else None,
-#                 scan=f"{diploma.scan}"
-#             )
-#             for diploma in doctor.diplomas
-#         ],
-#         certificates=[
-#             CertificateResponse(
-#                 id=certificate.id,
-#                 date=certificate.date,
-#                 series=certificate.series,
-#                 number=certificate.number,
-#                 university=certificate.university,
-#                 scan=bytes_to_base64(certificate.scan) if certificate.scan else None,
-#             )
-#             for certificate in doctor.certificates
-#         ],
-#         clinic_affiliations=[
-#             ClinicAffiliationResponse(
-#                 id=affiliation.id,
-#                 clinic_name=affiliation.clinic_name,
-#                 department=affiliation.department,
-#                 position=affiliation.position,
-#                 specialty=affiliation.specialty,
-#             )
-#             for affiliation in doctor.clinic_affiliations
-#         ],
-#     )
-
-#     return doctor_response
-
 
 @router.patch("/asign_status/{doctor_id}", dependencies=[Depends(lawyer_access)])
 async def assign_status(
@@ -250,7 +172,7 @@ async def get_diploma_file(diploma_id: str, db: AsyncSession = Depends(get_db)):
     return StreamingResponse(document_stream(), media_type=document.file_type)
 
 @router.get("/certificates/{certificate_id}", dependencies=[Depends(lawyer_access)])
-async def get_diploma_file(certificate_id: str, db: AsyncSession = Depends(get_db)):
+async def get_certificate_file(certificate_id: str, db: AsyncSession = Depends(get_db)):
     """Получает файл сертификата (изображение или PDF) из базы данных."""
     document = await lawyer.get_certificate_by_id(certificate_id=certificate_id, db=db)
     if not document or not document.file_data or not document.file_type:

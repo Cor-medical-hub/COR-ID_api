@@ -4,7 +4,6 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy import asc, desc, func, select
 from typing import List, Optional, Tuple, List
 
-import sqlalchemy
 
 from cor_pass.database.models import (
     Certificate,
@@ -24,37 +23,8 @@ from cor_pass.services.cipher import decrypt_data
 from cor_pass.config.config import settings
 
 
-# async def create_doctor(
-#     doctor_data: dict,
-#     db: AsyncSession,
-#     user: User,
-#     doctors_photo_bytes: Optional[bytes] = None,
-# ) -> Doctor:
-#     """
-#     Асинхронная сервисная функция по созданию врача.
-#     """
-#     doctor = Doctor(
-#         doctor_id=user.cor_id,
-#         work_email=doctor_data.get("work_email"),
-#         phone_number=doctor_data.get("phone_number"),
-#         first_name=doctor_data.get("first_name"),
-#         surname=doctor_data.get("surname"),
-#         last_name=doctor_data.get("last_name"),
-#         doctors_photo=doctors_photo_bytes,
-#         scientific_degree=doctor_data.get("scientific_degree"),
-#         date_of_last_attestation=doctor_data.get("date_of_last_attestation"),
-#         status=DoctorStatus.PENDING,
-#     )
 
-#     db.add(doctor)
-
-#     await db.commit()
-#     await db.refresh(doctor)
-
-#     return doctor
-
-
-async def create_doctor_new(
+async def create_doctor(
     doctor_data: DoctorCreate,
     db: AsyncSession,
     user: User,
@@ -85,31 +55,10 @@ async def create_doctor_new(
     return doctor
 
 
-# async def create_certificates(
-#     doctor: Doctor,
-#     doctor_data: dict,
-#     db: AsyncSession,
-#     certificate_scan_bytes: Optional[bytes] = None,
-# ) -> None:
-#     """
-#     Асинхронно создает сертификаты врача.
-#     """
-#     for cert in doctor_data.get("certificates", []):
-#         certificate = Certificate(
-#             doctor_id=doctor.doctor_id,
-#             date=cert.get("date"),
-#             series=cert.get("series"),
-#             number=cert.get("number"),
-#             university=cert.get("university"),
-#             scan=certificate_scan_bytes,
-#         )
-#         db.add(certificate)
-
-#     await db.commit()
 
 
 
-async def create_certificates_new(
+async def create_certificates(
     doctor: Doctor,
     doctor_data: DoctorCreate,
     db: AsyncSession,
@@ -134,30 +83,9 @@ async def create_certificates_new(
     return list_of_certificates
 
 
-# async def create_diploma(
-#     doctor: Doctor,
-#     doctor_data: dict,
-#     db: AsyncSession,
-#     diploma_scan_bytes: Optional[bytes] = None,
-# ) -> None:
-#     """
-#     Асинхронно создает дипломы врача.
-#     """
-#     for dip in doctor_data.get("diplomas", []):
-#         diploma = Diploma(
-#             doctor_id=doctor.doctor_id,
-#             date=dip.get("date"),
-#             series=dip.get("series"),
-#             number=dip.get("number"),
-#             university=dip.get("university"),
-#             scan=diploma_scan_bytes,
-#         )
-#         db.add(diploma)
-
-#     await db.commit()
 
 
-async def create_diploma_new(
+async def create_diploma(
     doctor: Doctor,
     doctor_data: DoctorCreate,
     db: AsyncSession,
@@ -182,31 +110,7 @@ async def create_diploma_new(
     return list_of_diplomas
 
 
-# async def create_clinic_affiliation(
-#     doctor: Doctor, doctor_data: dict, db: AsyncSession
-# ) -> None:
-#     """
-#     Асинхронно создает привязки к клиникам для врача.
-#     """
-#     for aff in doctor_data.get("clinic_affiliations", []):
-#         affiliation = ClinicAffiliation(
-#             doctor_id=doctor.doctor_id,
-#             clinic_name=aff.get("clinic_name"),
-#             department=aff.get("department"),
-#             position=aff.get("position"),
-#             specialty=aff.get("specialty"),
-#         )
-#         db.add(affiliation)
-
-#     await db.commit()
-
-
-
-
-
-
-
-async def create_clinic_affiliation_new(
+async def create_clinic_affiliation(
     doctor: Doctor, doctor_data: DoctorCreate, db: AsyncSession
 ):
     """
@@ -230,33 +134,9 @@ async def create_clinic_affiliation_new(
 
 
 
-# async def create_doctor_service(
-#     doctor_data: dict,
-#     db: AsyncSession,
-#     doctor: Doctor,
-#     doctors_photo_bytes: Optional[bytes] = None,
-#     diploma_scan_bytes: Optional[bytes] = None,
-#     certificate_scan_bytes: Optional[bytes] = None,
-# ) -> Doctor:
-#     """
-#     Асинхронная основная сервисная функция по созданию врача и его сертификатов.
-#     """
-#     # doctor = await create_doctor(doctor_data, db, user, doctors_photo_bytes)
-
-#     if doctor:
-#         print("Врач создан успешно")
-
-#         await create_certificates(doctor, doctor_data, db, certificate_scan_bytes)
-
-#         await create_diploma(doctor, doctor_data, db, diploma_scan_bytes)
-
-#         await create_clinic_affiliation(doctor, doctor_data, db)
-
-#     return doctor
 
 
-
-async def create_doctor_service_new(
+async def create_doctor_service(
     doctor_data: DoctorCreate,
     db: AsyncSession,
     doctor: Doctor,
@@ -269,13 +149,13 @@ async def create_doctor_service_new(
     if doctor:
         print("Врач создан успешно")
 
-        certificates = await create_certificates_new(doctor, doctor_data, db)
+        certificates = await create_certificates(doctor, doctor_data, db)
         print(certificates)
 
-        diploma = await create_diploma_new(doctor, doctor_data, db)
+        diploma = await create_diploma(doctor, doctor_data, db)
         print(diploma)
 
-        clinic_aff = await create_clinic_affiliation_new(doctor, doctor_data, db)
+        clinic_aff = await create_clinic_affiliation(doctor, doctor_data, db)
         print(diploma)
 
     return certificates, diploma, clinic_aff

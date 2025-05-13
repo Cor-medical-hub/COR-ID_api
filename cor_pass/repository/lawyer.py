@@ -11,30 +11,9 @@ from cor_pass.database.models import (
     Certificate,
     ClinicAffiliation,
 )
-from cor_pass.schemas import (
-    UserModel,
-    PasswordStorageSettings,
-    MedicalStorageSettings,
-    UserSessionDBModel,
-    UserSessionModel,
-)
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
-# async def get_doctors(skip: int, limit: int, db: AsyncSession) -> List[Doctor]:
-#     """
-#     Асинхронно повертає список всіх лікарів з бази даних.
-
-#     :param skip: int: Пропустити перші n записів у базі даних
-#     :param limit: int: Обмежити кількість повернутих результатів
-#     :param db: AsyncSession: Асинхронна сесія бази даних
-#     :return: Список всіх лікарів
-#     """
-#     stmt = select(Doctor).offset(skip).limit(limit)
-#     result = await db.execute(stmt)
-#     doctors = result.scalars().all()
-#     return list(doctors)
 
 
 async def get_doctors(

@@ -22,6 +22,9 @@ async def create_cassette_for_sample(
     num_glasses_per_cassette: int = 1,
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Создаем заданное количество стёкол и кассет для конкретного семпла
+    """
     return await cassette_service.create_cassette(
         db=db,
         sample_id=sample_id,
@@ -34,6 +37,9 @@ async def create_cassette_for_sample(
     "/{cassette_id}", response_model=Cassette, dependencies=[Depends(doctor_access)]
 )
 async def read_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Получаем данные кассеты и вложеных сущностей
+    """
     db_cassette = await cassette_service.get_cassette(db, cassette_id)
     if db_cassette is None:
         raise HTTPException(status_code=404, detail="Cassette not found")
@@ -46,6 +52,9 @@ async def read_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
     #    response_model=Cassette
 )
 async def delete_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Удаляет кассету
+    """
     db_cassette = await cassette_service.delete_cassette(db, cassette_id)
     if db_cassette is None:
         raise HTTPException(status_code=404, detail="Cassette not found")
