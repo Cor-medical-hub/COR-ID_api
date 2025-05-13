@@ -613,8 +613,14 @@ class GlassBase(BaseModel):
     staining: Optional[str] = None
 
 
-class GlassCreate(GlassBase):
-    pass
+class GlassCreate(BaseModel):
+    cassette_id: str
+    staining_type: StainingType = Field(
+        ...,
+        description="Тип окрашивания для стекла",
+        example=StainingType.HE,
+    )
+    num_glasses: int = Field(default=1, description="Количество создаваемых стекол")
 
 
 class Glass(GlassBase):
@@ -624,6 +630,14 @@ class Glass(GlassBase):
     class Config:
         from_attributes = True
 
+
+class DeleteGlassesRequest(BaseModel):
+    glass_ids: List[str]
+
+class DeleteGlassesResponse(BaseModel):
+    deleted_count: int
+    message: str
+    not_found_ids: List[str] | None = None
 
 class CaseBase(BaseModel):
     patient_cor_id: str
