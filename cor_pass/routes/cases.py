@@ -64,7 +64,7 @@ async def read_case(case_id: str, db: AsyncSession = Depends(get_db)):
 @router.get(
     "/{case_id}/case_parameters",
     dependencies=[Depends(doctor_access)],
-    # response_model=Case
+    response_model=CaseParametersScheema
 )
 async def read_case_parameters(case_id: str, db: AsyncSession = Depends(get_db)):
     """

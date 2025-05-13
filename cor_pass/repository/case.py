@@ -170,8 +170,19 @@ async def get_case_parameters(
         )
     )
     case_db = result.scalar_one_or_none()
-
-    return {f"case {case_id} parameters": case_db}
+    if case_db:
+        responce = CaseParametersScheema(case_id=case_db.case_id,
+                                            macro_description= case_db.macro_description,
+                                            container_count_actual= case_db.container_count_actual,
+                                            urgency=case_db.urgency,
+                                            material_type=case_db.material_type,
+                                            macro_archive=case_db.macro_archive,
+                                            decalcification=case_db.decalcification,
+                                            sample_type=case_db.sample_type,
+                                            fixation=case_db.fixation)
+        return responce
+    else:
+        return {f"Параметры кейса не найдены"}
 
 
 async def update_case_parameters(
