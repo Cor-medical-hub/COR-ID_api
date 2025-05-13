@@ -593,8 +593,10 @@ class CassetteBase(BaseModel):
     comment: Optional[str] = None
 
 
-class CassetteCreate(CassetteBase):
-    pass
+class CassetteCreate(BaseModel):
+    sample_id: str
+    num_cassettes: int = 1
+    num_glasses_per_cassette: int = 1
 
 
 class Cassette(CassetteBase):

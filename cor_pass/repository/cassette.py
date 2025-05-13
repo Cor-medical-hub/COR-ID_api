@@ -93,8 +93,8 @@ async def create_cassette(
     for cassette in created_cassettes:
         await db.refresh(cassette)
 
-    return created_cassettes
-    # return CassetteModelScheema.model_validate(db_cassette)
+    return [CassetteModelScheema.model_validate(cassette) for cassette in created_cassettes]
+
 
 
 async def delete_cassette(
