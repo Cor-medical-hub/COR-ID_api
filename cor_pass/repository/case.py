@@ -40,7 +40,7 @@ async def create_cases_with_initial_data(
 
     result = await db.execute(
             select(db_models.Case).where(
-                db_models.Case.patient_id == case_in.patient_id
+                db_models.Case.patient_id == case_in.patient_cor_id
             )
         )
     cases_for_patient = result.scalars().all()
@@ -51,7 +51,7 @@ async def create_cases_with_initial_data(
 
         db_case = db_models.Case(
             id=str(uuid.uuid4()),
-            patient_id=case_in.patient_id,
+            patient_id=case_in.patient_cor_id,
             creation_date=now,
             bank_count=0,
             cassette_count=0,
@@ -127,6 +127,7 @@ async def get_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
     samples_result = await db.execute(
         select(db_models.Sample)
         .where(db_models.Sample.case_id == case_db.id)
+        .order_by(db_models.Sample.sample_number)
         .options(
             selectinload(db_models.Sample.cassette).selectinload(
                 db_models.Cassette.glass
@@ -236,7 +237,7 @@ async def get_patient_first_case_details(
     """
     # 1. Получаем список всех кейсов пациента
     cases_result = await db.execute(
-        select(db_models.Case).where(db_models.Case.patient_id == patient_id)
+        select(db_models.Case).where(db_models.Case.patient_id == patient_id).order_by(db_models.Case.creation_date)
     )
     all_cases_db = cases_result.scalars().all()
     all_cases = all_cases_db

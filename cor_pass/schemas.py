@@ -564,6 +564,9 @@ class ExistingPatientAdd(BaseModel):
 #     completed = "completed"
 
 
+class GetSample(BaseModel):
+    sample_id: str
+
 class SampleBase(BaseModel):
     sample_number: str
     archive: bool = False
@@ -571,8 +574,9 @@ class SampleBase(BaseModel):
     glass_count: int = 0
 
 
-class SampleCreate(SampleBase):
-    pass
+class SampleCreate(BaseModel):
+    case_id: str
+    num_samples: int = 1
 
 
 class Sample(SampleBase):
