@@ -41,6 +41,4 @@ async def delete_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
     db_sample = await sample_service.delete_sample(db=db, sample_id=sample_id)
     if db_sample is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sample not found")
-    # В случае успешного удаления мы просто возвращаем,
-    # FastAPI автоматически установит код статуса 204
     return
