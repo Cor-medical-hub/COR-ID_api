@@ -1,12 +1,14 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import (
     Case as CaseModelScheema,
     CaseBase as CaseBaseScheema,
+    CaseParametersScheema,
     Sample as SampleModelScheema,
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
+    UpdateCaseCodeResponce,
 )
 from cor_pass.database import models as db_models
 import uuid
@@ -202,8 +204,18 @@ async def update_case_parameters(
         case_parameters_db.fixation = fixation
         await db.commit()
         await db.refresh(case_parameters_db)
+        responce = CaseParametersScheema(case_id=case_parameters_db.case_id,
+                                         macro_description= case_parameters_db.macro_description,
+                                         container_count_actual= case_parameters_db.container_count_actual,
+                                         urgency=case_parameters_db.urgency,
+                                         material_type=case_parameters_db.material_type,
+                                         macro_archive=case_parameters_db.macro_archive,
+                                         decalcification=case_parameters_db.decalcification,
+                                         sample_type=case_parameters_db.sample_type,
+                                         fixation=case_parameters_db.fixation)
+        return responce
 
-    return {f"case {case_id} parameters updated": case_parameters_db}
+    return {f"case {case_id} parameters updated"}
 
 
 async def get_single_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
@@ -227,47 +239,53 @@ async def delete_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
     return None
 
 
+
+
 async def get_patient_first_case_details(
     db: AsyncSession, patient_id: str
-) -> dict | None:
+) -> Dict[str, Any] | None:
     """
     Асинхронно получает список всех кейсов пациента и детализацию первого из них:
-    семплы, кассеты первого семпла и стекла этих кассет (оптимизированная загрузка).
-    Использует model_validate вместо устаревшего from_orm.
+    все семплы первого кейса, но кассеты и стекла загружаются только для первого семпла.
+    Использует model_validate и model_dump для работы с Pydantic моделями.
     """
-    # 1. Получаем список всех кейсов пациента
+    # 1. Получаем список всех кейсов пациента, отсортированных по дате создания
     cases_result = await db.execute(
-        select(db_models.Case).where(db_models.Case.patient_id == patient_id).order_by(db_models.Case.creation_date)
+        select(db_models.Case)
+        .where(db_models.Case.patient_id == patient_id)
+        .order_by(db_models.Case.creation_date)
     )
     all_cases_db = cases_result.scalars().all()
-    all_cases = all_cases_db
+    all_cases = [CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db]
 
     first_case_details = None
     if all_cases_db:
         first_case_db = all_cases_db[0]
 
-        # 2. Получаем семплы первого кейса и связанные с ними кассеты и стекла
+        # 2. Получаем все семплы первого кейса, отсортированные по номеру
         samples_result = await db.execute(
             select(db_models.Sample)
             .where(db_models.Sample.case_id == first_case_db.id)
-            .options(
-                selectinload(db_models.Sample.cassette).selectinload(
-                    db_models.Cassette.glass
-                )
-            )
+            .order_by(db_models.Sample.sample_number)
         )
         first_case_samples_db = samples_result.scalars().all()
         first_case_samples = []
-        for sample_db in first_case_samples_db:
+
+        for i, sample_db in enumerate(first_case_samples_db):
             sample = SampleModelScheema.model_validate(sample_db).model_dump()
             sample["cassettes"] = []
-            for cassette_db in sample_db.cassette:
-                cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
-                cassette["glasses"] = [
-                    GlassModelScheema.model_validate(glass).model_dump()
-                    for glass in cassette_db.glass
-                ]
-                sample["cassettes"].append(cassette)
+
+            # Если это первый семпл, загружаем связанные кассеты и стекла
+            if i == 0 and sample_db:
+                await db.refresh(sample_db, attribute_names=["cassette"])
+                for cassette_db in sample_db.cassette:
+                    await db.refresh(cassette_db, attribute_names=["glass"])
+                    cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
+                    cassette["glasses"] = [
+                        GlassModelScheema.model_validate(glass).model_dump()
+                        for glass in cassette_db.glass
+                    ]
+                    sample["cassettes"].append(cassette)
             first_case_samples.append(sample)
 
         first_case_details = {
@@ -296,7 +314,7 @@ async def update_case_code_suffix(db: AsyncSession, case_id: str, new_suffix: st
             db_case.case_code = new_case_code
             await db.commit()
             await db.refresh(db_case)
-            return db_case
+            return UpdateCaseCodeResponce.model_validate(db_case) 
         else:
             raise ValueError(f"Поточний код кейса '{current_code}' занадто короткий для оновлення суфікса.")
     return None

@@ -564,50 +564,6 @@ class ExistingPatientAdd(BaseModel):
 #     completed = "completed"
 
 
-class GetSample(BaseModel):
-    sample_id: str
-
-class SampleBase(BaseModel):
-    sample_number: str
-    archive: bool = False
-    cassette_count: int = 0
-    glass_count: int = 0
-
-
-class SampleCreate(BaseModel):
-    case_id: str
-    num_samples: int = 1
-
-
-class Sample(SampleBase):
-    id: str
-    case_id: str
-    cassettes: List["Cassette"] = []  # Связь с кассетами
-
-    class Config:
-        from_attributes = True
-
-
-class CassetteBase(BaseModel):
-    cassette_number: str
-    comment: Optional[str] = None
-
-
-class CassetteCreate(BaseModel):
-    sample_id: str
-    num_cassettes: int = 1
-    num_glasses_per_cassette: int = 1
-
-
-class Cassette(CassetteBase):
-    id: str
-    sample_id: str
-    glasses: List["Glass"] = []
-
-    class Config:
-        from_attributes = True
-
-
 class GlassBase(BaseModel):
     glass_number: int
     staining: Optional[str] = None
@@ -638,6 +594,56 @@ class DeleteGlassesResponse(BaseModel):
     deleted_count: int
     message: str
     not_found_ids: List[str] | None = None
+class GetSample(BaseModel):
+    sample_id: str
+
+class SampleBase(BaseModel):
+    sample_number: str
+    archive: bool = False
+    cassette_count: int = 0
+    glass_count: int = 0
+
+
+class SampleCreate(BaseModel):
+    case_id: str
+    num_samples: int = 1
+
+
+class CassetteBase(BaseModel):
+    cassette_number: str
+    comment: Optional[str] = None
+
+
+class CassetteCreate(BaseModel):
+    sample_id: str
+    num_cassettes: int = 1
+    num_glasses_per_cassette: int = 1
+
+
+class Cassette(CassetteBase):
+    id: str
+    sample_id: str
+    glasses: List["Glass"] = []
+
+    class Config:
+        from_attributes = True
+
+class Cassette(CassetteBase):
+    id: str
+    sample_id: str
+    glasses: List[Glass] = []
+
+    class Config:
+        from_attributes = True
+
+class Sample(SampleBase):
+    id: str
+    case_id: str
+    cassettes: List[Cassette] = []
+    class Config:
+        from_attributes = True
+
+
 
 class CaseBase(BaseModel):
     patient_cor_id: str
@@ -648,22 +654,51 @@ class CaseBase(BaseModel):
 class CaseCreate(CaseBase):
     pass
 
+class UpdateCaseCode(BaseModel):
+    case_id: str
+    update_data: str = Field(min_length=5, max_length=5, description="Последние 5 целочисельных символлов кода кейса")
 
-class Case(CaseBase):
+class Case(BaseModel):
     id: str
     creation_date: datetime
+    patient_id: str
+    case_code: str
     bank_count: int
     cassette_count: int
     glass_count: int
-    samples: List = []  # Связь с банками
-    directions: List = []
+    # samples: List = []  # Связь с банками
+    # directions: List = []
     # case_parameters: Optional[List] = None
 
     class Config:
         from_attributes = True
 
+class UpdateCaseCodeResponce(BaseModel):
+    id: str
+    patient_id: str
+    creation_date: datetime
+    case_code: str
+    bank_count: int
+    cassette_count: int
+    glass_count: int
+
+    class Config:
+        from_attributes = True
+
+
+
+class FirstCaseDetailsSchema(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    samples: List[Sample]
+
+class PatientFirstCaseDetailsResponse(BaseModel):
+    all_cases: List[Case]
+    first_case_details: Optional[FirstCaseDetailsSchema] = None
 
 class CaseParametersScheema(BaseModel):
+    case_id: str
     macro_archive: MacroArchive
     decalcification: DecalcificationType
     sample_type: SampleType

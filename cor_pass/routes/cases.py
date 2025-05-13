@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from cor_pass.repository.patient import get_patient_by_corid
-from cor_pass.schemas import Case, CaseCreate, CaseParametersScheema, Sample
+from cor_pass.schemas import Case as CaseModelScheema, CaseCreate, CaseParametersScheema, PatientFirstCaseDetailsResponse, UpdateCaseCode, UpdateCaseCodeResponce
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as case_service
 
@@ -46,7 +46,6 @@ async def create_case(
 
 
 
-
 @router.get(
     "/{case_id}",
     dependencies=[Depends(doctor_access)]
@@ -78,12 +77,11 @@ async def read_case_parameters(case_id: str, db: AsyncSession = Depends(get_db))
 
 
 @router.patch(
-    "/{case_id}/case_parameters",
+    "/case_parameters",
     dependencies=[Depends(doctor_access)],
-    # response_model=Case
+    response_model=CaseParametersScheema
 )
 async def update_case_parameters(
-    case_id: str,
     body: CaseParametersScheema,
     db: AsyncSession = Depends(get_db),
 ):
@@ -92,7 +90,7 @@ async def update_case_parameters(
     """
     db_case_parameters = await case_service.update_case_parameters(
         db,
-        case_id,
+        body.case_id,
         body.macro_description,
         body.container_count_actual,
         body.urgency,
@@ -110,7 +108,7 @@ async def update_case_parameters(
 @router.delete(
     "/{case_id}",
     dependencies=[Depends(doctor_access)],
-    #    response_model=Case
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_case(case_id: str, db: AsyncSession = Depends(get_db)):
     """
@@ -119,10 +117,10 @@ async def delete_case(case_id: str, db: AsyncSession = Depends(get_db)):
     db_case = await case_service.delete_case(db, case_id)
     if db_case is None:
         raise HTTPException(status_code=404, detail="Case not found")
-    return db_case
+    return
 
 
-@router.get("/patients/{patient_cor_id}/overview", dependencies=[Depends(doctor_access)])
+@router.get("/patients/{patient_cor_id}/overview", dependencies=[Depends(doctor_access)], response_model=PatientFirstCaseDetailsResponse,)
 async def read_patient_overview_details(
     patient_cor_id: str, db: AsyncSession = Depends(get_db)
 ):
@@ -136,20 +134,19 @@ async def read_patient_overview_details(
     return overview_data
 
 
-@router.patch("/cases/{case_id}/code", dependencies=[Depends(doctor_access)]
-            #   response_model=CaseModelScheema
+@router.patch("/case_code", dependencies=[Depends(doctor_access)],
+              response_model=UpdateCaseCodeResponce
               )
 async def update_case_code(
-    case_id: str,
-    update_data: str,
+    body: UpdateCaseCode,
     db: AsyncSession = Depends(get_db),
 ):
     """Изменяет последние 5 символов кейса"""
     try:
-        updated_case = await case_service.update_case_code_suffix(db, case_id, update_data)
+        updated_case = await case_service.update_case_code_suffix(db=db, case_id=body.case_id, new_suffix=body.update_data)
         if updated_case:
             return updated_case
         else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс з ID {case_id} не знайдено")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс з ID {body.case_id} не знайдено")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
