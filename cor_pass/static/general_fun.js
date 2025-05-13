@@ -647,3 +647,308 @@ function generatePassword(event) {
     }
 }
 
+
+/**
+ * Функция для шифрования всех данных учётных записей с использованием супер-пароля восстановления
+ * @param {Array} records - Массив объектов с учётными данными (включая все поля)
+ * @param {string} recoveryPassword - Супер-пароль восстановления
+ * @returns {Promise<Blob>} - Возвращает Blob с зашифрованными данными в формате txt
+ */
+async function encryptAndSaveRecords(records, recoveryPassword) {
+    try {
+        // 1. Подготовка данных - включаем все поля каждой записи
+        const dataToEncrypt = records.map(record => ({
+            record_id: record.record_id,
+            record_name: record.record_name,
+            website: record.website,
+            username: record.username,
+            password: record.password,
+            notes: record.notes, // Шифруем комментарии
+            is_favorite: record.is_favorite,
+            created_at: record.created_at,
+            updated_at: record.updated_at
+            // Добавьте другие поля, если они есть
+        }));
+
+        // 2. Преобразуем данные в строку JSON
+        const dataString = JSON.stringify(dataToEncrypt);
+        
+        // 3. Генерируем ключ шифрования из супер-пароля
+        const encoder = new TextEncoder();
+        const passwordBuffer = encoder.encode(recoveryPassword);
+        
+        // Генерируем случайную соль
+        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+        
+        // Создаем ключевой материал из пароля
+        const keyMaterial = await window.crypto.subtle.importKey(
+            'raw',
+            passwordBuffer,
+            { name: 'PBKDF2' },
+            false,
+            ['deriveKey']
+        );
+        
+        // Производим ключ с помощью PBKDF2
+        const key = await window.crypto.subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: salt,
+                iterations: 100000, // Достаточно большое число итераций для безопасности
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            { name: 'AES-GCM', length: 256 }, // Используем AES-GCM с ключом 256 бит
+            false,
+            ['encrypt']
+        );
+        
+        // 4. Шифруем данные
+        const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Генерируем IV
+        const dataBuffer = encoder.encode(dataString);
+        
+        const encryptedData = await window.crypto.subtle.encrypt(
+            {
+                name: 'AES-GCM',
+                iv: iv,
+                additionalData: encoder.encode('additional-auth-data'), // Дополнительные данные для аутентификации
+                tagLength: 128 // Длина тега аутентификации
+            },
+            key,
+            dataBuffer
+        );
+        
+        // 5. Формируем итоговый файл:
+        // Формат: [соль (16 байт)][IV (12 байт)][зашифрованные данные][тег аутентификации (16 байт)]
+        const combined = new Uint8Array(salt.length + iv.length + encryptedData.byteLength);
+        combined.set(salt, 0); // Добавляем соль
+        combined.set(iv, salt.length); // Добавляем IV
+        // Добавляем зашифрованные данные (включая тег аутентификации)
+        combined.set(new Uint8Array(encryptedData), salt.length + iv.length);
+        
+        // 6. Создаем Blob для скачивания
+        return new Blob([combined], { type: 'text/plain' });
+        
+    } catch (error) {
+        console.error('Ошибка при шифровании данных:', error);
+        throw new Error('Не удалось зашифровать данные. Пожалуйста, попробуйте снова.');
+    }
+}
+
+/**
+ * Функция для создания и скачивания файла с зашифрованными данными
+ * @param {Array} records - Массив объектов с учётными данными
+ */
+async function downloadEncryptedRecords(records) {
+    try {
+        // Получаем супер-пароль восстановления
+        const response = await fetch('/api/user/get_recovery_code', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Ошибка получения супер-пароля');
+        }
+        
+        const data = await response.json();
+        const recoveryPassword = data['users recovery code'];
+        
+        // Шифруем данные
+        const encryptedBlob = await encryptAndSaveRecords(records, recoveryPassword);
+        
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(encryptedBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'account_records.cor';
+        document.body.appendChild(a);
+        a.click();
+        
+        // Очищаем
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+    } catch (error) {
+        console.error('Ошибка при создании файла:', error);
+        alert('Не удалось создать файл с зашифрованными данными');
+    }
+}
+
+
+/**
+ * Функция для дешифровки учётных данных из файла
+ * @param {File} file - Файл с зашифрованными данными
+ * @param {string} recoveryPassword - Супер-пароль восстановления
+ * @returns {Promise<Array>} - Возвращает массив с дешифрованными учётными записями
+ */
+async function decryptRecordsFromFile(file, recoveryPassword) {
+    try {
+        console.log('Начало дешифровки файла...');
+        
+        // 1. Читаем файл как ArrayBuffer
+        const fileBuffer = await file.arrayBuffer();
+        const fileBytes = new Uint8Array(fileBuffer);
+        console.log('Размер файла:', fileBytes.length, 'байт');
+
+        // 2. Извлекаем компоненты из файла
+        const salt = fileBytes.slice(0, 16);
+        const iv = fileBytes.slice(16, 28); // 16 + 12 = 28 (IV)
+        const encryptedData = fileBytes.slice(28); // Остальное - зашифрованные данные + тег
+        
+        console.log('Извлечены компоненты:',
+            '\nСоль (16 байт):', salt,
+            '\nIV (12 байт):', iv,
+            '\nДанные + тег:', encryptedData.length, 'байт');
+
+        // 3. Генерируем ключ из супер-пароля
+        const encoder = new TextEncoder();
+        const passwordBuffer = encoder.encode(recoveryPassword);
+        
+        console.log('Генерация ключа из пароля...');
+        const keyMaterial = await window.crypto.subtle.importKey(
+            'raw',
+            passwordBuffer,
+            { name: 'PBKDF2' },
+            false,
+            ['deriveKey']
+        );
+        
+        const key = await window.crypto.subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: salt,
+                iterations: 100000,
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['decrypt']
+        );
+        console.log('Ключ успешно сгенерирован');
+
+        // 4. Дешифруем данные
+        console.log('Процесс дешифровки...');
+        const decryptedData = await window.crypto.subtle.decrypt(
+            {
+                name: 'AES-GCM',
+                iv: iv,
+                additionalData: encoder.encode('additional-auth-data'),
+                tagLength: 128
+            },
+            key,
+            encryptedData
+        );
+        console.log('Данные успешно дешифрованы');
+
+        // 5. Преобразуем в строку и парсим JSON
+        const decoder = new TextDecoder();
+        const decryptedString = decoder.decode(decryptedData);
+        console.log('Дешифрованная строка:', decryptedString);
+        
+        const records = JSON.parse(decryptedString);
+        console.log('Дешифрованные записи:', records);
+
+        return records;
+        
+    } catch (error) {
+        console.error('Полная ошибка дешифровки:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
+        throw new Error('Не удалось дешифровать файл. Проверьте: 1) правильность супер-пароля, 2) что файл не поврежден');
+    }
+}
+
+/**
+ * Функция для загрузки и дешифровки файла с учётными записями
+ */
+async function uploadAndDecryptRecords() {
+    try {
+        console.log('Инициализация процесса загрузки файла...');
+        
+        // Создаем input для выбора файла
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.cor,.txt';
+        fileInput.style.display = 'none';
+        
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                console.log('Файл не выбран');
+                return;
+            }
+            
+            console.log('Выбран файл:', file.name, 'размер:', file.size, 'байт');
+            
+            try {
+                // Запрашиваем супер-пароль восстановления
+                const recoveryPassword = prompt('Введите супер-пароль восстановления:');
+                if (!recoveryPassword) {
+                    console.log('Пользователь отменил ввод пароля');
+                    return;
+                }
+
+                console.log('Начало дешифровки файла...');
+                const records = await decryptRecordsFromFile(file, recoveryPassword);
+                
+                console.log('Успешно дешифровано записей:', records.length);
+                alert(`Успешно дешифровано ${records.length} записей!`);
+                
+                // Отображаем записи в интерфейсе
+                populateTable(records, true);
+                
+            } catch (error) {
+                console.error('Ошибка при обработке файла:', error);
+                alert(error.message);
+            }
+        };
+        
+        document.body.appendChild(fileInput);
+        fileInput.click();
+        document.body.removeChild(fileInput);
+        
+    } catch (error) {
+        console.error('Ошибка в uploadAndDecryptRecords:', error);
+        alert('Произошла ошибка при загрузке файла. Пожалуйста, попробуйте снова.');
+    }
+}
+
+
+async function deleteAccount() {
+    if (checkToken()) {
+        const confirmDelete = confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо.');
+
+        if (!confirmDelete) return;
+
+        try {
+            const token = localStorage.getItem('accessToken'); // или другое имя, если храните токен иначе
+
+            const response = await fetch('/api/user/delete_my_account', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            });
+
+            if (response.ok) {
+                alert('Аккаунт успешно удалён.');
+                // Например, выйти на главную страницу или форму входа
+                window.location.href = "/"; 
+               
+            } else {
+                const errorData = await response.json();
+                alert('Ошибка при удалении аккаунта: ' + (errorData.message || response.status));
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Произошла ошибка при удалении аккаунта.');
+        }
+    }
+}

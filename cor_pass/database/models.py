@@ -26,9 +26,12 @@ class Status(enum.Enum):
     basic: str = "basic"
 
 
-class DoctorStatus(enum.Enum):
-    PENDING: str = "pending"
-    APPROVED: str = "approved"
+class Doctor_Status(enum.Enum):
+    pending: str = "pending"
+    approved: str = "approved"
+    agreed:  str = "agreed"
+    rejected: str = "rejected"
+    need_revision: str = "need_revision"
 
 
 class AuthSessionStatus(enum.Enum):
@@ -202,7 +205,12 @@ class Doctor(Base):
     doctors_photo = Column(LargeBinary, nullable=True)
     scientific_degree = Column(String(100), nullable=True)
     date_of_last_attestation = Column(Date, nullable=True)
-    status = Column(Enum(DoctorStatus), default=DoctorStatus.PENDING, nullable=False)
+    status = Column(Enum(Doctor_Status), default=Doctor_Status.pending, nullable=False)
+    passport_code = Column(String(20), nullable=True)
+    taxpayer_identification_number = Column(String(20),nullable=True)
+    reserv_scan_data = Column(LargeBinary, nullable=True)
+    reserv_scan_file_type = Column(String, nullable=True)
+    date_of_next_review = Column(Date, nullable=True)
 
     user = relationship("User", back_populates="user_doctors")
     diplomas = relationship(
@@ -214,14 +222,15 @@ class Doctor(Base):
     clinic_affiliations = relationship(
         "ClinicAffiliation", back_populates="doctor", cascade="all, delete-orphan"
     )
-    patient_statuses = relationship("DoctorPatientStatus", back_populates="doctor")
+    patient_statuses = relationship("DoctorPatientStatus", back_populates="doctor", cascade="all, delete-orphan")
 
 
 class Diploma(Base):
     __tablename__ = "diplomas"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     doctor_id = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=False)
-    scan = Column(LargeBinary, nullable=True)
+    file_data = Column(LargeBinary, nullable=True)
+    file_type = Column(String, nullable=True)
     date = Column(Date, nullable=False)
     series = Column(String(50), nullable=False)
     number = Column(String(50), nullable=False)
@@ -234,7 +243,8 @@ class Certificate(Base):
     __tablename__ = "certificates"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     doctor_id = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=False)
-    scan = Column(LargeBinary, nullable=True)
+    file_data = Column(LargeBinary, nullable=True)
+    file_type = Column(String, nullable=True)
     date = Column(Date, nullable=False)
     series = Column(String(50), nullable=False)
     number = Column(String(50), nullable=False)

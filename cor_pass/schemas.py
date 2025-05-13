@@ -11,7 +11,7 @@ from pydantic import (
 )
 from typing import List, Optional
 from datetime import datetime
-from cor_pass.database.models import AccessLevel, Status, DoctorStatus, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
+from cor_pass.database.models import AccessLevel, Status, Doctor_Status, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
 import re
 from datetime import date
 
@@ -287,9 +287,9 @@ class DiplomaResponse(BaseModel):
     series: str = Field(..., description="Серия диплома")
     number: str = Field(..., description="Номер диплома")
     university: str = Field(..., description="Название ВУЗа")
-    scan: Optional[str] = Field(
+    file_data: Optional[str] = Field(
         None,
-        description="Скан документа в формате base64. Может быть None если скан отсутствует",
+        description="Ссылка на документ",
     )
 
     class Config:
@@ -315,9 +315,9 @@ class CertificateResponse(BaseModel):
     series: str = Field(..., description="Серия сертификата")
     number: str = Field(..., description="Номер сертификата")
     university: str = Field(..., description="Название ВУЗа")
-    scan: Optional[str] = Field(
+    file_data: Optional[str] = Field(
         None,
-        description="Скан документа в формате base64. Может быть None если скан отсутствует",
+        description="Ссылка на документ",
     )
 
     class Config:
@@ -357,7 +357,7 @@ class DoctorWithRelationsResponse(BaseModel):
     surname: Optional[str]
     last_name: Optional[str]
     doctors_photo: Optional[str] = Field(
-        None, description="Фото в формате base64. Может быть None если фото отсутствует"
+        None, description="Ссылка на фото"
     )
     scientific_degree: Optional[str]
     date_of_last_attestation: Optional[date]
@@ -377,6 +377,8 @@ class DoctorCreate(BaseModel):
     first_name: str
     surname: str
     last_name: str
+    passport_code: str
+    taxpayer_identification_number: str
     scientific_degree: Optional[str] = None
     date_of_last_attestation: Optional[date] = None
     diplomas: List[DiplomaCreate] = []
@@ -391,6 +393,8 @@ class DoctorCreate(BaseModel):
                 "first_name": "John",
                 "surname": "Doe",
                 "last_name": "Smith",
+                "passport_code": "CN123456",
+                "taxpayer_identification_number": "1234567890",
                 "scientific_degree": "PhD",
                 "date_of_last_attestation": "2022-12-31",
                 "diplomas": [
@@ -430,16 +434,36 @@ class DoctorResponse(BaseModel):
     surname: Optional[str] = Field(None, description="Фамилия врача")
     last_name: Optional[str] = Field(None, description="Отчество врача")
     doctors_photo: Optional[str] = Field(
-        None, description="Фото в формате base64. Может быть None если фото отсутствует"
+        None, description="Ссылка на фото врача"
     )
     scientific_degree: Optional[str] = Field(None, description="Научная степень")
     date_of_last_attestation: Optional[date] = Field(
         None, description="Дата последней атестации"
     )
-    status: DoctorStatus
-    # diplomas: List[DiplomaResponse] = []
-    # certificates: List[CertificateResponse] = []
-    # clinic_affiliations: List[ClinicAffiliationResponse] = []
+    status: Doctor_Status
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
+
+
+class DoctorCreateResponse(BaseModel):
+    id: str = Field(..., description="ID врача")
+    doctor_cor_id: str = Field(..., description="COR-ID врача")
+    work_email: EmailStr = Field(..., description="Рабочий имейл")
+    phone_number: Optional[str] = Field(None, description="Номер телефона")
+    first_name: Optional[str] = Field(None, description="Имя врача")
+    surname: Optional[str] = Field(None, description="Фамилия врача")
+    last_name: Optional[str] = Field(None, description="Отчество врача")
+    scientific_degree: Optional[str] = Field(None, description="Научная степень")
+    date_of_last_attestation: Optional[date] = Field(
+        None, description="Дата последней атестации"
+    )
+    status: Doctor_Status
+    diploma_id: List = Field(..., description="ID дипломов")
+    certificates_id: List = Field(..., description="ID сертификатов")
+    clinic_affiliations_id: List = Field(..., description="ID записей о клиниках")
+
 
     class Config:
         from_attributes = True
@@ -490,6 +514,9 @@ class ConfirmLoginResponse(BaseModel):
     message: str
 
 
+
+# PATIENTS MODELS
+
 class PatientResponce(BaseModel):
     patient_cor_id: str
     encrypted_surname: Optional[bytes] = None
@@ -513,16 +540,21 @@ class NewPatientRegistration(BaseModel):
     first_name: str = Field(..., description="Имя пациента")
     middle_name: Optional[str] = Field(None, description="Отчество пациента")
     birth_date: Optional[date] = Field(None, description="Дата рождения пациента")
-    sex: Optional[str] = Field(None, description="Пол пациента")
+    sex: Optional[str] = Field(None, max_length=1, description="Пол пациента, может быть 'M'(мужской) или 'F'(женский)")
     phone_number: Optional[str] = Field(None, description="Номер телефона пациента")
     address: Optional[str] = Field(None, description="Адрес пациента")
-    photo: Optional[str] = Field(None, description="Фото пациента (base64 или blob)")
-    status: Optional[str] = Field("registered", description="Начальный статус пациента")
+    # photo: Optional[str] = Field(None, description="Фото пациента (base64 или blob)")
+    # status: Optional[str] = Field("registered", description="Начальный статус пациента")
+
+    @field_validator("sex")
+    def user_sex_must_be_m_or_f(cls, v):
+        if v not in ["M", "F"]:
+            raise ValueError('user_sex must be "M" or "F"')
+        return v
 
 
 class ExistingPatientAdd(BaseModel):
     cor_id: str = Field(..., description="Cor ID существующего пользователя")
-    status: Optional[str] = Field("registered", description="Начальный статус пациента")
 
 
 # Модели для лабораторных исследований
@@ -532,6 +564,9 @@ class ExistingPatientAdd(BaseModel):
 #     completed = "completed"
 
 
+class GetSample(BaseModel):
+    sample_id: str
+
 class SampleBase(BaseModel):
     sample_number: str
     archive: bool = False
@@ -539,8 +574,9 @@ class SampleBase(BaseModel):
     glass_count: int = 0
 
 
-class SampleCreate(SampleBase):
-    pass
+class SampleCreate(BaseModel):
+    case_id: str
+    num_samples: int = 1
 
 
 class Sample(SampleBase):
@@ -557,8 +593,10 @@ class CassetteBase(BaseModel):
     comment: Optional[str] = None
 
 
-class CassetteCreate(CassetteBase):
-    pass
+class CassetteCreate(BaseModel):
+    sample_id: str
+    num_cassettes: int = 1
+    num_glasses_per_cassette: int = 1
 
 
 class Cassette(CassetteBase):
@@ -588,8 +626,8 @@ class Glass(GlassBase):
 
 
 class CaseBase(BaseModel):
-    patient_id: str
-    case_code: Optional[str] = None
+    patient_cor_id: str
+    # case_code: Optional[str] = None
     # grossing_status: str = Field(default="processing")
 
 
@@ -622,7 +660,7 @@ class CaseParametersScheema(BaseModel):
     macro_description: str
 
 
-
+# Модели для внешних девайсов
 
 class DeviceRegistration(BaseModel):
     device_token: str

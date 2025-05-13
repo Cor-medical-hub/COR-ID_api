@@ -27,8 +27,10 @@ async def create_case(
         db_models.MaterialType.R, description="Тип исследования"
     ),
 ):
-
-    patient = await get_patient_by_corid(db=db, cor_id=case_in.patient_id)
+    """
+    Создает указанное количество кейсов и по 1 вложенной сущности
+    """
+    patient = await get_patient_by_corid(db=db, cor_id=case_in.patient_cor_id)
     if patient is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
@@ -51,6 +53,9 @@ async def create_case(
     # response_model=Case
 )
 async def read_case(case_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Получаем конкретный кейс и вложенные в него сущности 
+    """
     db_case = await case_service.get_case(db, case_id)
     if db_case is None:
         raise HTTPException(status_code=404, detail="Case not found")
@@ -63,6 +68,9 @@ async def read_case(case_id: str, db: AsyncSession = Depends(get_db)):
     # response_model=Case
 )
 async def read_case_parameters(case_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Получение параметров кейса
+    """
     db_case_parameters = await case_service.get_case_parameters(db, case_id)
     if db_case_parameters is None:
         raise HTTPException(status_code=404, detail="Case parameters not found")
@@ -79,6 +87,9 @@ async def update_case_parameters(
     body: CaseParametersScheema,
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Обновляет параметры кейса
+    """
     db_case_parameters = await case_service.update_case_parameters(
         db,
         case_id,
@@ -102,21 +113,24 @@ async def update_case_parameters(
     #    response_model=Case
 )
 async def delete_case(case_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Удаляет кейс и все вложенные в него сущности
+    """
     db_case = await case_service.delete_case(db, case_id)
     if db_case is None:
         raise HTTPException(status_code=404, detail="Case not found")
     return db_case
 
 
-@router.get("/patients/{patient_id}/overview", dependencies=[Depends(doctor_access)])
+@router.get("/patients/{patient_cor_id}/overview", dependencies=[Depends(doctor_access)])
 async def read_patient_overview_details(
-    patient_id: str, db: AsyncSession = Depends(get_db)
+    patient_cor_id: str, db: AsyncSession = Depends(get_db)
 ):
     """
     Возвращает список всех кейсов пациента и детализацию первого из них:
     семплы, кассеты первого семпла и стекла этих кассет.
     """
-    overview_data = await case_service.get_patient_first_case_details(db, patient_id)
+    overview_data = await case_service.get_patient_first_case_details(db=db, patient_id=patient_cor_id)
     if overview_data is None:
         raise HTTPException(status_code=404, detail="Patient not found")
     return overview_data
@@ -130,7 +144,7 @@ async def update_case_code(
     update_data: str,
     db: AsyncSession = Depends(get_db),
 ):
-    """Редагує останні 5 символів коду кейса."""
+    """Изменяет последние 5 символов кейса"""
     try:
         updated_case = await case_service.update_case_code_suffix(db, case_id, update_data)
         if updated_case:
