@@ -651,8 +651,28 @@ class CaseBase(BaseModel):
     # grossing_status: str = Field(default="processing")
 
 
-class CaseCreate(CaseBase):
-    pass
+class CaseCreate(BaseModel):
+    patient_cor_id: str
+    num_cases: int = 1
+    urgency: UrgencyType = Field(
+        ...,
+        description="Срочность иссследования",
+        example=UrgencyType.S,)
+    material_type: MaterialType = Field(
+        ...,
+        description="Тип исследования",
+        example=MaterialType.R,)
+
+class CaseCreateResponse(BaseModel):
+    id: str
+    case_code: str
+    patient_id: str
+    grossing_status: str
+    creation_date: datetime
+    cassette_count: int
+    bank_count: int
+    glass_count: int
+
 
 class UpdateCaseCode(BaseModel):
     case_id: str
@@ -708,6 +728,24 @@ class CaseParametersScheema(BaseModel):
     fixation: FixationType
     macro_description: str
 
+
+class SampleWithoutCassettesSchema(BaseModel):
+    id: str
+    sample_number: str
+    case_id: str
+    archive: bool
+    cassette_count: int
+    glass_count: int
+    cassettes: List = []  # Для остальных семплов список кассет будет пустой
+
+class CaseDetailsResponse(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    bank_count: int
+    cassette_count: int
+    glass_count: int
+    samples: List[SampleWithoutCassettesSchema | Sample]
 
 # Модели для внешних девайсов
 

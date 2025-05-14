@@ -1,8 +1,9 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from cor_pass.repository.patient import get_patient_by_corid
-from cor_pass.schemas import Case as CaseModelScheema, CaseCreate, CaseParametersScheema, PatientFirstCaseDetailsResponse, UpdateCaseCode, UpdateCaseCodeResponce
+from cor_pass.schemas import Case as CaseModelScheema, CaseCreate, CaseCreateResponse, CaseDetailsResponse, CaseParametersScheema, PatientFirstCaseDetailsResponse, UpdateCaseCode, UpdateCaseCodeResponce
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as case_service
 
@@ -14,33 +15,24 @@ router = APIRouter(prefix="/cases", tags=["Cases"])
 @router.post(
     "/",
     dependencies=[Depends(doctor_access)],
-    #  response_model=Case
+    response_model=List[CaseCreateResponse]
 )
 async def create_case(
-    case_in: CaseCreate,
+    body: CaseCreate,
     db: AsyncSession = Depends(get_db),
-    num_cases: int = 1,
-    urgency: db_models.UrgencyType = Query(
-        db_models.UrgencyType.S, description="Срочность"
-    ),
-    material_type: db_models.MaterialType = Query(
-        db_models.MaterialType.R, description="Тип исследования"
-    ),
+
 ):
     """
     Создает указанное количество кейсов и по 1 вложенной сущности
     """
-    patient = await get_patient_by_corid(db=db, cor_id=case_in.patient_cor_id)
+    patient = await get_patient_by_corid(db=db, cor_id=body.patient_cor_id)
     if patient is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
         )
     case = await case_service.create_cases_with_initial_data(
         db=db,
-        case_in=case_in,
-        num_cases=num_cases,
-        urgency=urgency,
-        material_type=material_type,
+        body=body
     )
     return case
 
@@ -48,8 +40,8 @@ async def create_case(
 
 @router.get(
     "/{case_id}",
-    dependencies=[Depends(doctor_access)]
-    # response_model=Case
+    dependencies=[Depends(doctor_access)],
+    response_model=CaseDetailsResponse
 )
 async def read_case(case_id: str, db: AsyncSession = Depends(get_db)):
     """

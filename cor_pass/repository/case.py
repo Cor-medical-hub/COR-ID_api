@@ -1,20 +1,18 @@
-from typing import Any, Dict, List, Optional
-from sqlalchemy import func, select
+from typing import Any, Dict, List
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import (
     Case as CaseModelScheema,
-    CaseBase as CaseBaseScheema,
     CaseParametersScheema,
     Sample as SampleModelScheema,
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
     UpdateCaseCodeResponce,
+    CaseCreate
 )
 from cor_pass.database import models as db_models
 import uuid
 from datetime import datetime
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm import selectinload
 from cor_pass.services.logger import logger
 
 
@@ -28,32 +26,29 @@ async def generate_case_code(urgency_char: str, year_short: str, sample_type_cha
 
 async def create_cases_with_initial_data(
     db: AsyncSession,
-    case_in: CaseBaseScheema,
-    num_cases: int = 1,
-    urgency: db_models.UrgencyType = db_models.UrgencyType.S,
-    material_type: db_models.SampleType = db_models.MaterialType.R,
+    body: CaseCreate
 ) -> List[CaseModelScheema]:
     """Асинхронно створює вказану кількість кейсів та пов'язані з ними початкові дані."""
     created_cases: List[db_models.Case] = []
     now = datetime.now()
     year_short = now.strftime("%y")
-    urgency_char = urgency.value[0].upper()
-    material_type_char = material_type.value[0].upper()
+    urgency_char = body.urgency.value[0].upper()
+    material_type_char = body.material_type.value[0].upper()
 
     result = await db.execute(
             select(db_models.Case).where(
-                db_models.Case.patient_id == case_in.patient_cor_id
+                db_models.Case.patient_id == body.patient_cor_id
             )
         )
     cases_for_patient = result.scalars().all()
     next_number = len(cases_for_patient) + 1 if cases_for_patient else 1
 
-    for _ in range(num_cases):
+    for _ in range(body.num_cases):
         now = datetime.now()
 
         db_case = db_models.Case(
             id=str(uuid.uuid4()),
-            patient_id=case_in.patient_cor_id,
+            patient_id=body.patient_cor_id,
             creation_date=now,
             bank_count=0,
             cassette_count=0,
@@ -106,8 +101,8 @@ async def create_cases_with_initial_data(
         # Автоматично створюємо параметри кейса
         db_case_parameters = db_models.CaseParameters(
             case_id=db_case.id,
-            urgency=urgency,
-            material_type=material_type,
+            urgency=body.urgency,
+            material_type=body.material_type,
         )
         db.add(db_case_parameters)
         await db.commit()
@@ -127,37 +122,41 @@ async def get_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
     case_db = result.scalar_one_or_none()
     # 2. Получаем семплы первого кейса и связанные с ними кассеты и стекла
     samples_result = await db.execute(
-        select(db_models.Sample)
-        .where(db_models.Sample.case_id == case_db.id)
-        .order_by(db_models.Sample.sample_number)
-        .options(
-            selectinload(db_models.Sample.cassette).selectinload(
-                db_models.Cassette.glass
-            )
+            select(db_models.Sample)
+            .where(db_models.Sample.case_id == case_db.id)
+            .order_by(db_models.Sample.sample_number)
         )
-    )
     first_case_samples_db = samples_result.scalars().all()
     first_case_samples = []
-    for sample_db in first_case_samples_db:
+
+    for i, sample_db in enumerate(first_case_samples_db):
         sample = SampleModelScheema.model_validate(sample_db).model_dump()
         sample["cassettes"] = []
-        for cassette_db in sample_db.cassette:
-            cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
-            cassette["glasses"] = [
-                GlassModelScheema.model_validate(glass).model_dump()
-                for glass in cassette_db.glass
-            ]
-            sample["cassettes"].append(cassette)
+
+        # Если это первый семпл, загружаем связанные кассеты и стекла
+        if i == 0 and sample_db:
+            await db.refresh(sample_db, attribute_names=["cassette"])
+            for cassette_db in sample_db.cassette:
+                await db.refresh(cassette_db, attribute_names=["glass"])
+                cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
+                cassette["glasses"] = [
+                    GlassModelScheema.model_validate(glass).model_dump()
+                    for glass in cassette_db.glass
+                ]
+                sample["cassettes"].append(cassette)
         first_case_samples.append(sample)
 
-    first_case_details = {
+    case_details = {
         "id": case_db.id,
         "case_code": case_db.case_code,
         "creation_date": case_db.creation_date,
-        "samples": first_case_samples,
+        "bank_count": case_db.bank_count,
+        "cassette_count": case_db.cassette_count,
+        "glass_count": case_db.glass_count,
+        "samples": first_case_samples
     }
 
-    return {"case_details": first_case_details}
+    return case_details
 
 
 async def get_case_parameters(
