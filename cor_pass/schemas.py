@@ -564,6 +564,36 @@ class ExistingPatientAdd(BaseModel):
 #     completed = "completed"
 
 
+class GlassBase(BaseModel):
+    glass_number: int
+    staining: Optional[str] = None
+
+
+class GlassCreate(BaseModel):
+    cassette_id: str
+    staining_type: StainingType = Field(
+        ...,
+        description="Тип окрашивания для стекла",
+        example=StainingType.HE,
+    )
+    num_glasses: int = Field(default=1, description="Количество создаваемых стекол")
+
+
+class Glass(GlassBase):
+    id: str
+    cassette_id: str
+
+    class Config:
+        from_attributes = True
+
+
+class DeleteGlassesRequest(BaseModel):
+    glass_ids: List[str]
+
+class DeleteGlassesResponse(BaseModel):
+    deleted_count: int
+    message: str
+    not_found_ids: List[str] | None = None
 class GetSample(BaseModel):
     sample_id: str
 
@@ -577,15 +607,6 @@ class SampleBase(BaseModel):
 class SampleCreate(BaseModel):
     case_id: str
     num_samples: int = 1
-
-
-class Sample(SampleBase):
-    id: str
-    case_id: str
-    cassettes: List["Cassette"] = []  # Связь с кассетами
-
-    class Config:
-        from_attributes = True
 
 
 class CassetteBase(BaseModel):
@@ -607,22 +628,21 @@ class Cassette(CassetteBase):
     class Config:
         from_attributes = True
 
-
-class GlassBase(BaseModel):
-    glass_number: int
-    staining: Optional[str] = None
-
-
-class GlassCreate(GlassBase):
-    pass
-
-
-class Glass(GlassBase):
+class Cassette(CassetteBase):
     id: str
-    cassette_id: str
+    sample_id: str
+    glasses: List[Glass] = []
 
     class Config:
         from_attributes = True
+
+class Sample(SampleBase):
+    id: str
+    case_id: str
+    cassettes: List[Cassette] = []
+    class Config:
+        from_attributes = True
+
 
 
 class CaseBase(BaseModel):
@@ -631,25 +651,74 @@ class CaseBase(BaseModel):
     # grossing_status: str = Field(default="processing")
 
 
-class CaseCreate(CaseBase):
-    pass
+class CaseCreate(BaseModel):
+    patient_cor_id: str
+    num_cases: int = 1
+    urgency: UrgencyType = Field(
+        ...,
+        description="Срочность иссследования",
+        example=UrgencyType.S,)
+    material_type: MaterialType = Field(
+        ...,
+        description="Тип исследования",
+        example=MaterialType.R,)
+
+class CaseCreateResponse(BaseModel):
+    id: str
+    case_code: str
+    patient_id: str
+    grossing_status: str
+    creation_date: datetime
+    cassette_count: int
+    bank_count: int
+    glass_count: int
 
 
-class Case(CaseBase):
+class UpdateCaseCode(BaseModel):
+    case_id: str
+    update_data: str = Field(min_length=5, max_length=5, description="Последние 5 целочисельных символлов кода кейса")
+
+class Case(BaseModel):
     id: str
     creation_date: datetime
+    patient_id: str
+    case_code: str
     bank_count: int
     cassette_count: int
     glass_count: int
-    samples: List = []  # Связь с банками
-    directions: List = []
+    # samples: List = []  # Связь с банками
+    # directions: List = []
     # case_parameters: Optional[List] = None
 
     class Config:
         from_attributes = True
 
+class UpdateCaseCodeResponce(BaseModel):
+    id: str
+    patient_id: str
+    creation_date: datetime
+    case_code: str
+    bank_count: int
+    cassette_count: int
+    glass_count: int
+
+    class Config:
+        from_attributes = True
+
+
+
+class FirstCaseDetailsSchema(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    samples: List[Sample]
+
+class PatientFirstCaseDetailsResponse(BaseModel):
+    all_cases: List[Case]
+    first_case_details: Optional[FirstCaseDetailsSchema] = None
 
 class CaseParametersScheema(BaseModel):
+    case_id: str
     macro_archive: MacroArchive
     decalcification: DecalcificationType
     sample_type: SampleType
@@ -659,6 +728,24 @@ class CaseParametersScheema(BaseModel):
     fixation: FixationType
     macro_description: str
 
+
+class SampleWithoutCassettesSchema(BaseModel):
+    id: str
+    sample_number: str
+    case_id: str
+    archive: bool
+    cassette_count: int
+    glass_count: int
+    cassettes: List = []  # Для остальных семплов список кассет будет пустой
+
+class CaseDetailsResponse(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    bank_count: int
+    cassette_count: int
+    glass_count: int
+    samples: List[SampleWithoutCassettesSchema | Sample]
 
 # Модели для внешних девайсов
 
