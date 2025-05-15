@@ -1,14 +1,18 @@
 from typing import Any, Dict, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from cor_pass.schemas import (
     Case as CaseModelScheema,
+    CaseListResponse,
     CaseParametersScheema,
     Sample as SampleModelScheema,
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
+    SimpleCaseResponse,
     UpdateCaseCodeResponce,
-    CaseCreate
+    CaseCreate,
+    CaseDetailsResponse
 )
 from cor_pass.database import models as db_models
 import uuid
@@ -27,19 +31,19 @@ async def generate_case_code(urgency_char: str, year_short: str, sample_type_cha
 async def create_cases_with_initial_data(
     db: AsyncSession,
     body: CaseCreate
-) -> List[CaseModelScheema]:
-    """Асинхронно створює вказану кількість кейсів та пов'язані з ними початкові дані."""
-    created_cases: List[db_models.Case] = []
+) -> Dict[str, Any]:
+    """Асинхронно створює вказану кількість кейсів та пов'язані з ними початкові дані.
+    Повертає список всіх створених кейсів та деталізацію першого з них.
+    """
+    created_cases_db: List[db_models.Case] = []
     now = datetime.now()
     year_short = now.strftime("%y")
     urgency_char = body.urgency.value[0].upper()
     material_type_char = body.material_type.value[0].upper()
 
     result = await db.execute(
-            select(db_models.Case).where(
-                db_models.Case.patient_id == body.patient_cor_id
-            )
-        )
+        select(db_models.Case).where(db_models.Case.patient_id == body.patient_cor_id)
+    )
     cases_for_patient = result.scalars().all()
     next_number = len(cases_for_patient) + 1 if cases_for_patient else 1
 
@@ -53,12 +57,12 @@ async def create_cases_with_initial_data(
             bank_count=0,
             cassette_count=0,
             glass_count=0,
-            # grossing_status=case_in.grossing_status
         )
         db_case.case_code = await generate_case_code(urgency_char, year_short, material_type_char, next_number)
         db.add(db_case)
         await db.commit()
         await db.refresh(db_case)
+        next_number +=1
 
         # Автоматично створюємо одну банку
         db_sample = db_models.Sample(case_id=db_case.id, sample_number="A")
@@ -109,9 +113,52 @@ async def create_cases_with_initial_data(
         await db.refresh(db_case_parameters)
         await db.refresh(db_case)
 
-        created_cases.append(db_case)
+        created_cases_db.append(db_case)
 
-    return created_cases
+    all_cases = [CaseModelScheema.model_validate(case).model_dump() for case in created_cases_db]
+    first_case_details = None
+
+    if created_cases_db:
+        first_case_db = created_cases_db[0]
+
+        # Отримуємо всі семпли першого кейса
+        samples_result = await db.execute(
+            select(db_models.Sample)
+            .where(db_models.Sample.case_id == first_case_db.id)
+            .order_by(db_models.Sample.sample_number)
+        )
+        first_case_samples_db = samples_result.scalars().all()
+        first_case_samples = []
+
+        for i, sample_db in enumerate(first_case_samples_db):
+            sample = SampleModelScheema.model_validate(sample_db).model_dump()
+            sample["cassettes"] = []
+
+            # Якщо це перший семпл, завантажуємо повну інформацію про касети та стекла
+            if i == 0 and sample_db:
+                await db.refresh(sample_db, attribute_names=["cassette"])
+                for cassette_db in sample_db.cassette:
+                    await db.refresh(cassette_db, attribute_names=["glass"])
+                    cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
+                    cassette["glasses"] = [
+                        GlassModelScheema.model_validate(glass).model_dump()
+                        for glass in cassette_db.glass
+                    ]
+                    sample["cassettes"].append(cassette)
+            first_case_samples.append(sample)
+
+        first_case_details = {
+            "id": first_case_db.id,
+            "case_code": first_case_db.case_code,
+            "creation_date": first_case_db.creation_date,
+            "samples": first_case_samples,
+            "bank_count": first_case_db.bank_count,
+            "cassette_count": first_case_db.cassette_count,
+            "glass_count": first_case_db.glass_count,
+        }
+
+    return {"all_cases": all_cases, "first_case_details": first_case_details}
+
 
 
 async def get_case(db: AsyncSession, case_id: str) -> db_models.Case | None:

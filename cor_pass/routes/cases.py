@@ -1,9 +1,9 @@
-from typing import List
+from typing import List, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from cor_pass.repository.patient import get_patient_by_corid
-from cor_pass.schemas import Case as CaseModelScheema, CaseCreate, CaseCreateResponse, CaseDetailsResponse, CaseParametersScheema, PatientFirstCaseDetailsResponse, UpdateCaseCode, UpdateCaseCodeResponce
+from cor_pass.schemas import Case as CaseModelScheema, CaseCreate, CaseCreateResponse, CaseDetailsResponse, CaseListResponse, CaseParametersScheema, PatientFirstCaseDetailsResponse, UpdateCaseCode, UpdateCaseCodeResponce
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as case_service
 
@@ -15,7 +15,8 @@ router = APIRouter(prefix="/cases", tags=["Cases"])
 @router.post(
     "/",
     dependencies=[Depends(doctor_access)],
-    response_model=List[CaseCreateResponse]
+    # response_model=List[CaseCreateResponse]
+    response_model=PatientFirstCaseDetailsResponse
 )
 async def create_case(
     body: CaseCreate,

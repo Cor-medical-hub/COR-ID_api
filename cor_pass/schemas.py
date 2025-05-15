@@ -9,8 +9,9 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import datetime
+from cor_pass.database import models
 from cor_pass.database.models import AccessLevel, Status, Doctor_Status, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
 import re
 from datetime import date
@@ -674,6 +675,7 @@ class CaseCreateResponse(BaseModel):
     glass_count: int
 
 
+
 class UpdateCaseCode(BaseModel):
     case_id: str
     update_data: str = Field(min_length=5, max_length=5, description="Последние 5 целочисельных символлов кода кейса")
@@ -746,6 +748,17 @@ class CaseDetailsResponse(BaseModel):
     cassette_count: int
     glass_count: int
     samples: List[SampleWithoutCassettesSchema | Sample]
+
+class SimpleCaseResponse(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    bank_count: int
+    cassette_count: int
+    glass_count: int
+
+class CaseListResponse(BaseModel):
+    items: List[Union[CaseDetailsResponse, SimpleCaseResponse]]
 
 # Модели для внешних девайсов
 
