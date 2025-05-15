@@ -27,7 +27,7 @@ async def create_cassette_for_sample(
         db=db,
         sample_id=body.sample_id,
         num_cassettes=body.num_cassettes,
-        num_glasses_per_cassette=body.num_glasses_per_cassette,
+        
     )
 
 

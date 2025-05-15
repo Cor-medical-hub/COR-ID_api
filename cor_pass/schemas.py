@@ -618,7 +618,7 @@ class CassetteBase(BaseModel):
 class CassetteCreate(BaseModel):
     sample_id: str
     num_cassettes: int = 1
-    num_glasses_per_cassette: int = 1
+
 
 
 class Cassette(CassetteBase):
@@ -759,6 +759,11 @@ class SimpleCaseResponse(BaseModel):
 
 class CaseListResponse(BaseModel):
     items: List[Union[CaseDetailsResponse, SimpleCaseResponse]]
+
+class CreateSampleWithDetails(BaseModel):
+    created_samples: List[Sample]
+    first_sample_details: Optional[Sample] = None
+
 
 # Модели для внешних девайсов
 

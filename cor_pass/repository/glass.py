@@ -130,7 +130,7 @@ async def create_glass(
 
     # 2. Створюємо вказану кількість скелець для касети
     for i in range(num_glasses):
-        next_glass_number = db_cassette.glass_count + i + 1
+        next_glass_number = db_cassette.glass_count + 1
         db_glass = db_models.Glass(
             cassette_id=db_cassette.id,
             glass_number=next_glass_number,
