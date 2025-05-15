@@ -9,8 +9,9 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import datetime
+from cor_pass.database import models
 from cor_pass.database.models import AccessLevel, Status, Doctor_Status, AuthSessionStatus, MacroArchive, DecalcificationType, SampleType, MaterialType, UrgencyType, FixationType, StudyType, StainingType
 import re
 from datetime import date
@@ -617,7 +618,7 @@ class CassetteBase(BaseModel):
 class CassetteCreate(BaseModel):
     sample_id: str
     num_cassettes: int = 1
-    num_glasses_per_cassette: int = 1
+
 
 
 class Cassette(CassetteBase):
@@ -672,6 +673,7 @@ class CaseCreateResponse(BaseModel):
     cassette_count: int
     bank_count: int
     glass_count: int
+
 
 
 class UpdateCaseCode(BaseModel):
@@ -746,6 +748,22 @@ class CaseDetailsResponse(BaseModel):
     cassette_count: int
     glass_count: int
     samples: List[SampleWithoutCassettesSchema | Sample]
+
+class SimpleCaseResponse(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    bank_count: int
+    cassette_count: int
+    glass_count: int
+
+class CaseListResponse(BaseModel):
+    items: List[Union[CaseDetailsResponse, SimpleCaseResponse]]
+
+class CreateSampleWithDetails(BaseModel):
+    created_samples: List[Sample]
+    first_sample_details: Optional[Sample] = None
+
 
 # Модели для внешних девайсов
 

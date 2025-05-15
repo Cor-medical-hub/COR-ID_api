@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
-from cor_pass.schemas import GetSample, Sample, SampleCreate, Sample as SampleModelScheema
+from cor_pass.schemas import CreateSampleWithDetails, GetSample, Sample, SampleCreate, Sample as SampleModelScheema
 from cor_pass.repository import sample as sample_service
 from typing import List
 
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/samples", tags=["Samples"])
 
 @router.post(
     "/create",
-    response_model=List[SampleModelScheema],  
+    response_model=CreateSampleWithDetails,  
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_201_CREATED,
 )
