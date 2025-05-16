@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import (
+    CassetteUpdateComment,
     Sample as SampleModelScheema,
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
@@ -95,19 +96,21 @@ async def create_cassette(
     return created_cassettes_with_glasses
 
 
-# async def delete_cassette(
-#     db: AsyncSession, cassette_id: str
-# ) -> SampleModelScheema | None:
-#     """Асинхронно удаляет касетту."""
-#     result = await db.execute(
-#         select(db_models.Cassette).where(db_models.Cassette.id == cassette_id)
-#     )
-#     db_cassette = result.scalar_one_or_none()
-#     if db_cassette:
-#         await db.delete(db_cassette)
-#         await db.commit()
-#         return {"message": f"Кассета с ID {cassette_id} успешно удалена"}
-#     return None
+async def update_cassette_comment(
+    db: AsyncSession, cassette_id: str, comment_update: CassetteUpdateComment
+) -> Optional[CassetteModelScheema]:
+    """Асинхронно обновляет комментарий кассеты по ID."""
+    result = await db.execute(
+        select(db_models.Cassette).where(db_models.Cassette.id == cassette_id)
+    )
+    cassette_db = result.scalar_one_or_none()
+    if cassette_db:
+        if comment_update.comment is not None:
+            cassette_db.comment = comment_update.comment
+        await db.commit()
+        await db.refresh(cassette_db)
+        return CassetteModelScheema.model_validate(cassette_db)
+    return None
 
 
 async def delete_cassettes(db: AsyncSession, cassettes_ids: List[str]) -> Dict[str, Any]:

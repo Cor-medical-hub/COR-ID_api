@@ -621,6 +621,9 @@ class CassetteCreate(BaseModel):
     num_cassettes: int = 1
 
 
+class CassetteUpdateComment(BaseModel):
+    comment: Optional[str] = None
+
 
 class Cassette(CassetteBase):
     id: str

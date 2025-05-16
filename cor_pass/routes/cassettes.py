@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
-from cor_pass.schemas import Cassette as CassetteModelScheema, CassetteCreate, DeleteCassetteRequest, DeleteCassetteResponse, Sample, SampleCreate
+from cor_pass.schemas import Cassette as CassetteModelScheema, CassetteCreate, CassetteUpdateComment, DeleteCassetteRequest, DeleteCassetteResponse, Sample, SampleCreate
 from cor_pass.repository import sample as sample_service
 from cor_pass.repository import cassette as cassette_service
 from typing import List
@@ -42,6 +42,21 @@ async def read_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
     if db_cassette is None:
         raise HTTPException(status_code=404, detail="Cassette not found")
     return db_cassette
+
+
+@router.patch("/cassettes/{cassette_id}", response_model=CassetteModelScheema, dependencies=[Depends(doctor_access)])
+async def update_cassette_comment(
+    cassette_id: str,
+    comment_update: CassetteUpdateComment,
+    db: AsyncSession = Depends(get_db),
+):
+    """Обновляет комментарий кассеты по её ID."""
+    updated_cassette = await cassette_service.update_cassette_comment(
+        db, cassette_id, comment_update
+    )
+    if not updated_cassette:
+        raise HTTPException(status_code=404, detail="Cassette not found")
+    return updated_cassette
 
 
 @router.delete(
