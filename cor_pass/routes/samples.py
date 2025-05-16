@@ -19,6 +19,7 @@ router = APIRouter(prefix="/samples", tags=["Samples"])
 async def create_sample_for_case(
     body: SampleCreate, db: AsyncSession = Depends(get_db)
 ):
+    """Создаем указанное количество семплов"""
     return await sample_service.create_sample(db=db, case_id=body.case_id, num_samples=body.num_samples) 
 
 
@@ -26,6 +27,7 @@ async def create_sample_for_case(
     "/{sample_id}", response_model=Sample, dependencies=[Depends(doctor_access)]
 )
 async def read_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
+    """Получаем данные о семпле"""
     db_sample = await sample_service.get_sample(db=db, sample_id=sample_id)
     if db_sample is None:
         raise HTTPException(status_code=404, detail="Sample not found")
@@ -39,6 +41,7 @@ async def read_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
     status_code=status.HTTP_200_OK,
 )
 async def delete_samples(request_body: DeleteSampleRequest, db: AsyncSession = Depends(get_db)):
+    """Удаляет массив семплов"""
     result = await sample_service.delete_samples(db=db, samples_ids=request_body.sample_ids)
     return result
 

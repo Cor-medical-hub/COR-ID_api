@@ -21,7 +21,7 @@ async def create_cassette_for_sample(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Создаем заданное количество стёкол и кассет для конкретного семпла
+    Создаем заданное количество кассет для конкретного семпла
     """
     return await cassette_service.create_cassette(
         db=db,
@@ -67,21 +67,7 @@ async def update_cassette_comment(
 )
 async def delete_cassettes(request_body: DeleteCassetteRequest, db: AsyncSession = Depends(get_db)):
     """
-    Удаляет кассету
+    Удаляет массив кассет
     """
     result = await cassette_service.delete_cassettes(db=db, cassettes_ids=request_body.cassette_ids)
     return result
-
-
-# @router.delete(
-#     "/",
-#     response_model=DeleteGlassesResponse,
-#     dependencies=[Depends(doctor_access)],
-#     status_code=status.HTTP_200_OK,
-# )
-# async def delete_glasses_endpoint(
-#     request_body: DeleteGlassesRequest, db: AsyncSession = Depends(get_db)
-# ):
-#     """Удаляет несколько стекол по их ID."""
-#     result = await glass_service.delete_glasses(db=db, glass_ids=request_body.glass_ids)
-#     return result

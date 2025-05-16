@@ -101,7 +101,7 @@ async def update_case_parameters(
 
 
 @router.delete(
-    "/{case_id}",
+    "/",
     response_model=DeleteCasesResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
@@ -112,12 +112,6 @@ async def delete_cases(request_body: DeleteCasesRequest, db: AsyncSession = Depe
     """
     result = await case_service.delete_cases(db=db, case_ids=request_body.case_ids)
     return result
-
-
-
-
-
-
 
 
 @router.get("/patients/{patient_cor_id}/overview", dependencies=[Depends(doctor_access)], response_model=PatientFirstCaseDetailsResponse,)
