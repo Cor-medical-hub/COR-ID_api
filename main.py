@@ -34,7 +34,6 @@ from cor_pass.routes import (
     admin,
     lawyer,
     doctor,
-    dicom,
     websocket,
     device_ws,
     cases,
@@ -216,7 +215,6 @@ app.include_router(cor_id.router, prefix="/api")
 app.include_router(otp_auth.router, prefix="/api")
 app.include_router(lawyer.router, prefix="/api")
 app.include_router(doctor.router, prefix="/api")
-# app.include_router(dicom.router, prefix="/api")
 app.include_router(cases.router, prefix="/api")
 app.include_router(samples.router, prefix="/api")
 app.include_router(cassettes.router, prefix="/api")
