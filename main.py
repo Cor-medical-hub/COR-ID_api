@@ -223,7 +223,7 @@ app.include_router(cassettes.router, prefix="/api")
 app.include_router(glasses.router, prefix="/api")
 app.include_router(websocket.router, prefix="/api")
 app.include_router(device_ws.router, prefix="/api")
-app.include_router(dicom_router.router)
+app.include_router(dicom_router.router, prefix="/api")
 app.include_router(printing_device.router, prefix="/api")
 app.include_router(printer.router, prefix="/api")
 
