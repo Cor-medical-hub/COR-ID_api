@@ -11,7 +11,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/printer", tags=["Printer"])  
+router = APIRouter(tags=["Printer"])  
 
 class Label(BaseModel):
     model_id: int
