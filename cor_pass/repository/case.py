@@ -310,7 +310,7 @@ async def get_patient_first_case_details(
     cases_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.patient_id == patient_id)
-        .order_by(db_models.Case.creation_date)
+        .order_by(db_models.Case.creation_date.desc())
     )
     all_cases_db = cases_result.scalars().all()
     all_cases = [CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db]
