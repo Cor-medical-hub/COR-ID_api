@@ -45,7 +45,7 @@ async def read_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete(
-    "/{cassette_id}",
+    "/",
     response_model=DeleteCassetteResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,

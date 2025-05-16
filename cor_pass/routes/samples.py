@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
-from cor_pass.schemas import CreateSampleWithDetails, GetSample, Sample, SampleCreate, Sample as SampleModelScheema
+from cor_pass.schemas import CreateSampleWithDetails, DeleteCassetteRequest, DeleteCassetteResponse, DeleteSampleRequest, DeleteSampleResponse, GetSample, Sample, SampleCreate, Sample as SampleModelScheema
 from cor_pass.repository import sample as sample_service
 from typing import List
 
@@ -33,12 +33,12 @@ async def read_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete(
-    "/{sample_id}",
+    "/",
+    response_model=DeleteSampleResponse,
     dependencies=[Depends(doctor_access)],
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
 )
-async def delete_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
-    db_sample = await sample_service.delete_sample(db=db, sample_id=sample_id)
-    if db_sample is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sample not found")
-    return
+async def delete_samples(request_body: DeleteSampleRequest, db: AsyncSession = Depends(get_db)):
+    result = await sample_service.delete_samples(db=db, samples_ids=request_body.sample_ids)
+    return result
+

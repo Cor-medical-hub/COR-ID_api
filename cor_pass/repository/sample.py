@@ -286,3 +286,49 @@ async def delete_sample(db: AsyncSession, sample_id: str) -> SampleModelScheema 
         await db.commit()
         return {"message": f"Семпл с ID {sample_id} успешно удалён"}
     return None
+
+
+
+
+async def delete_samples(db: AsyncSession, samples_ids: List[str]) -> Dict[str, Any]:
+    """Асинхронно удаляет несколько семплов по их ID и корректно обновляет счетчики."""
+    deleted_count = 0
+    not_found_ids: List[str] = []
+
+    for sample_id in samples_ids:
+        result = await db.execute(
+            select(db_models.Sample)
+            .where(db_models.Sample.id == sample_id)
+            .options(selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass))
+        )
+        db_sample = result.scalar_one_or_none()
+        if db_sample:
+            db_case = await db.get(db_models.Case, db_sample.case_id)
+            if not db_case:
+                raise ValueError(f"Кейс с ID {db_sample.case_id} не найден")
+
+            num_cassettes_to_decrement = len(db_sample.cassette)
+            num_glasses_to_decrement = sum(len(cassette.glass) for cassette in db_sample.cassette)
+
+            await db.delete(db_sample)
+            deleted_count += 1
+
+            # Обновляем счётчики
+            db_case.bank_count -= 1
+            db_case.cassette_count -= num_cassettes_to_decrement
+            db_case.glass_count -= num_glasses_to_decrement
+
+            await db.commit()
+            await db.refresh(db_case)
+
+        else:
+            not_found_ids.append(sample_id)
+
+    response = {"deleted_count": deleted_count}
+    if not_found_ids:
+        response["not_found_ids"] = not_found_ids
+        response["message"] = f"Успешно удалено {deleted_count} семплов. Не найдены ID: {not_found_ids}"
+    else:
+        response["message"] = f"Успешно удалено {deleted_count} семплов."
+
+    return response

@@ -653,6 +653,13 @@ class Sample(SampleBase):
         from_attributes = True
 
 
+class DeleteSampleRequest(BaseModel):
+    sample_ids: List[str]
+
+class DeleteSampleResponse(BaseModel):
+    deleted_count: int
+    message: str
+
 
 class CaseBase(BaseModel):
     patient_cor_id: str
