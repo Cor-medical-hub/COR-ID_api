@@ -22,6 +22,7 @@ async def create_glass_for_cassette(
     body: GlassCreate,
     db: AsyncSession = Depends(get_db),
 ):
+    """Создаем указанное количество стёкол"""
     return await glass_service.create_glass(
         db=db,
         cassette_id=body.cassette_id,
@@ -32,6 +33,7 @@ async def create_glass_for_cassette(
 
 @router.get("/{glass_id}", response_model=GlassModelScheema, dependencies=[Depends(doctor_access)])
 async def read_glass_info(glass_id: str, db: AsyncSession = Depends(get_db)):
+    """Получаем информацию о стекле по его ID."""
     db_glass = await glass_service.get_glass(db=db, glass_id=glass_id)
     if db_glass is None:
         raise HTTPException(status_code=404, detail="Glass not found")
