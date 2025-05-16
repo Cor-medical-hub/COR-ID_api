@@ -789,3 +789,53 @@ class DeviceAccessResponse(BaseModel):
 
 class GenerateManufacturedDevices(BaseModel):
     count: PositiveInt
+
+
+# Модели для принтеров
+
+
+
+"""
+    device_class = Column(String, nullable=False)
+    device_identifier = Column(String, nullable=False, unique=True, index=True)
+    subnet_mask = Column(String, nullable=True)
+    gateway = Column(String, nullable=True)
+    ip_address = Column(String, nullable=False)
+    port = Column(Integer, nullable=True)
+    comment = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+"""
+
+
+class CreatePrintingDevice(BaseModel):
+    device_class: str = Field(None, description="Клас устройства")
+    device_identifier: str = Field(None, description="Идентификатор устройства")
+    subnet_mask: Optional[str] = Field(None, max_length=20, description="Маска подсети")
+    gateway: Optional[str] = Field(None, max_length=20, description="Шлюз")
+    ip_address: str = Field(max_length=20, description="IP-адрес")
+    port: Optional[int] = Field(None, le=65535, description="Порт")
+    comment: Optional[str] = Field(None, description="Комментарий")
+    location: Optional[str] = Field(None, description="Локация")
+
+
+class ResponcePrintingDevice(BaseModel):
+    id: str
+    device_class: str 
+    device_identifier: str 
+    subnet_mask: Optional[str] 
+    gateway: Optional[str] 
+    ip_address: str 
+    port: Optional[int] 
+    comment: Optional[str] 
+    location: Optional[str] 
+
+
+class UpdatePrintingDevice(BaseModel):
+    device_class: str = Field(None, description="Клас устройства")
+    device_identifier: str = Field(None, description="Идентификатор устройства")
+    subnet_mask: Optional[str] = Field(None, max_length=20, description="Маска подсети")
+    gateway: Optional[str] = Field(None, max_length=20, description="Шлюз")
+    ip_address: str = Field(max_length=20, description="IP-адрес")
+    port: Optional[int] = Field(None, le=65535, description="Порт")
+    comment: Optional[str] = Field(None, description="Комментарий")
+    location: Optional[str] = Field(None, description="Локация")

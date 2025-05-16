@@ -599,4 +599,18 @@ class DeviceAccess(Base):
     accessing_user = relationship("User", foreign_keys=[accessing_user_id], back_populates="access_to_devices")
 
 
+class PrintingDevice(Base):
+    __tablename__ = "printing_device"
+
+    id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    device_class = Column(String, nullable=False)
+    device_identifier = Column(String, nullable=False, unique=True)
+    subnet_mask = Column(String, nullable=True)
+    gateway = Column(String, nullable=True)
+    ip_address = Column(String, nullable=False)
+    port = Column(Integer, nullable=True)
+    comment = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+
+
 # Base.metadata.create_all(bind=engine)

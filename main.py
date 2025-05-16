@@ -41,7 +41,8 @@ from cor_pass.routes import (
     samples,
     cassettes,
     glasses,
-    dicom_router
+    dicom_router,
+    printing_device
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger
@@ -222,6 +223,7 @@ app.include_router(glasses.router, prefix="/api")
 app.include_router(websocket.router, prefix="/api")
 app.include_router(device_ws.router, prefix="/api")
 app.include_router(dicom_router.router)
+app.include_router(printing_device.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(
