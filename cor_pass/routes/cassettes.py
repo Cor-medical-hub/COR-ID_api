@@ -44,7 +44,7 @@ async def read_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
     return db_cassette
 
 
-@router.patch("/cassettes/{cassette_id}", response_model=CassetteModelScheema, dependencies=[Depends(doctor_access)])
+@router.patch("/{cassette_id}", response_model=CassetteModelScheema, dependencies=[Depends(doctor_access)])
 async def update_cassette_comment(
     cassette_id: str,
     comment_update: CassetteUpdateComment,
