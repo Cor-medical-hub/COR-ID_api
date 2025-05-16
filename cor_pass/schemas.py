@@ -595,6 +595,7 @@ class DeleteGlassesResponse(BaseModel):
     deleted_count: int
     message: str
     not_found_ids: List[str] | None = None
+
 class GetSample(BaseModel):
     sample_id: str
 
@@ -620,6 +621,9 @@ class CassetteCreate(BaseModel):
     num_cassettes: int = 1
 
 
+class CassetteUpdateComment(BaseModel):
+    comment: Optional[str] = None
+
 
 class Cassette(CassetteBase):
     id: str
@@ -637,6 +641,13 @@ class Cassette(CassetteBase):
     class Config:
         from_attributes = True
 
+class DeleteCassetteRequest(BaseModel):
+    cassette_ids: List[str]
+
+class DeleteCassetteResponse(BaseModel):
+    deleted_count: int
+    message: str
+
 class Sample(SampleBase):
     id: str
     case_id: str
@@ -644,6 +655,22 @@ class Sample(SampleBase):
     class Config:
         from_attributes = True
 
+
+class DeleteSampleRequest(BaseModel):
+    sample_ids: List[str]
+
+class DeleteSampleResponse(BaseModel):
+    deleted_count: int
+    message: str
+
+
+
+class DeleteCasesRequest(BaseModel):
+    case_ids: List[str]
+
+class DeleteCasesResponse(BaseModel):
+    deleted_count: int
+    message: str 
 
 
 class CaseBase(BaseModel):
@@ -726,9 +753,9 @@ class CaseParametersScheema(BaseModel):
     sample_type: SampleType
     material_type: MaterialType
     urgency: UrgencyType
-    container_count_actual: int
+    container_count_actual: Optional[int]
     fixation: FixationType
-    macro_description: str
+    macro_description: Optional[str]
 
 
 class SampleWithoutCassettesSchema(BaseModel):

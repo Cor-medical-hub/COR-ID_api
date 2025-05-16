@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
-from cor_pass.schemas import Cassette as CassetteModelScheema, CassetteCreate, Sample, SampleCreate
+from cor_pass.schemas import Cassette as CassetteModelScheema, CassetteCreate, CassetteUpdateComment, DeleteCassetteRequest, DeleteCassetteResponse, Sample, SampleCreate
 from cor_pass.repository import sample as sample_service
 from cor_pass.repository import cassette as cassette_service
 from typing import List
@@ -44,16 +44,44 @@ async def read_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
     return db_cassette
 
 
+@router.patch("/cassettes/{cassette_id}", response_model=CassetteModelScheema, dependencies=[Depends(doctor_access)])
+async def update_cassette_comment(
+    cassette_id: str,
+    comment_update: CassetteUpdateComment,
+    db: AsyncSession = Depends(get_db),
+):
+    """Обновляет комментарий кассеты по её ID."""
+    updated_cassette = await cassette_service.update_cassette_comment(
+        db, cassette_id, comment_update
+    )
+    if not updated_cassette:
+        raise HTTPException(status_code=404, detail="Cassette not found")
+    return updated_cassette
+
+
 @router.delete(
-    "/{cassette_id}",
+    "/",
+    response_model=DeleteCassetteResponse,
     dependencies=[Depends(doctor_access)],
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
 )
-async def delete_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_cassettes(request_body: DeleteCassetteRequest, db: AsyncSession = Depends(get_db)):
     """
     Удаляет кассету
     """
-    db_cassette = await cassette_service.delete_cassette(db, cassette_id)
-    if db_cassette is None:
-        raise HTTPException(status_code=404, detail="Cassette not found")
-    return 
+    result = await cassette_service.delete_cassettes(db=db, cassettes_ids=request_body.cassette_ids)
+    return result
+
+
+# @router.delete(
+#     "/",
+#     response_model=DeleteGlassesResponse,
+#     dependencies=[Depends(doctor_access)],
+#     status_code=status.HTTP_200_OK,
+# )
+# async def delete_glasses_endpoint(
+#     request_body: DeleteGlassesRequest, db: AsyncSession = Depends(get_db)
+# ):
+#     """Удаляет несколько стекол по их ID."""
+#     result = await glass_service.delete_glasses(db=db, glass_ids=request_body.glass_ids)
+#     return result
