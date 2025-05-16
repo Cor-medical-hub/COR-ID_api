@@ -1,4 +1,5 @@
-from typing import Any, Dict, List
+import re
+from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -161,35 +162,50 @@ async def create_cases_with_initial_data(
 
 
 
-async def get_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
-    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+async def get_case(db: AsyncSession, case_id: str) -> Optional[Dict[str, Any]]:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки и отсортированные кассеты первого семпла."""
     result = await db.execute(
         select(db_models.Case).where(db_models.Case.id == case_id)
     )
     case_db = result.scalar_one_or_none()
-    # 2. Получаем семплы первого кейса и связанные с ними кассеты и стекла
+    if not case_db:
+        return None
+
+    # 2. Получаем семплы первого кейса и связанные с ними кассеты и стекла с сортировкой
     samples_result = await db.execute(
-            select(db_models.Sample)
-            .where(db_models.Sample.case_id == case_db.id)
-            .order_by(db_models.Sample.sample_number)
-        )
+        select(db_models.Sample)
+        .where(db_models.Sample.case_id == case_db.id)
+        .options(selectinload(db_models.Sample.cassette))  # Предварительно загружаем кассеты
+        .order_by(db_models.Sample.sample_number)
+    )
     first_case_samples_db = samples_result.scalars().all()
-    first_case_samples = []
+    first_case_samples: List[Dict[str, Any]] = []
 
     for i, sample_db in enumerate(first_case_samples_db):
         sample = SampleModelScheema.model_validate(sample_db).model_dump()
         sample["cassettes"] = []
 
-        # Если это первый семпл, загружаем связанные кассеты и стекла
+        # Если это первый семпл, загружаем связанные кассеты и стекла с сортировкой
         if i == 0 and sample_db:
             await db.refresh(sample_db, attribute_names=["cassette"])
-            for cassette_db in sample_db.cassette:
+
+            def sort_cassettes(cassette: db_models.Cassette):
+                match = re.match(r'([A-Z]+)(\d+)', cassette.cassette_number)
+                if match:
+                    letter_part = match.group(1)
+                    number_part = int(match.group(2))
+                    return (letter_part, number_part)
+                return (cassette.cassette_number, 0)  # Для случаев, если формат не совпадает
+
+            sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+
+            for cassette_db in sorted_cassettes_db:
                 await db.refresh(cassette_db, attribute_names=["glass"])
                 cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
-                cassette["glasses"] = [
-                    GlassModelScheema.model_validate(glass).model_dump()
-                    for glass in cassette_db.glass
-                ]
+                cassette["glasses"] = sorted(
+                    [GlassModelScheema.model_validate(glass).model_dump() for glass in cassette_db.glass],
+                    key=lambda glass: glass["glass_number"]
+                )
                 sample["cassettes"].append(cassette)
         first_case_samples.append(sample)
 
@@ -301,15 +317,15 @@ async def delete_cases(db: AsyncSession, case_ids: List[str]) -> Dict[str, Any]:
             not_found_ids.append(case_id)
 
     response = {"deleted_count": deleted_count,
-                "message": f"Успешно удалено {deleted_count} стекол."}
+                "message": f"Успешно удалено {deleted_count} кейсов."}
     if not_found_ids:
-        response["message"] += f" Стекла с ID {', '.join(not_found_ids)} не найдены."
+        response["message"] += f" Кейсы с ID {', '.join(not_found_ids)} не найдены."
     return response
 
 
 async def get_patient_first_case_details(
     db: AsyncSession, patient_id: str
-) -> Dict[str, Any] | None:
+) -> Optional[Dict[str, Any]]:
     """
     Асинхронно получает список всех кейсов пациента и детализацию первого из них:
     все семплы первого кейса, но кассеты и стекла загружаются только для первого семпла.
@@ -332,25 +348,37 @@ async def get_patient_first_case_details(
         samples_result = await db.execute(
             select(db_models.Sample)
             .where(db_models.Sample.case_id == first_case_db.id)
+            .options(selectinload(db_models.Sample.cassette))  # Предварительно загружаем кассеты
             .order_by(db_models.Sample.sample_number)
         )
         first_case_samples_db = samples_result.scalars().all()
-        first_case_samples = []
+        first_case_samples: List[Dict[str, Any]] = []
 
         for i, sample_db in enumerate(first_case_samples_db):
             sample = SampleModelScheema.model_validate(sample_db).model_dump()
             sample["cassettes"] = []
 
-            # Если это первый семпл, загружаем связанные кассеты и стекла
+            # Если это первый семпл, загружаем связанные кассеты и стекла с сортировкой
             if i == 0 and sample_db:
                 await db.refresh(sample_db, attribute_names=["cassette"])
-                for cassette_db in sample_db.cassette:
+
+                def sort_cassettes(cassette: db_models.Cassette):
+                    match = re.match(r'([A-Z]+)(\d+)', cassette.cassette_number)
+                    if match:
+                        letter_part = match.group(1)
+                        number_part = int(match.group(2))
+                        return (letter_part, number_part)
+                    return (cassette.cassette_number, 0)  # Для случаев, если формат не совпадает
+
+                sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+
+                for cassette_db in sorted_cassettes_db:
                     await db.refresh(cassette_db, attribute_names=["glass"])
                     cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
-                    cassette["glasses"] = [
-                        GlassModelScheema.model_validate(glass).model_dump()
-                        for glass in cassette_db.glass
-                    ]
+                    cassette["glasses"] = sorted(
+                        [GlassModelScheema.model_validate(glass).model_dump() for glass in cassette_db.glass],
+                        key=lambda glass: glass["glass_number"]
+                    )
                     sample["cassettes"].append(cassette)
             first_case_samples.append(sample)
 

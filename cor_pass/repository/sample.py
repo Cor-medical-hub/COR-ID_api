@@ -65,92 +65,6 @@ async def get_single_sample(db: AsyncSession, sample_id: str) -> db_models.Case 
     return sample_result.scalar_one_or_none()
 
 
-# async def create_sample(
-#     db: AsyncSession, case_id: str, num_samples: int = 1
-# ) -> List[SampleModelScheema]:
-#     """
-#     Асинхронно создает указанное количество новых банок для указанного кейса,
-#     нумеруя их последовательными буквами, и автоматически создает первую кассету и стекло.
-#     """
-#     db_case = await repository_cases.get_single_case(db=db, case_id=case_id)
-#     if not db_case:
-#         raise ValueError(f"Кейс с ID {case_id} не найден")
-
-#     created_samples: List[db_models.Sample] = []
-
-#     # 1. Получаем все семплы текущего кейса для определения начального номера
-#     samples_result = await db.execute(
-#         select(db_models.Sample.sample_number)
-#         .where(db_models.Sample.case_id == db_case.id)
-#         .order_by(db_models.Sample.sample_number)
-#     )
-#     existing_sample_numbers = samples_result.scalars().all()
-
-#     next_sample_char = "A"
-#     if existing_sample_numbers:
-#         last_sample_number = existing_sample_numbers[-1]
-#         try:
-#             last_index = ascii_uppercase.index(last_sample_number)
-#             if last_index < len(ascii_uppercase) - 1:
-#                 next_sample_char = ascii_uppercase[last_index + 1]
-#             else:
-#                 # Обработка ситуации, когда закончились буквы
-#                 next_sample_char = f"Z{len(existing_sample_numbers) + 1 - len(ascii_uppercase)}"
-#         except ValueError:
-#             # Обработка некорректного формата номера семпла
-#             next_sample_char = "A"  # Начинаем с начала
-
-#     # 2. Создаем указанное количество семплов
-#     for i in range(num_samples):
-#         sample_number = next_sample_char
-#         db_sample = db_models.Sample(case_id=db_case.id, sample_number=sample_number)
-#         db.add(db_sample)
-#         created_samples.append(db_sample)
-#         db_case.bank_count += 1
-#         # db_case.sample_count += 1  # Обновляем счетчик семплов в кейсе
-#         await db.commit()
-#         await db.refresh(db_sample)
-#         await db.refresh(db_case)
-
-#         # 3. Автоматически создаем одну кассету для каждого семпла
-#         db_cassette = db_models.Cassette(
-#             sample_id=db_sample.id, cassette_number=f"{sample_number}1"
-#         )
-#         db.add(db_cassette)
-#         db_case.cassette_count += 1
-#         db_sample.cassette_count += 1
-#         await db.commit()
-#         await db.refresh(db_sample)
-#         await db.refresh(db_case)
-#         await db.refresh(db_cassette)
-
-#         # 4. Автоматически создаем одно стекло для каждой кассеты
-#         db_glass = db_models.Glass(
-#             cassette_id=db_cassette.id, glass_number=0, staining=db_models.StainingType.HE
-#         )
-#         db.add(db_glass)
-#         db_case.glass_count += 1
-#         db_sample.glass_count += 1
-
-#         await db.commit()
-#         await db.refresh(db_sample)
-#         await db.refresh(db_cassette)
-#         await db.refresh(db_glass)
-#         await db.refresh(db_case)
-
-#         # Определяем номер следующего семпла
-#         try:
-#             last_index = ascii_uppercase.index(next_sample_char)
-#             if last_index < len(ascii_uppercase) - 1:
-#                 next_sample_char = ascii_uppercase[last_index + 1]
-#             else:
-#                 next_sample_char = f"Z{len(existing_sample_numbers) + 1 + i + 1 - len(ascii_uppercase)}"
-#         except ValueError:
-#             next_sample_char = f"A{i + 2}" # Если формат не буква, продолжаем нумерацию
-
-#     return [SampleModelScheema.model_validate(sample) for sample in created_samples]
-
-
 
 async def create_sample(
     db: AsyncSession, case_id: str, num_samples: int = 1
@@ -273,19 +187,6 @@ async def create_sample(
             first_sample_details = first_sample_details_schema.model_dump()
 
     return {"created_samples": created_samples, "first_sample_details": first_sample_details}
-
-
-async def delete_sample(db: AsyncSession, sample_id: str) -> SampleModelScheema | None:
-    """Асинхронно удаляет банку."""
-    result = await db.execute(
-        select(db_models.Sample).where(db_models.Sample.id == sample_id)
-    )
-    db_sample = result.scalar_one_or_none()
-    if db_sample:
-        await db.delete(db_sample)
-        await db.commit()
-        return {"message": f"Семпл с ID {sample_id} успешно удалён"}
-    return None
 
 
 
