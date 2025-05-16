@@ -661,6 +661,15 @@ class DeleteSampleResponse(BaseModel):
     message: str
 
 
+
+class DeleteCasesRequest(BaseModel):
+    case_ids: List[str]
+
+class DeleteCasesResponse(BaseModel):
+    deleted_count: int
+    message: str 
+
+
 class CaseBase(BaseModel):
     patient_cor_id: str
     # case_code: Optional[str] = None

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from cor_pass.repository.patient import get_patient_by_corid
-from cor_pass.schemas import Case as CaseModelScheema, CaseCreate, CaseCreateResponse, CaseDetailsResponse, CaseListResponse, CaseParametersScheema, PatientFirstCaseDetailsResponse, UpdateCaseCode, UpdateCaseCodeResponce
+from cor_pass.schemas import Case as CaseModelScheema, CaseCreate, CaseCreateResponse, CaseDetailsResponse, CaseListResponse, CaseParametersScheema, DeleteCasesRequest, DeleteCasesResponse, PatientFirstCaseDetailsResponse, UpdateCaseCode, UpdateCaseCodeResponce
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as case_service
 
@@ -69,6 +69,8 @@ async def read_case_parameters(case_id: str, db: AsyncSession = Depends(get_db))
     return db_case_parameters
 
 
+
+
 @router.patch(
     "/case_parameters",
     dependencies=[Depends(doctor_access)],
@@ -100,17 +102,22 @@ async def update_case_parameters(
 
 @router.delete(
     "/{case_id}",
+    response_model=DeleteCasesResponse,
     dependencies=[Depends(doctor_access)],
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=status.HTTP_200_OK,
 )
-async def delete_case(case_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_cases(request_body: DeleteCasesRequest, db: AsyncSession = Depends(get_db)):
     """
     Удаляет кейс и все вложенные в него сущности
     """
-    db_case = await case_service.delete_case(db, case_id)
-    if db_case is None:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return
+    result = await case_service.delete_cases(db=db, case_ids=request_body.case_ids)
+    return result
+
+
+
+
+
+
 
 
 @router.get("/patients/{patient_cor_id}/overview", dependencies=[Depends(doctor_access)], response_model=PatientFirstCaseDetailsResponse,)

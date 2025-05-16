@@ -283,19 +283,28 @@ async def get_single_case(db: AsyncSession, case_id: str) -> db_models.Case | No
     return result.scalar_one_or_none()
 
 
-async def delete_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
+async def delete_cases(db: AsyncSession, case_ids: List[str]) -> Dict[str, Any]:
     """Асинхронно удаляет кейс."""
-    result = await db.execute(
-        select(db_models.Case).where(db_models.Case.id == case_id)
-    )
-    db_case = result.scalar_one_or_none()
-    if db_case:
-        await db.delete(db_case)
-        await db.commit()
-        return {"message": f"Кейс с ID {case_id} успешно удалён"}
-    return None
+    deleted_count = 0
+    not_found_ids: List[str] = []
+    for case_id in case_ids:
+        result = await db.execute(
+            select(db_models.Case).where(db_models.Case.id == case_id)
+        )
+        db_case = result.scalar_one_or_none()
 
+        if db_case:
+            await db.delete(db_case)
+            deleted_count += 1
+            await db.commit()
+        else:
+            not_found_ids.append(case_id)
 
+    response = {"deleted_count": deleted_count,
+                "message": f"Успешно удалено {deleted_count} стекол."}
+    if not_found_ids:
+        response["message"] += f" Стекла с ID {', '.join(not_found_ids)} не найдены."
+    return response
 
 
 async def get_patient_first_case_details(
