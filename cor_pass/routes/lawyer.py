@@ -77,6 +77,9 @@ async def get_all_doctors(
             scientific_degree=doctor.scientific_degree,
             date_of_last_attestation=doctor.date_of_last_attestation,
             status=doctor.status,
+            place_of_registration=doctor.place_of_registration,
+            passport_code=doctor.passport_code,
+            taxpayer_identification_number=doctor.taxpayer_identification_number,
         )
         for doctor in list_doctors
     ]
@@ -218,6 +221,9 @@ async def get_doctor_with_relations(
         surname=doctor.surname,
         doctors_photo=f"/doctors/{doctor_id}/photo" if doctor.doctors_photo else None,
         last_name=doctor.last_name,
+        place_of_registration=doctor.place_of_registration,
+        passport_code=doctor.passport_code,
+        taxpayer_identification_number=doctor.taxpayer_identification_number,
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,
         status=doctor.status,

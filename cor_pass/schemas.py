@@ -362,6 +362,9 @@ class DoctorWithRelationsResponse(BaseModel):
     )
     scientific_degree: Optional[str]
     date_of_last_attestation: Optional[date]
+    passport_code: Optional[str] = Field(None, description="Номер паспорта")
+    taxpayer_identification_number: Optional[str] = Field(None, description="ИНН")
+    place_of_registration: Optional[str] = Field(None, description="Место прописки")
     status: str
     diplomas: List[DiplomaResponse] = []
     certificates: List[CertificateResponse] = []
@@ -373,15 +376,16 @@ class DoctorWithRelationsResponse(BaseModel):
 
 
 class DoctorCreate(BaseModel):
-    work_email: str
-    phone_number: Optional[str] = None
-    first_name: str
-    surname: str
-    last_name: str
-    passport_code: str
-    taxpayer_identification_number: str
-    scientific_degree: Optional[str] = None
-    date_of_last_attestation: Optional[date] = None
+    work_email: EmailStr = Field(..., description="Рабочий имейл, должен быть уникальным")
+    phone_number: Optional[str] = Field(None, description="Номер телефона")
+    first_name: str = Field(..., description="Имя врача")
+    surname: str = Field(..., description="Отчество врача")
+    last_name: str = Field(..., description="Фамилия врача")
+    passport_code: str = Field(..., description="Номер паспорта")
+    taxpayer_identification_number: str = Field(..., description="ИНН")
+    place_of_registration: str = Field(..., description="Место прописки")
+    scientific_degree: Optional[str] = Field(None, description="Научная степень")
+    date_of_last_attestation: Optional[date] = Field(None, description="Дата последней атестации")
     diplomas: List[DiplomaCreate] = []
     certificates: List[CertificateCreate] = []
     clinic_affiliations: List[ClinicAffiliationCreate] = []
@@ -396,6 +400,7 @@ class DoctorCreate(BaseModel):
                 "last_name": "Smith",
                 "passport_code": "CN123456",
                 "taxpayer_identification_number": "1234567890",
+                "place_of_registration": "Kyiv, Antona Tsedica 12",
                 "scientific_degree": "PhD",
                 "date_of_last_attestation": "2022-12-31",
                 "diplomas": [
@@ -432,8 +437,8 @@ class DoctorResponse(BaseModel):
     work_email: EmailStr = Field(..., description="Рабочий имейл")
     phone_number: Optional[str] = Field(None, description="Номер телефона")
     first_name: Optional[str] = Field(None, description="Имя врача")
-    surname: Optional[str] = Field(None, description="Фамилия врача")
-    last_name: Optional[str] = Field(None, description="Отчество врача")
+    surname: Optional[str] = Field(None, description="Отчество врача")
+    last_name: Optional[str] = Field(None, description="Фамилия врача")
     doctors_photo: Optional[str] = Field(
         None, description="Ссылка на фото врача"
     )
@@ -442,6 +447,9 @@ class DoctorResponse(BaseModel):
         None, description="Дата последней атестации"
     )
     status: Doctor_Status
+    place_of_registration: Optional[str] = Field(None, description="Место прописки")
+    passport_code: Optional[str] = Field(None, description="Номер паспорта")
+    taxpayer_identification_number: Optional[str] = Field(None, description="ИНН")
 
     class Config:
         from_attributes = True
@@ -453,14 +461,17 @@ class DoctorCreateResponse(BaseModel):
     doctor_cor_id: str = Field(..., description="COR-ID врача")
     work_email: EmailStr = Field(..., description="Рабочий имейл")
     phone_number: Optional[str] = Field(None, description="Номер телефона")
-    first_name: Optional[str] = Field(None, description="Имя врача")
-    surname: Optional[str] = Field(None, description="Фамилия врача")
-    last_name: Optional[str] = Field(None, description="Отчество врача")
+    first_name: str = Field(..., description="Имя врача")
+    surname: str = Field(..., description="Отчество врача")
+    last_name: str = Field(..., description="Фамилия врача")
     scientific_degree: Optional[str] = Field(None, description="Научная степень")
     date_of_last_attestation: Optional[date] = Field(
         None, description="Дата последней атестации"
     )
     status: Doctor_Status
+    place_of_registration: Optional[str] = Field(None, description="Место прописки")
+    passport_code: Optional[str] = Field(None, description="Номер паспорта")
+    taxpayer_identification_number: Optional[str] = Field(None, description="ИНН")
     diploma_id: List = Field(..., description="ID дипломов")
     certificates_id: List = Field(..., description="ID сертификатов")
     clinic_affiliations_id: List = Field(..., description="ID записей о клиниках")
