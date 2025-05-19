@@ -111,7 +111,10 @@ async def signup_doctor(
         status=doctor.status,
         diploma_id=dip,
         certificates_id=cer,
-        clinic_affiliations_id=clin
+        clinic_affiliations_id=clin,
+        place_of_registration=doctor.place_of_registration,
+        passport_code=doctor.passport_code,
+        taxpayer_identification_number=doctor.taxpayer_identification_number
     )
 
     return doctor_response

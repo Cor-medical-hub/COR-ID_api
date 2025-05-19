@@ -211,6 +211,7 @@ class Doctor(Base):
     reserv_scan_data = Column(LargeBinary, nullable=True)
     reserv_scan_file_type = Column(String, nullable=True)
     date_of_next_review = Column(Date, nullable=True)
+    place_of_registration = Column(String, nullable=True)
 
     user = relationship("User", back_populates="user_doctors")
     diplomas = relationship(

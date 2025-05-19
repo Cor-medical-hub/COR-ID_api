@@ -43,8 +43,9 @@ async def create_doctor(
         date_of_last_attestation=doctor_data.date_of_last_attestation,
         passport_code=doctor_data.passport_code,
         taxpayer_identification_number=doctor_data.taxpayer_identification_number,
+        place_of_registration=doctor_data.place_of_registration,
         date_of_next_review=datetime.now() + timedelta(days=180),
-        status=Doctor_Status.pending,
+        status=Doctor_Status.pending
     )
 
     db.add(doctor)
