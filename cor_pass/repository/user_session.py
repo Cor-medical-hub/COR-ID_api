@@ -213,6 +213,20 @@ async def get_auth_session(
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
+async def get_auth_approved_session(
+    session_token: str, db: AsyncSession
+) -> CorIdAuthSession | None:
+    """
+    Асинхронно получает активную сессию авторизации по ее токену.
+    """
+    stmt = select(CorIdAuthSession).where(
+        CorIdAuthSession.session_token == session_token,
+        CorIdAuthSession.status == AuthSessionStatus.APPROVED,
+        CorIdAuthSession.expires_at > datetime.utcnow(),
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
 
 async def get_auth_session_by_token(
     session_token: str, db: AsyncSession
