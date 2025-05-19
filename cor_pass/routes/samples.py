@@ -34,6 +34,29 @@ async def read_sample(sample_id: str, db: AsyncSession = Depends(get_db)):
     return db_sample
 
 
+
+@router.put(
+    "/archive/{sample_id}",
+    response_model=Sample,
+    dependencies=[Depends(doctor_access)],
+)
+async def archive(
+    sample_id: str,
+    archive: bool,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Помечает образец как тот, что находится в архиве лаборатории
+
+    """
+    db_sample = await sample_service.archive_sample(db=db, sample_id=sample_id, archive=archive)
+    if db_sample is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Sample not found"
+        )
+    return db_sample
+
+
 @router.delete(
     "/",
     response_model=DeleteSampleResponse,

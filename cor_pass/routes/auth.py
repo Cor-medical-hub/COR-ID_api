@@ -18,6 +18,8 @@ from random import randint
 from fastapi_limiter.depends import RateLimiter
 from cor_pass.database.db import get_db
 from cor_pass.schemas import (
+    CheckSessionRequest,
+    ConfirmCheckSessionResponse,
     ConfirmLoginRequest,
     ConfirmLoginResponse,
     InitiateLoginRequest,
@@ -281,6 +283,72 @@ async def initiate_login(
     session_token = await repository_session.create_auth_session(request, db)
 
     return {"session_token": session_token}
+
+
+@router.post(
+    "/v1/check_session_status",
+    response_model=ConfirmCheckSessionResponse,
+    dependencies=[Depends(RateLimiter(times=60, seconds=60))],
+)
+async def check_session_status(
+    request: CheckSessionRequest, db: AsyncSession = Depends(get_db)
+):
+    """
+    Проверка стутуса заявки на вход и возврат токенов в случае её подтверждения
+    """
+    email = request.email
+    cor_id = request.cor_id
+    session_token = request.session_token
+    db_session = await repository_session.get_auth_approved_session(session_token, db)
+    if not db_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сессия не найдена или отменена пользователем",
+        )
+
+    if email and db_session.email != email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Неверный email для данной сессии",
+        )
+
+    elif cor_id and db_session.cor_id != cor_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Неверный cor_id для данной сессии",
+        )
+
+    user = await repository_person.get_user_by_email(db_session.email, db)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found / invalid email",
+        )
+    # Проверка ролей
+    user_roles = await repository_person.get_user_roles(email=user.email, db=db)
+
+    # Получаем токены
+    token_data = {"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
+    expires_delta = (
+        settings.eternal_token_expiration
+        if user.email in settings.eternal_accounts
+        else None
+    )
+
+    access_token = await auth_service.create_access_token(
+        data=token_data, expires_delta=expires_delta
+    )
+    refresh_token = await auth_service.create_refresh_token(
+        data=token_data, expires_delta=expires_delta
+    )
+    response = ConfirmCheckSessionResponse(
+        status= "approved",
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type= "bearer"
+    )
+    return response
+
 
 
 @router.post(
