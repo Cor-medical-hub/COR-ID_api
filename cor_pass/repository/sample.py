@@ -55,6 +55,44 @@ async def get_sample(db: AsyncSession, sample_id: str) -> SampleModelScheema | N
     return None
 
 
+async def archive_sample(db: AsyncSession, sample_id: str, archive: bool):
+
+    sample_result = await db.execute(
+    select(db_models.Sample)
+    .where(db_models.Sample.id == sample_id)
+    .options(
+        selectinload(db_models.Sample.cassette).selectinload(
+            db_models.Cassette.glass
+        )
+    )
+)
+    sample_db = sample_result.scalar_one_or_none()
+    if sample_db:
+        sample_db.archive = archive
+        sample_schema = SampleModelScheema.model_validate(sample_db)
+        sample_schema.cassettes = []
+
+        def sort_cassettes(cassette):
+            match = re.match(r'([A-Z]+)(\d+)', cassette.cassette_number)
+            if match:
+                letter_part = match.group(1)
+                number_part = int(match.group(2))
+                return (letter_part, number_part)
+            return (cassette.cassette_number, 0)  # Для случаев, если формат не совпадает
+
+        sorted_cassettes = sorted(sample_db.cassette, key=sort_cassettes)
+
+        for cassette_db in sorted_cassettes:
+            cassette_schema = CassetteModelScheema.model_validate(cassette_db)
+            cassette_schema.glasses = sorted(
+                [GlassModelScheema.model_validate(glass) for glass in cassette_db.glass],
+                key=lambda glass_schema: glass_schema.glass_number
+            )
+            sample_schema.cassettes.append(cassette_schema)
+        return sample_schema
+    return None
+
+
 async def get_single_sample(db: AsyncSession, sample_id: str) -> db_models.Case | None:
     """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
     sample_result = await db.execute(
