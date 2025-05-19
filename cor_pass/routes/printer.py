@@ -8,18 +8,14 @@ from typing import List, Optional
 
 import logging
 
+from cor_pass.schemas import PrintRequest
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Printer"])  
 
-class Label(BaseModel):
-    model_id: int
-    content: str
-    uuid: Optional[str] = None
 
-class PrintRequest(BaseModel):
-    labels: List[Label]
 
 PRINTER_IP = "192.168.154.209"
 
@@ -44,7 +40,7 @@ async def print_labels(data: PrintRequest):
 @router.get("/check_printer")
 async def check_printer(ip: str = Query(..., description="IP-адрес принтера")):
     url = f"http://{ip}:8080/task"
-    logger.info(f"[check_printer] Проверка доступности по URL: {url}")
+    # logger.info(f"[check_printer] Проверка доступности по URL: {url}")
 
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
@@ -52,7 +48,7 @@ async def check_printer(ip: str = Query(..., description="IP-адрес прин
             logger.info(f"[check_printer] Код ответа от принтера: {response.status_code}")
             return {"available": response.status_code == 200}
     except Exception as e:
-        logger.error(f"[check_printer] Ошибка запроса к принтеру: {e}")
+        # logger.error(f"[check_printer] Ошибка запроса к принтеру: {e}")
         return {"available": False}
 
 async def ping_printer(printer_ip: str):

@@ -896,3 +896,14 @@ class UpdatePrintingDevice(BaseModel):
     port: Optional[int] = Field(None, le=65535, description="Порт")
     comment: Optional[str] = Field(None, description="Комментарий")
     location: Optional[str] = Field(None, description="Локация")
+
+
+
+
+class Label(BaseModel):
+    models_id: int
+    content: str
+    uuid: Optional[str] = None
+
+class PrintRequest(BaseModel):
+    labels: List[Label]
