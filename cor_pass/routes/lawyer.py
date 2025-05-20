@@ -7,7 +7,7 @@ from cor_pass.database.db import get_db
 from cor_pass.database.models import (
     Doctor_Status,
 )
-from cor_pass.services.access import lawyer_access
+from cor_pass.services.access import lawyer_access, admin_access
 from cor_pass.schemas import (
     CertificateResponse,
     ClinicAffiliationResponse,

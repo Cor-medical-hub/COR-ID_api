@@ -45,7 +45,7 @@ async def check_printer(ip: str = Query(..., description="IP-адрес прин
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
             response = await client.get(url)
-            logger.info(f"[check_printer] Код ответа от принтера: {response.status_code}")
+            # logger.info(f"[check_printer] Код ответа от принтера: {response.status_code}")
             return {"available": response.status_code == 200}
     except Exception as e:
         # logger.error(f"[check_printer] Ошибка запроса к принтеру: {e}")
@@ -56,7 +56,7 @@ async def ping_printer(printer_ip: str):
         param = '-n' if platform.system().lower() == 'windows' else '-c'
         command = ['ping', param, '1', '-w', '1000', printer_ip]
 
-        logger.info(f"[ping_printer] Выполняется команда: {' '.join(command)}")
+        # logger.info(f"[ping_printer] Выполняется команда: {' '.join(command)}")
 
         process = await asyncio.create_subprocess_exec(
             *command,
@@ -65,9 +65,9 @@ async def ping_printer(printer_ip: str):
         )
         stdout, stderr = await process.communicate()
 
-        logger.info(f"[ping_printer] STDOUT: {stdout.decode()}")
-        logger.info(f"[ping_printer] STDERR: {stderr.decode()}")
-        logger.info(f"[ping_printer] Код возврата: {process.returncode}")
+        # logger.info(f"[ping_printer] STDOUT: {stdout.decode()}")
+        # logger.info(f"[ping_printer] STDERR: {stderr.decode()}")
+        # logger.info(f"[ping_printer] Код возврата: {process.returncode}")
 
         return process.returncode == 0
     except Exception as e:
