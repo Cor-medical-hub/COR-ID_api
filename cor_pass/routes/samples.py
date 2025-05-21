@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
-from cor_pass.schemas import CreateSampleWithDetails, DeleteCassetteRequest, DeleteCassetteResponse, DeleteSampleRequest, DeleteSampleResponse, GetSample, Sample, SampleCreate, Sample as SampleModelScheema
+from cor_pass.schemas import CreateSampleWithDetails, DeleteCassetteRequest, DeleteCassetteResponse, DeleteSampleRequest, DeleteSampleResponse, GetSample, Sample, SampleCreate, Sample as SampleModelScheema, UpdateSampleMacrodescription
 from cor_pass.repository import sample as sample_service
 from typing import List
 
@@ -50,6 +50,28 @@ async def archive(
 
     """
     db_sample = await sample_service.archive_sample(db=db, sample_id=sample_id, archive=archive)
+    if db_sample is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Sample not found"
+        )
+    return db_sample
+
+
+@router.put(
+    "/macrodescription/{sample_id}",
+    response_model=Sample,
+    dependencies=[Depends(doctor_access)],
+)
+async def update_sample_macrodescription(
+    sample_id: str,
+    body: UpdateSampleMacrodescription,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Обновляет макроописание образца
+
+    """
+    db_sample = await sample_service.update_sample_macrodescription(db=db, sample_id=sample_id, body=body)
     if db_sample is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Sample not found"
