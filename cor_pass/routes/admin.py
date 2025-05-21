@@ -1,12 +1,13 @@
 from typing import List
 from fastapi import APIRouter, Body, HTTPException, Depends, status
 from cor_pass.database.db import get_db
+from cor_pass.repository import lawyer
 from cor_pass.repository.doctor import create_doctor, create_doctor_service
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.services.auth import auth_service
-from cor_pass.database.models import User, Status
+from cor_pass.database.models import Doctor_Status, User, Status
 from cor_pass.services.access import admin_access
-from cor_pass.schemas import DoctorCreate, DoctorCreateResponse, UserDb
+from cor_pass.schemas import DoctorCreate, DoctorCreateResponse, NewUserRegistration, UserDb
 from cor_pass.repository import person
 from pydantic import EmailStr
 from cor_pass.database.redis_db import redis_client
@@ -282,3 +283,72 @@ async def signup_user_as_doctor(
     )
 
     return doctor_response
+
+
+@router.patch("/asign_doctor_status/{doctor_id}", dependencies=[Depends(admin_access)])
+async def assign_status(
+    doctor_id: str,
+    doctor_status: Doctor_Status,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **Assign a doctor_status to a doctor by doctor_id. / Применение нового статуса доктора (подтвержден / на рассмотрении)**\n
+
+    :param doctor_id: str: doctor_id of the user to whom you want to assign the status.
+
+    :param doctor_status: DoctorStatus: The selected doctor_status for the assignment.
+
+    :param db: AsyncSession: Database Session.
+
+    :return: Message about successful status change.
+
+    :rtype: dict
+    """
+    doctor = await lawyer.get_doctor(doctor_id=doctor_id, db=db)
+
+    if not doctor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+        )
+
+    if doctor_status == doctor.status:
+        return {"message": "The account status has already been assigned"}
+    else:
+        await lawyer.approve_doctor(doctor=doctor, db=db, status=doctor_status)
+        return {
+            "message": f"{doctor.first_name} {doctor.last_name}'s status - {doctor_status.value}"
+        }
+    
+
+@router.post(
+    "/register_new_user",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(admin_access)],
+)
+async def register_new_user(
+    body: NewUserRegistration,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Создает нового пользователя с временным паролем
+    """
+
+    if body:
+        new_user_info = body
+        exist_user = await person.get_user_by_email(
+            new_user_info.email, db
+        )
+        if exist_user:
+            logger.debug(f"{new_user_info.email} user already exists")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="Account already exists"
+            )
+        new_user = await person.register_new_user(db=db, body=new_user_info)
+        return {
+            "message": f"Новый пользователь {body.email} успешно зарегистрирован."
+        }
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Некорректные данные регистрации пользователя.",
+        )

@@ -58,6 +58,19 @@ class ResponseUser(BaseModel):
     token_type: str = "bearer"
 
 
+class NewUserRegistration(BaseModel):
+    email: EmailStr = Field(
+        ..., description="Email пользователя"
+    )
+    birth_date: Optional[date] = Field(None, description="Дата рождения пациента")
+    sex: Optional[str] = Field(None, max_length=1, description="Пол пациента, может быть 'M'(мужской) или 'F'(женский)")
+
+    @field_validator("sex")
+    def user_sex_must_be_m_or_f(cls, v):
+        if v not in ["M", "F"]:
+            raise ValueError('user_sex must be "M" or "F"')
+        return v
+
 class TokenModel(BaseModel):
     access_token: str
     refresh_token: str
