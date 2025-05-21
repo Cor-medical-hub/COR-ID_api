@@ -475,6 +475,7 @@ class Sample(Base):
     cassette_count = Column(Integer, default=0)
     glass_count = Column(Integer, default=0)
     archive = Column(Boolean, default=False)
+    macro_description = Column(Text, nullable=True)
 
     case = relationship("Case", back_populates="samples")
     cassette = relationship(

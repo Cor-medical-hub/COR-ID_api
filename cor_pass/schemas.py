@@ -694,9 +694,13 @@ class DeleteCassetteResponse(BaseModel):
 class Sample(SampleBase):
     id: str
     case_id: str
+    macro_description: Optional[str] = None
     cassettes: List[Cassette] = []
     class Config:
         from_attributes = True
+
+class UpdateSampleMacrodescription(BaseModel):
+    macro_description: str
 
 
 class DeleteSampleRequest(BaseModel):
