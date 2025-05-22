@@ -585,8 +585,12 @@
                     } 
                 });
 
-
-
+       // Обработчик для кнопки "COR-ERP"
+       document.getElementById('COR-ERP').addEventListener('click', function() {
+            if (checkToken()) {          
+                window.location.href = 'http://docker.dev.erp.cor-medical.ua:3001/' + '?access_token=' + accessToken;
+            } 
+          });
 
         document.getElementById('LogOut-btn').addEventListener('click', function () {
                 // Удаление токенов из localStorage
