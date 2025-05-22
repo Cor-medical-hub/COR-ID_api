@@ -140,7 +140,7 @@ async def get_user_email(
     """
 
     email = current_user.email
-    return {"users email": email}
+    return {"users_email": email}
 
 
 @router.patch("/change_email")

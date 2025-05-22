@@ -1,11 +1,13 @@
 import re
 from typing import Any, Dict, List, Optional
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from cor_pass.schemas import (
     Case as CaseModelScheema,
     CaseParametersScheema,
+    ReferralCreate,
     Sample as SampleModelScheema,
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
@@ -444,3 +446,74 @@ async def update_case_code_suffix(db: AsyncSession, case_id: str, new_suffix: st
                 f"Поточний код кейса '{current_code}' занадто короткий для оновлення суфікса."
             )
     return None
+
+
+
+async def create_referral(db: AsyncSession, referral_in: ReferralCreate) -> db_models.Referral:
+    db_referral = db_models.Referral(
+        case_id=referral_in.case_id,
+        case_number=referral_in.case_number,
+        research_type=referral_in.research_type,
+        container_count=referral_in.container_count,
+        medical_card_number=referral_in.medical_card_number,
+        clinical_data=referral_in.clinical_data,
+        clinical_diagnosis=referral_in.clinical_diagnosis,
+        medical_institution=referral_in.medical_institution,
+        department=referral_in.department,
+        attending_doctor=referral_in.attending_doctor,
+        doctor_contacts=referral_in.doctor_contacts,
+        medical_procedure=referral_in.medical_procedure,
+        final_report_delivery=referral_in.final_report_delivery,
+        issued_at=referral_in.issued_at,
+    )
+    db.add(db_referral)
+    await db.commit()
+    await db.refresh(db_referral)
+    return db_referral
+
+
+
+async def get_referral(db: AsyncSession, referral_id: str) -> Optional[db_models.Referral]:
+    result = await db.execute(
+        select(db_models.Referral).where(
+            db_models.Referral.id == referral_id
+        )
+    )
+    referral_db = result.scalars().unique().one_or_none()
+    return referral_db
+
+
+
+
+
+
+async def get_referral_attachment(db: AsyncSession, attachment_id: str) -> Optional[db_models.ReferralAttachment]:
+    result = await db.execute(select(db_models.ReferralAttachment).where(db_models.ReferralAttachment.id == attachment_id))
+    return result.scalar_one_or_none()
+
+
+async def upload_attachment(db: AsyncSession, referral_id: str, file: UploadFile) -> db_models.ReferralAttachment:
+    referral = await get_referral(db, referral_id)
+    if not referral:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Referral not found")
+
+    if len(referral.attachments) >= 5:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Maximum 5 attachments allowed per referral.")
+    allowed_types = ["image/jpeg", "image/png", "application/pdf"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Недопустимый тип файла. Разрешены только JPEG, PNG и PDF.",
+        )
+
+    file_data = await file.read()
+    db_attachment = db_models.ReferralAttachment(
+        referral_id=referral_id,
+        filename=file.filename,
+        content_type=file.content_type,
+        file_data=file_data
+    )
+    db.add(db_attachment)
+    await db.commit()
+    await db.refresh(db_attachment)
+    return db_attachment

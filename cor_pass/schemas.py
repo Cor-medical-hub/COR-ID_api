@@ -971,3 +971,73 @@ class Label(BaseModel):
 
 class PrintRequest(BaseModel):
     labels: List[Label]
+
+
+
+
+#Схемы для направлений 
+
+# Для использования ResearchType в Pydantic
+# class StudyType(str, Enum):
+#     CYTOLOGY = "Цитология"
+#     PATHOHISTOLOGY = "Патогистология"
+#     IMMUNOHISTOCHEMISTRY = "Иммуногистохимия"
+#     FISH_CISH = "FISH/CISH"
+
+# Схема для прикрепленного файла в ответе
+class ReferralAttachmentResponse(BaseModel):
+    id: str
+    filename: str
+    content_type: str
+    # Вместо file_data будем возвращать URL для получения файла
+    file_url: Optional[str] = Field(None, description="URL файла")
+
+    class Config:
+        from_attributes = True # Для совместимости с SQLAlchemy
+
+# Схема для создания прикрепленного файла (для внутреннего использования или если вы принимаете base64)
+# В случае загрузки через Form-Data, эта схема не всегда напрямую используется для приема данных.
+class ReferralAttachmentCreate(BaseModel):
+    filename: str
+    content_type: str
+    file_data: bytes # Принимаем байты, если это не Form-Data загрузка
+
+# Схема для создания Направления
+class ReferralCreate(BaseModel):
+    case_id: str = Field(..., description="ID связанного кейса")
+    case_number: str = Field(..., description="Номер кейса")
+    research_type: Optional[StudyType] = Field(None, description="Вид исследования")
+    container_count: Optional[int] = Field(None, description="Фактическое количество контейнеров")
+    medical_card_number: Optional[str] = Field(None, description="Номер медкарты")
+    clinical_data: Optional[str] = Field(None, description="Клинические данные")
+    clinical_diagnosis: Optional[str] = Field(None, description="Клинический диагноз")
+    medical_institution: Optional[str] = Field(None, description="Медицинское учреждение")
+    department: Optional[str] = Field(None, description="Отделение")
+    attending_doctor: Optional[str] = Field(None, description="Лечащий врач")
+    doctor_contacts: Optional[str] = Field(None, description="Контакты врача")
+    medical_procedure: Optional[str] = Field(None, description="Медицинская процедура")
+    final_report_delivery: Optional[str] = Field(None, description="Финальный репорт отправить")
+    issued_at: Optional[date] = Field(None, description="Выдано (дата)")
+
+# Схема для ответа Направления (что возвращает API)
+class ReferralResponse(BaseModel):
+    id: str
+    case_id: str
+    case_number: str
+    created_at: datetime
+    research_type: Optional[StudyType]
+    container_count: Optional[int]
+    medical_card_number: Optional[str]
+    clinical_data: Optional[str]
+    clinical_diagnosis: Optional[str]
+    medical_institution: Optional[str]
+    department: Optional[str]
+    attending_doctor: Optional[str]
+    doctor_contacts: Optional[str]
+    medical_procedure: Optional[str]
+    final_report_delivery: Optional[str]
+    issued_at: Optional[date]
+    attachments: List[ReferralAttachmentResponse] = [] # Список прикрепленных файлов
+
+    class Config:
+        from_attributes = True
