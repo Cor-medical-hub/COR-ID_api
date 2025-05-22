@@ -18,8 +18,6 @@ from typing import List
 from fastapi import UploadFile, File
 
 
-
-
 router = APIRouter(prefix="/dicom", tags=["DICOM"])
 HTML_FILE = Path(__file__).parents[1] / "static" / "dicom_viewer.html"
 DICOM_DIR = "dicom_files"
@@ -28,13 +26,18 @@ os.makedirs(DICOM_DIR, exist_ok=True)
 from skimage.transform import resize
 from collections import Counter
 
+
 @lru_cache(maxsize=1)
 def load_volume():
     print("[INFO] Загружаем том из DICOM-файлов...")
 
     files = sorted(
-        [os.path.join(DICOM_DIR, f) for f in os.listdir(DICOM_DIR) if f.lower().endswith(".dcm")],
-        key=lambda x: int(pydicom.dcmread(x, stop_before_pixels=True).InstanceNumber)
+        [
+            os.path.join(DICOM_DIR, f)
+            for f in os.listdir(DICOM_DIR)
+            if f.lower().endswith(".dcm")
+        ],
+        key=lambda x: int(pydicom.dcmread(x, stop_before_pixels=True).InstanceNumber),
     )
 
     slices = []
@@ -44,7 +47,7 @@ def load_volume():
     for f in files:
         ds = pydicom.dcmread(f)
         arr = ds.pixel_array.astype(np.float32)
-        if hasattr(ds, 'RescaleSlope') and hasattr(ds, 'RescaleIntercept'):
+        if hasattr(ds, "RescaleSlope") and hasattr(ds, "RescaleIntercept"):
             arr = arr * ds.RescaleSlope + ds.RescaleIntercept
         slices.append(arr)
         shapes.append(arr.shape)
@@ -57,13 +60,17 @@ def load_volume():
     print(f"[INFO] Приводим к форме: {target_shape}")
 
     resized_slices = [
-        resize(slice_, target_shape, preserve_range=True).astype(np.float32)
-        if slice_.shape != target_shape else slice_
+        (
+            resize(slice_, target_shape, preserve_range=True).astype(np.float32)
+            if slice_.shape != target_shape
+            else slice_
+        )
         for slice_ in slices
     ]
 
     volume = np.stack(resized_slices)
     return volume, example_ds
+
 
 @router.get("/viewer", response_class=HTMLResponse)
 def get_viewer():
@@ -77,6 +84,7 @@ def apply_window(img, center, width):
     img = ((img - img_min) / (img_max - img_min)) * 255
     return img.astype(np.uint8)
 
+
 @router.get("/reconstruct/{plane}")
 def reconstruct(plane: str, index: int = Query(...), size: int = 512):
     try:
@@ -86,7 +94,7 @@ def reconstruct(plane: str, index: int = Query(...), size: int = 512):
             img = volume[np.clip(index, 0, volume.shape[0] - 1), :, :]
         elif plane == "sagittal":
             img = volume[:, :, np.clip(index, 0, volume.shape[2] - 1)]
-             # Поворот сагиттального среза на 180 градусов относительно горизонта
+            # Поворот сагиттального среза на 180 градусов относительно горизонта
             img = np.flip(img, axis=(0, 1))  # или img = np.rot90(img, 2)
         elif plane == "coronal":
             img = volume[:, np.clip(index, 0, volume.shape[1] - 1), :]
@@ -95,13 +103,21 @@ def reconstruct(plane: str, index: int = Query(...), size: int = 512):
         else:
             raise HTTPException(status_code=400, detail="Invalid plane")
 
-        wc = float(ds.WindowCenter[0]) if isinstance(ds.WindowCenter, pydicom.multival.MultiValue) else float(ds.WindowCenter)
-        ww = float(ds.WindowWidth[0]) if isinstance(ds.WindowWidth, pydicom.multival.MultiValue) else float(ds.WindowWidth)
+        wc = (
+            float(ds.WindowCenter[0])
+            if isinstance(ds.WindowCenter, pydicom.multival.MultiValue)
+            else float(ds.WindowCenter)
+        )
+        ww = (
+            float(ds.WindowWidth[0])
+            if isinstance(ds.WindowWidth, pydicom.multival.MultiValue)
+            else float(ds.WindowWidth)
+        )
         img = apply_window(img, wc, ww)
 
         # Получаем spacing
-        ps = ds.PixelSpacing if hasattr(ds, 'PixelSpacing') else [1, 1]
-        st = float(ds.SliceThickness) if hasattr(ds, 'SliceThickness') else 1.0
+        ps = ds.PixelSpacing if hasattr(ds, "PixelSpacing") else [1, 1]
+        st = float(ds.SliceThickness) if hasattr(ds, "SliceThickness") else 1.0
 
         # Определяем реальный масштаб по плоскости
         if plane == "axial":
@@ -124,9 +140,9 @@ def reconstruct(plane: str, index: int = Query(...), size: int = 512):
         return StreamingResponse(buf, media_type="image/png")
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 @router.post("/upload")
@@ -135,35 +151,38 @@ async def upload_dicom_files(files: List[UploadFile] = File(...)):
         # Очищаем директорию перед загрузкой новых файлов
         shutil.rmtree(DICOM_DIR)
         os.makedirs(DICOM_DIR, exist_ok=True)
-        
+
         processed_files = 0
         valid_files = 0
-        
+
         for file in files:
             file_ext = os.path.splitext(file.filename)[1].lower()
-            
+
             # Пропускаем файлы с недопустимыми расширениями
-            if file_ext not in {'.dcm', '.zip'}:
+            if file_ext not in {".dcm", ".zip"}:
                 continue
-                
+
             temp_path = os.path.join(DICOM_DIR, file.filename)
-            
+
             # Сохраняем файл
             with open(temp_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
-            
+
             # Обрабатываем ZIP архив
-            if file_ext == '.zip':
+            if file_ext == ".zip":
                 try:
-                    with zipfile.ZipFile(temp_path, 'r') as zip_ref:
+                    with zipfile.ZipFile(temp_path, "r") as zip_ref:
                         zip_ref.extractall(DICOM_DIR)
                     os.remove(temp_path)
-                    
+
                     # Валидация DICOM файлов после распаковки
                     for extracted_file in os.listdir(DICOM_DIR):
-                        if extracted_file.lower().endswith('.dcm'):
+                        if extracted_file.lower().endswith(".dcm"):
                             try:
-                                pydicom.dcmread(os.path.join(DICOM_DIR, extracted_file), stop_before_pixels=True)
+                                pydicom.dcmread(
+                                    os.path.join(DICOM_DIR, extracted_file),
+                                    stop_before_pixels=True,
+                                )
                                 valid_files += 1
                             except:
                                 os.remove(os.path.join(DICOM_DIR, extracted_file))
@@ -178,23 +197,24 @@ async def upload_dicom_files(files: List[UploadFile] = File(...)):
                 except:
                     os.remove(temp_path)
                     continue
-                    
+
             processed_files += 1
-        
+
         if valid_files == 0:
             raise HTTPException(
-                status_code=400, 
-                detail="No valid DICOM files found in the uploaded files"
+                status_code=400,
+                detail="No valid DICOM files found in the uploaded files",
             )
-        
+
         # Очищаем кэш загруженного объема
         load_volume.cache_clear()
-        
+
         return {
             "message": f"Successfully processed {processed_files} files, {valid_files} DICOM files validated"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/volume_info")
 def get_volume_info():
@@ -203,7 +223,7 @@ def get_volume_info():
         return {
             "slices": volume.shape[0],
             "width": volume.shape[1],
-            "height": volume.shape[2]
+            "height": volume.shape[2],
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -213,6 +213,7 @@ async def get_auth_session(
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
+
 async def get_auth_approved_session(
     session_token: str, db: AsyncSession
 ) -> CorIdAuthSession | None:

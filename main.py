@@ -42,7 +42,7 @@ from cor_pass.routes import (
     glasses,
     dicom_router,
     printing_device,
-    printer
+    printer,
 )
 from cor_pass.config.config import settings
 from cor_pass.services.logger import logger

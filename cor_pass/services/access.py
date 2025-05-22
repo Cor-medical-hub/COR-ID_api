@@ -72,4 +72,3 @@ user_access = UserAccess([User.is_active])
 admin_access = AdminAccess([User.email])
 lawyer_access = LawyerAccess([User.email])
 doctor_access = DoctorAccess([User.email])
-

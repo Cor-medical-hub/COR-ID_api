@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
-from cor_pass.schemas import DeleteGlassesRequest, DeleteGlassesResponse, Glass as GlassModelScheema, GlassCreate
-from cor_pass.repository import sample as sample_service
-from cor_pass.repository import cassette as cassette_service
+from cor_pass.schemas import (
+    DeleteGlassesRequest,
+    DeleteGlassesResponse,
+    Glass as GlassModelScheema,
+    GlassCreate,
+)
 from cor_pass.repository import glass as glass_service
-from cor_pass.database import models as db_models
 from typing import List
 
 from cor_pass.services.access import user_access, doctor_access
@@ -31,7 +33,11 @@ async def create_glass_for_cassette(
     )
 
 
-@router.get("/{glass_id}", response_model=GlassModelScheema, dependencies=[Depends(doctor_access)])
+@router.get(
+    "/{glass_id}",
+    response_model=GlassModelScheema,
+    dependencies=[Depends(doctor_access)],
+)
 async def read_glass_info(glass_id: str, db: AsyncSession = Depends(get_db)):
     """Получаем информацию о стекле по его ID."""
     db_glass = await glass_service.get_glass(db=db, glass_id=glass_id)

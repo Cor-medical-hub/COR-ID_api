@@ -1,12 +1,10 @@
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import WebSocket
 from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
 from cor_pass.database.models import CorIdAuthSession, AuthSessionStatus
 from datetime import datetime, timedelta
 
 from cor_pass.database.db import async_session_maker
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Словарь для хранения активных WebSocket-соединений (session_token -> WebSocket)
 active_connections: dict[str, WebSocket] = {}

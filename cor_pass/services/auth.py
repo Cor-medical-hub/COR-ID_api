@@ -18,6 +18,7 @@ from cor_pass.services.logger import logger
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 class Auth:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     SECRET_KEY = settings.secret_key
@@ -199,14 +200,18 @@ class Auth:
     #         return False
     #     return True
 
-    async def create_device_jwt(self, device_id: str, user_id: str, expires_delta: Optional[float] = None):
+    async def create_device_jwt(
+        self, device_id: str, user_id: str, expires_delta: Optional[float] = None
+    ):
         to_encode = {"sub": device_id, "user_id": user_id}
         if expires_delta:
-            expire = datetime.now(timezone.utc) + + timedelta(hours=expires_delta)
+            expire = datetime.now(timezone.utc) + +timedelta(hours=expires_delta)
             to_encode.update({"exp": expire})
-        encoded_jwt = jwt.encode(to_encode, key=self.SECRET_KEY, algorithm=self.ALGORITHM)
+        encoded_jwt = jwt.encode(
+            to_encode, key=self.SECRET_KEY, algorithm=self.ALGORITHM
+        )
         return encoded_jwt
-    
+
     async def get_current_device(self, token: str, db: AsyncSession) -> Device:
 
         credentials_exception = HTTPException(
@@ -226,25 +231,32 @@ class Auth:
             if device_id is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Не удалось подтвердить учетные данные устройства"
+                    detail="Не удалось подтвердить учетные данные устройства",
                 )
         except JWTError:
             raise credentials_exception
-        
+
         device = await repository_devices.get_device_by_id(db=db, device_id=device_id)
-        
+
         if device is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Устройство не найдено"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Устройство не найдено"
             )
         return device
-    
-    async def verify_device_access(self, device_id: str, current_user_id: str, db: AsyncSession, required_level: Optional[Enum] = None) -> Device:
+
+    async def verify_device_access(
+        self,
+        device_id: str,
+        current_user_id: str,
+        db: AsyncSession,
+        required_level: Optional[Enum] = None,
+    ) -> Device:
         result_device = await db.execute(select(Device).where(Device.id == device_id))
         device = result_device.scalar_one_or_none()
         if not device:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Устройство не найдено")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Устройство не найдено"
+            )
 
         if device.user_id == current_user_id:
             return device  # Владелец имеет полный доступ
@@ -252,7 +264,7 @@ class Auth:
         result_access = await db.execute(
             select(DeviceAccess).where(
                 DeviceAccess.device_id == device_id,
-                DeviceAccess.accessing_user_id == current_user_id
+                DeviceAccess.accessing_user_id == current_user_id,
             )
         )
         access = result_access.scalar_one_or_none()
@@ -260,13 +272,17 @@ class Auth:
         if not access:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Нет прав доступа к устройству"
+                detail="Нет прав доступа к устройству",
             )
 
-        if required_level and access.access_level.value not in [required_level.value, "share", "read_write"]: # Владелец имеет все права
+        if required_level and access.access_level.value not in [
+            required_level.value,
+            "share",
+            "read_write",
+        ]:  # Владелец имеет все права
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Требуется уровень доступа: {required_level.value}, ваш уровень: {access.access_level.value}"
+                detail=f"Требуется уровень доступа: {required_level.value}, ваш уровень: {access.access_level.value}",
             )
 
         return device

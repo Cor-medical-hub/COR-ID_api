@@ -6,7 +6,7 @@ from cor_pass.services.cipher import decrypt_data, decrypt_user_key
 from cor_pass.services.qr_code import generate_qr_code
 from cor_pass.services.recovery_file import generate_recovery_file
 from cor_pass.services.email import send_email_code_with_qr
-from cor_pass.database.models import User, Status
+from cor_pass.database.models import User
 from cor_pass.services.access import user_access
 from cor_pass.services.logger import logger
 from cor_pass.schemas import (
@@ -366,8 +366,10 @@ async def get_last_password_change(
     }
 
 
-@router.get("/send_recovery_keys_email",
-            dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@router.get(
+    "/send_recovery_keys_email",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))],
+)
 async def send_recovery_keys_email(
     current_user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
