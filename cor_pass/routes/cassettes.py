@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
-from cor_pass.schemas import Cassette as CassetteModelScheema, CassetteCreate, CassetteUpdateComment, DeleteCassetteRequest, DeleteCassetteResponse, Sample, SampleCreate
-from cor_pass.repository import sample as sample_service
+from cor_pass.schemas import (
+    Cassette as CassetteModelScheema,
+    CassetteCreate,
+    CassetteUpdateComment,
+    DeleteCassetteRequest,
+    DeleteCassetteResponse,
+)
 from cor_pass.repository import cassette as cassette_service
 from typing import List
 
-from cor_pass.services.access import user_access, doctor_access
+from cor_pass.services.access import doctor_access
 
 router = APIRouter(prefix="/cassettes", tags=["Cassette"])
 
@@ -27,12 +32,13 @@ async def create_cassette_for_sample(
         db=db,
         sample_id=body.sample_id,
         num_cassettes=body.num_cassettes,
-        
     )
 
 
 @router.get(
-    "/{cassette_id}", response_model=CassetteModelScheema, dependencies=[Depends(doctor_access)]
+    "/{cassette_id}",
+    response_model=CassetteModelScheema,
+    dependencies=[Depends(doctor_access)],
 )
 async def read_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
     """
@@ -44,7 +50,11 @@ async def read_cassette(cassette_id: str, db: AsyncSession = Depends(get_db)):
     return db_cassette
 
 
-@router.patch("/{cassette_id}", response_model=CassetteModelScheema, dependencies=[Depends(doctor_access)])
+@router.patch(
+    "/{cassette_id}",
+    response_model=CassetteModelScheema,
+    dependencies=[Depends(doctor_access)],
+)
 async def update_cassette_comment(
     cassette_id: str,
     comment_update: CassetteUpdateComment,
@@ -65,9 +75,13 @@ async def update_cassette_comment(
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
 )
-async def delete_cassettes(request_body: DeleteCassetteRequest, db: AsyncSession = Depends(get_db)):
+async def delete_cassettes(
+    request_body: DeleteCassetteRequest, db: AsyncSession = Depends(get_db)
+):
     """
     Удаляет массив кассет
     """
-    result = await cassette_service.delete_cassettes(db=db, cassettes_ids=request_body.cassette_ids)
+    result = await cassette_service.delete_cassettes(
+        db=db, cassettes_ids=request_body.cassette_ids
+    )
     return result

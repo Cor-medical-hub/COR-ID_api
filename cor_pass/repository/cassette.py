@@ -29,7 +29,7 @@ async def get_cassette(
         # Сортируем стекла по glass_number
         cassette_schema.glasses = sorted(
             [GlassModelScheema.model_validate(glass) for glass in cassette_db.glass],
-            key=lambda glass_schema: glass_schema.glass_number
+            key=lambda glass_schema: glass_schema.glass_number,
         )
         return cassette_schema
     return None
@@ -55,7 +55,9 @@ async def create_cassette(
 
     for i in range(num_cassettes):
         await db.refresh(db_sample)
-        next_cassette_number = f"{db_sample.sample_number}{db_sample.cassette_count + 1}"
+        next_cassette_number = (
+            f"{db_sample.sample_number}{db_sample.cassette_count + 1}"
+        )
         db_cassette = db_models.Cassette(
             sample_id=db_sample.id, cassette_number=next_cassette_number
         )
@@ -89,7 +91,7 @@ async def create_cassette(
         cassette_schema = CassetteModelScheema.model_validate(cassette_db)
         cassette_schema.glasses = sorted(
             [GlassModelScheema.model_validate(glass) for glass in cassette_db.glass],
-            key=lambda glass_schema: glass_schema.glass_number
+            key=lambda glass_schema: glass_schema.glass_number,
         )
         created_cassettes_with_glasses.append(cassette_schema.model_dump())
 
@@ -113,7 +115,9 @@ async def update_cassette_comment(
     return None
 
 
-async def delete_cassettes(db: AsyncSession, cassettes_ids: List[str]) -> Dict[str, Any]:
+async def delete_cassettes(
+    db: AsyncSession, cassettes_ids: List[str]
+) -> Dict[str, Any]:
     """Асинхронно удаляет несколько кассет по их ID и корректно обновляет счетчики."""
     deleted_count = 0
     not_found_ids: List[str] = []
@@ -122,7 +126,9 @@ async def delete_cassettes(db: AsyncSession, cassettes_ids: List[str]) -> Dict[s
         result = await db.execute(
             select(db_models.Cassette)
             .where(db_models.Cassette.id == cassette_id)
-            .options(selectinload(db_models.Cassette.glass))  # Подгружаем связанные стекла
+            .options(
+                selectinload(db_models.Cassette.glass)
+            )  # Подгружаем связанные стекла
         )
         db_cassette = result.scalar_one_or_none()
         if db_cassette:
@@ -161,7 +167,9 @@ async def delete_cassettes(db: AsyncSession, cassettes_ids: List[str]) -> Dict[s
 
     response = {"deleted_count": deleted_count}
     if not_found_ids:
-        response["message"] = f"Успешно удалено {deleted_count} кассет. Не найдены ID: {not_found_ids}"
+        response["message"] = (
+            f"Успешно удалено {deleted_count} кассет. Не найдены ID: {not_found_ids}"
+        )
     else:
         response["message"] = f"Успешно удалено {deleted_count} кассет."
 

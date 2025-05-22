@@ -5,6 +5,7 @@ Revises: 9f3d8b1e055d
 Create Date: 2025-05-12 12:52:11.660435
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '057d93d335dd'
-down_revision: Union[str, None] = '9f3d8b1e055d'
+revision: str = "057d93d335dd"
+down_revision: Union[str, None] = "9f3d8b1e055d"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -26,6 +27,7 @@ def upgrade():
     op.execute("UPDATE doctors SET status = 'rejected' WHERE status = 'rejected'")
     # Добавьте обновления для других возможных старых значений
     pass
+
 
 def downgrade():
     # Обратное преобразование (если необходимо)

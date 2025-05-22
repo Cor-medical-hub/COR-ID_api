@@ -7,7 +7,12 @@ from cor_pass.repository.lawyer import get_doctor
 from cor_pass.services.auth import auth_service
 from cor_pass.database.models import Doctor_Status, User, Status
 from cor_pass.services.access import admin_access
-from cor_pass.schemas import DoctorCreate, DoctorCreateResponse, NewUserRegistration, UserDb
+from cor_pass.schemas import (
+    DoctorCreate,
+    DoctorCreateResponse,
+    NewUserRegistration,
+    UserDb,
+)
 from cor_pass.repository import person
 from pydantic import EmailStr
 from cor_pass.database.redis_db import redis_client
@@ -200,8 +205,6 @@ async def kickout_user(email: EmailStr, db: AsyncSession = Depends(get_db)):
         return {"message": f"{email} - delete refresh token"}
 
 
-
-
 @router.post(
     "/signup_as_doctor",
     response_model=DoctorCreateResponse,
@@ -224,7 +227,6 @@ async def signup_user_as_doctor(
     :rtype: DoctorResponse
     """
 
-
     exist_doctor = await get_doctor(db=db, doctor_id=user_cor_id)
     if exist_doctor:
         logger.debug(f"{user_cor_id} doctor already exist")
@@ -237,7 +239,6 @@ async def signup_user_as_doctor(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    
 
     try:
         doctor = await create_doctor(
@@ -246,9 +247,7 @@ async def signup_user_as_doctor(
             user=user,
         )
         cer, dip, clin = await create_doctor_service(
-            doctor_data=doctor_data,
-            db=db,
-            doctor=doctor
+            doctor_data=doctor_data, db=db, doctor=doctor
         )
     except IntegrityError as e:
         logger.error(f"Database integrity error: {e}")
@@ -279,7 +278,7 @@ async def signup_user_as_doctor(
         clinic_affiliations_id=clin,
         place_of_registration=doctor.place_of_registration,
         passport_code=doctor.passport_code,
-        taxpayer_identification_number=doctor.taxpayer_identification_number
+        taxpayer_identification_number=doctor.taxpayer_identification_number,
     )
 
     return doctor_response
@@ -318,7 +317,7 @@ async def assign_status(
         return {
             "message": f"{doctor.first_name} {doctor.last_name}'s status - {doctor_status.value}"
         }
-    
+
 
 @router.post(
     "/register_new_user",
@@ -326,8 +325,7 @@ async def assign_status(
     dependencies=[Depends(admin_access)],
 )
 async def register_new_user(
-    body: NewUserRegistration,
-    db: AsyncSession = Depends(get_db)
+    body: NewUserRegistration, db: AsyncSession = Depends(get_db)
 ):
     """
     Создает нового пользователя с временным паролем
@@ -335,18 +333,14 @@ async def register_new_user(
 
     if body:
         new_user_info = body
-        exist_user = await person.get_user_by_email(
-            new_user_info.email, db
-        )
+        exist_user = await person.get_user_by_email(new_user_info.email, db)
         if exist_user:
             logger.debug(f"{new_user_info.email} user already exists")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Account already exists"
             )
         new_user = await person.register_new_user(db=db, body=new_user_info)
-        return {
-            "message": f"Новый пользователь {body.email} успешно зарегистрирован."
-        }
+        return {"message": f"Новый пользователь {body.email} успешно зарегистрирован."}
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

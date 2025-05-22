@@ -1,16 +1,7 @@
-from string import ascii_uppercase
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from cor_pass.schemas import (
-    Case as CaseModelScheema,
-    CaseBase as CaseBaseScheema,
-    Sample as SampleModelScheema,
-    Cassette as CassetteModelScheema,
-    Glass as GlassModelScheema,
-    SampleCreate,
-)
-from typing import Any, Dict, List, Optional
-from sqlalchemy.orm import joinedload
+from cor_pass.schemas import Glass as GlassModelScheema
+from typing import Any, Dict, List
 from sqlalchemy.orm import selectinload
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as repository_cases
@@ -66,7 +57,9 @@ async def create_glass(
         .where(db_models.Glass.cassette_id == db_cassette.id)
         .order_by(db_models.Glass.glass_number)
     )
-    existing_glass_numbers = {result[0] for result in existing_glasses_result.fetchall()}
+    existing_glass_numbers = {
+        result[0] for result in existing_glasses_result.fetchall()
+    }
 
     # 3. Создаем указанное количество стекол
     next_glass_number = 0
@@ -98,7 +91,10 @@ async def create_glass(
     for glass in created_glasses:
         await db.refresh(glass)
 
-    return [GlassModelScheema.model_validate(glass).model_dump() for glass in created_glasses]
+    return [
+        GlassModelScheema.model_validate(glass).model_dump()
+        for glass in created_glasses
+    ]
 
 
 async def delete_glasses(db: AsyncSession, glass_ids: List[str]) -> Dict[str, Any]:
@@ -106,19 +102,20 @@ async def delete_glasses(db: AsyncSession, glass_ids: List[str]) -> Dict[str, An
     deleted_count = 0
     not_found_ids: List[str] = []
 
-
     for glass_id in glass_ids:
         result = await db.execute(
             select(db_models.Glass).where(db_models.Glass.id == glass_id)
         )
         db_glass = result.scalar_one_or_none()
         if db_glass:
-                        # 1. Отримуємо поточну касету, а також пов'язані з нею семпл та кейс
+            # 1. Отримуємо поточну касету, а також пов'язані з нею семпл та кейс
             cassette_result = await db.execute(
                 select(db_models.Cassette)
                 .where(db_models.Cassette.id == db_glass.cassette_id)
                 .options(
-                    selectinload(db_models.Cassette.sample).selectinload(db_models.Sample.case)
+                    selectinload(db_models.Cassette.sample).selectinload(
+                        db_models.Sample.case
+                    )
                 )
             )
             db_cassette = cassette_result.scalar_one_or_none()
@@ -142,7 +139,7 @@ async def delete_glasses(db: AsyncSession, glass_ids: List[str]) -> Dict[str, An
             db_case = db_case
             await db.delete(db_glass)
             deleted_count += 1
-                    # 3. Оновлюємо лічильники скелець
+            # 3. Оновлюємо лічильники скелець
             db_cassette.glass_count -= 1
             db_sample.glass_count -= 1
             db_case.glass_count -= 1
