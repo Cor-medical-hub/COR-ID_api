@@ -546,7 +546,7 @@ class Referral(Base):
     id = Column(
         String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
     )
-    case_id = Column(String, ForeignKey("cases.id"), nullable=False, comment="ID связанного кейса") 
+    case_id = Column(String, ForeignKey("cases.id"), unique=True ,nullable=False, comment="ID связанного кейса") 
     case_number = Column(String, index=True, nullable=False, comment="Номер кейса") # Дублируем для удобства поиска
 
     created_at = Column(DateTime, default=func.now(), comment="Дата создания направления")
