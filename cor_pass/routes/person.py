@@ -34,7 +34,6 @@ router = APIRouter(prefix="/user", tags=["User"])
 
 @router.get(
     "/my_core_id",
-    # response_model=ResponseCorIdModel,
     dependencies=[Depends(user_access)],
 )
 async def read_cor_id(
@@ -52,6 +51,30 @@ async def read_cor_id(
             status_code=status.HTTP_404_NOT_FOUND, detail="COR-Id not found"
         )
     return cor_id
+
+@router.get(
+    "/my_core_id_qr",
+    dependencies=[Depends(user_access)],
+)
+async def get_cor_id_qr(
+    current_user: User = Depends(auth_service.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **Просмотр своего QR COR-id** \n
+    """
+    cor_id = await repository_cor_id.get_cor_id(current_user, db)
+    if cor_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="COR-Id not found"
+        )
+    cor_id_qr_bytes = generate_qr_code(cor_id)
+
+    # Конвертация QR-кода в Base64
+    encoded_qr = base64.b64encode(cor_id_qr_bytes).decode("utf-8")
+    qr_code_data_url = f"data:image/png;base64,{encoded_qr}"
+
+    return JSONResponse(content={"qr_code_url": qr_code_data_url})
 
 
 @router.get("/account_status", dependencies=[Depends(user_access)])
@@ -140,7 +163,7 @@ async def get_user_email(
     """
 
     email = current_user.email
-    return {"users_email": email}
+    return {"users email": email}
 
 
 @router.patch("/change_email")

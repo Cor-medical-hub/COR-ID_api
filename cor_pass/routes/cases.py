@@ -20,6 +20,7 @@ from cor_pass.schemas import (
 from cor_pass.repository import case as case_service
 
 from cor_pass.services.access import doctor_access
+from cor_pass.services.document_validation import validate_document_file
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
 
@@ -168,7 +169,7 @@ async def update_case_code(
 
 
 
-@router.post("/referrals/", response_model=ReferralResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/referrals/", response_model=ReferralResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(doctor_access)])
 async def create_new_referral(
     case_id: str,
     referral_data: ReferralCreate,
@@ -203,8 +204,44 @@ async def create_new_referral(
 
     return referral_response_obj
 
+@router.post("/upsert", response_model=ReferralResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(doctor_access)])
+async def upsert_referral_endpoint(
+    referral_data: ReferralCreate, # Или ReferralUpdate, если вам нужно частичное обновление
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    **Создание или обновление направления для кейса (Upsert)**\n
+    Если для данного `case_id` направление уже существует, оно будет обновлено.
+    В противном случае будет создано новое направление.
+    """
+    # 1. Проверка существования кейса, если case_id привязывается к существующему кейсу
+    # Эта проверка должна быть здесь или в вашем case_service.upsert_referral,
+    # чтобы убедиться, что case_id валиден.
+    case = await case_service.get_case(db, referral_data.case_id)
+    if not case:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated Case not found")
 
-@router.get("/referrals/{referral_id}", response_model=ReferralResponse)
+    # Вызываем новую сервисную функцию
+    db_referral = await case_service.upsert_referral(db, referral_data)
+    
+    # Формируем URLs для вложений
+    attachments_response = [
+        ReferralAttachmentResponse(
+            id=att.id,
+            filename=att.filename,
+            content_type=att.content_type,
+            file_url=router.url_path_for("get_referral_attachment", attachment_id=att.id)
+        ) for att in db_referral.attachments
+    ]
+
+    # Создаем и возвращаем объект ReferralResponse
+    referral_response_obj = ReferralResponse.model_validate(db_referral) # ИЛИ .from_orm для Pydantic v1.x
+    referral_response_obj.attachments = attachments_response
+
+    return referral_response_obj
+
+
+@router.get("/referrals/{referral_id}", response_model=ReferralResponse, dependencies=[Depends(doctor_access)])
 async def get_single_referral(
     referral_id: str,
     db: AsyncSession = Depends(get_db)
@@ -235,10 +272,10 @@ async def get_single_referral(
 
     return referral_response_obj
 
-@router.post("/{referral_id}/attachments", response_model=ReferralAttachmentResponse)
+@router.post("/{referral_id}/attachments", response_model=ReferralAttachmentResponse, dependencies=[Depends(doctor_access)])
 async def upload_referral_attachment(
     referral_id: str,
-    file: UploadFile = File(...),
+    file: UploadFile = Depends(validate_document_file),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -253,7 +290,7 @@ async def upload_referral_attachment(
         file_url=router.url_path_for("get_referral_attachment", attachment_id=db_attachment.id)
     )
 
-@router.get("/attachments/{attachment_id}")
+@router.get("/attachments/{attachment_id}", dependencies=[Depends(doctor_access)])
 async def get_referral_attachment(
     attachment_id: str,
     db: AsyncSession = Depends(get_db)

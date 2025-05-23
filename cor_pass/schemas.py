@@ -1041,3 +1041,24 @@ class ReferralResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ReferralUpdate(BaseModel):
+    # case_id не включаем сюда, так как по нему мы ищем
+    case_number: Optional[str] = None
+    research_type: Optional[str] = None
+    container_count: Optional[int] = None
+    medical_card_number: Optional[str] = None
+    clinical_data: Optional[str] = None
+    clinical_diagnosis: Optional[str] = None
+    medical_institution: Optional[str] = None
+    department: Optional[str] = None
+    attending_doctor: Optional[str] = None
+    doctor_contacts: Optional[str] = None
+    medical_procedure: Optional[str] = None
+    final_report_delivery: Optional[str] = None
+    issued_at: Optional[date] = None # Или Field(default_factory=datetime.now) если должно обновляться на текущее время
+
+    class Config:
+        from_attributes = True # Для Pydantic v2
+        # orm_mode = True # Для Pydantic v1

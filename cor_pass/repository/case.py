@@ -471,7 +471,57 @@ async def create_referral(db: AsyncSession, referral_in: ReferralCreate) -> db_m
     await db.refresh(db_referral)
     return db_referral
 
+async def update_referral(db: AsyncSession, db_referral: db_models.Referral, referral_in: ReferralCreate) -> db_models.Referral:
+    # Альтернатива: referral_in: ReferralUpdate если у вас есть ReferralUpdate
+        """
+        Обновляет существующее направление в базе данных.
+        """
+        # Обновляем все поля из referral_in
+        for field, value in referral_in.model_dump(exclude_unset=True).items(): # exclude_unset=True для частичного обновления (Pydantic v2)
+        # Для Pydantic v1: referral_in.dict(exclude_unset=True).items()
+            setattr(db_referral, field, value)
+        
+        await db.commit()
+        await db.refresh(db_referral)
+        return db_referral
 
+
+async def upsert_referral(db: AsyncSession, referral_data: ReferralCreate) -> db_models.Referral:
+    """
+    Обновляет направление, если оно существует для данного case_id, иначе создает новое.
+    """
+    # 1. Попытаться найти существующее направление по case_id
+    # Убедитесь, что case_id в Referral является уникальным в вашей модели БД,
+    # иначе эта логика может привести к неожиданным результатам,
+    # если несколько направлений имеют один и тот же case_id.
+    existing_referral = await db.execute(
+        select(db_models.Referral)
+        .where(db_models.Referral.case_id == referral_data.case_id)
+        .options(selectinload(db_models.Referral.attachments)) # Загружаем attachments для последующего формирования ответа
+    )
+    db_referral = existing_referral.scalars().first()
+
+    if db_referral:
+        # Направление найдено, обновляем его
+        print(f"Updating existing referral for case_id: {referral_data.case_id}")
+        # Обновляем все поля из referral_data
+        for field, value in referral_data.model_dump().items(): # Для Pydantic v2
+        # Для Pydantic v1: referral_data.dict().items()
+            setattr(db_referral, field, value)
+        
+        # Если поле issued_at не указано в запросе, но оно есть в db_referral,
+        # и вы не хотите его обнулять, убедитесь, что логика обработки Optional[datetime] корректна.
+        # Pydantic's exclude_unset=True (для .model_dump()) может помочь, если ReferralCreate имеет Optional поля
+        # и вы хотите обновлять только переданные.
+        
+        await db.commit()
+        await db.refresh(db_referral)
+    else:
+        # Направление не найдено, создаем новое
+        print(f"Creating new referral for case_id: {referral_data.case_id}")
+        db_referral = await create_referral(db, referral_data)
+    
+    return db_referral
 
 async def get_referral(db: AsyncSession, referral_id: str) -> Optional[db_models.Referral]:
     result = await db.execute(
