@@ -78,6 +78,44 @@
             <span data-translate="button_text">Вызвать скорую</span>
         </button>
 
+
+
+
+        <button class="custom-button"id="Dicom_viewer">
+            <!-- Первая SVG-иконка -->       
+            <svg width="24" height="24" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="50" height="50" rx="25" fill="#7527B2"/>
+                <path d="M33.8 15H16.2C14.9867 15 14 15.9967 14 17.2222V32.7778C14 34.0033 14.9867 
+                35 16.2 35H33.8C35.0133 35 36 34.0033 36 32.7778V17.2222C36 15.9967 35.0133 15 33.8 
+                15ZM33.8011 21.6667C33.7996 21.6667 33.7996 21.6667 33.8011 21.6667H33.2896L30.3559 
+                17.2222H33.8L33.8011 21.6667ZM28.85 28.3333L22.8 31.6667V25L28.85 28.3333ZM27.7896 
+                21.6667L24.8559 17.2222H27.7115L30.6452 21.6667H27.7896ZM25.1452 21.6667H22.2896L19.3559 
+                17.2222H22.2115L25.1452 21.6667ZM16.2 17.2222H16.7115L19.6452 21.6667H16.2V17.2222Z" fill="white"/>
+                </svg>
+                
+                
+                                
+            <!-- Текст кнопки -->
+            <span class="button-text">Dicom_viewer</span> 
+            <!-- Вторая SVG-иконка -->
+            <svg class="icon-right" width="24" height="24" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1.125" y="0.625" width="28.75" height="28.75" rx="14.375" stroke="#7527B2" stroke-width="1.25"/>
+                <path d="M20.1161 14.3274L20.1132 14.3248L14.1478 8.73647L14.1432 8.73226L14.1418 8.7311C13.7749 8.40419 
+                13.2289 8.43324 12.8907 8.76051L12.8866 8.76302L12.8857 8.76387L12.8823 8.76723L12.883 8.76796C12.5174 
+                9.10176 12.5154 9.67494 12.8829 10.0382L12.885 10.0403L12.8862 10.0415L12.8884 10.0435L18.1453 
+                14.996L12.8804 19.956L12.8817 19.9574C12.7001 20.1105 12.6074 20.3496 12.6074 20.5897C12.6074 21.0796 
+                13.0121 21.4995 13.5307 21.4995C13.7755 21.4995 13.9909 21.4093 14.1458 21.2575L14.1494 21.254L20.1144 
+                15.637L20.1176 15.634L20.1415 15.6107L20.151 15.6008L20.1535 15.5982C20.4888 15.233 20.4849 14.6591 
+                20.1161 14.3274Z" fill="#7527B2"/>
+            </svg>
+        </button>
+
+
+
+
+
+
+
         <button id="I_am_a_doctor" class="link-button" type="button" 
         style="  text-align: left; font-size: 12px;float: left;
         white-space: nowrap;max-width:60px;width:60px;
@@ -95,6 +133,14 @@ document.getElementById('I_am_a_doctor').addEventListener('click', function() {
     if (checkToken()) {
     window.location.href = '/static/doctor_registration.html' + '?access_token=' + accessToken;   }
 });
+
+document.getElementById('Dicom_viewer').addEventListener('click', function() {
+    if (checkToken()) {
+    window.location.href = '/api/dicom/viewer' + '?access_token=' + accessToken;   }
+});
+
+
+
 </script>
     
 </body>

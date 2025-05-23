@@ -463,7 +463,7 @@ class Case(Base):
     samples = relationship(
         "Sample", back_populates="case", cascade="all, delete-orphan"
     )
-    # directions = relationship("Direction", back_populates="case")
+    referral = relationship("Referral", back_populates="case", cascade="all, delete-orphan")
     case_parameters = relationship(
         "CaseParameters",
         uselist=False,
@@ -540,24 +540,46 @@ class CaseParameters(Base):
 
 
 # Направление на исследование
-# class Direction(Base):
-#     __tablename__ = "directions"
+class Referral(Base):
+    __tablename__ = "referrals"
 
-#     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-#     case_id = Column(String(36), ForeignKey("cases.id"), nullable=False)
-#     study_type = Column(Enum(StudyType), nullable=False)
-#     container_count = Column(String(50), nullable=True)
-#     medical_record_number = Column(String(250), nullable=True)
-#     clinical_data = Column(Text, nullable=True)
-#     medical_institution = Column(String(250), nullable=True)
-#     department = Column(String(250), nullable=True)
-#     doctor_contacts = Column(String(250), nullable=True)
-#     medical_procedure = Column(String(250), nullable=True)
-#     final_report_send_to = Column(String(250), nullable=True)
-#     released = Column(String(250), nullable=True)
+    id = Column(
+        String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
+    )
+    case_id = Column(String, ForeignKey("cases.id"), unique=True ,nullable=False, comment="ID связанного кейса") 
+    case_number = Column(String, index=True, nullable=False, comment="Номер кейса") # Дублируем для удобства поиска
 
-#     case = relationship("Case", back_populates="directions")
+    created_at = Column(DateTime, default=func.now(), comment="Дата создания направления")
+    research_type = Column(Enum(StudyType), nullable=True, comment="Вид исследования")
+    container_count = Column(Integer, nullable=True, comment="Фактическое количество контейнеров")
+    medical_card_number = Column(String, nullable=True, comment="Номер медкарты")
+    clinical_data = Column(Text, nullable=True, comment="Клинические данные")
+    clinical_diagnosis = Column(String, nullable=True, comment="Клинический диагноз")
+    medical_institution = Column(String, nullable=True, comment="Медицинское учреждение")
+    department = Column(String, nullable=True, comment="Отделение")
+    attending_doctor = Column(String, nullable=True, comment="Лечащий врач")
+    doctor_contacts = Column(String, nullable=True, comment="Контакты врача")
+    medical_procedure = Column(String, nullable=True, comment="Медицинская процедура")
+    final_report_delivery = Column(Text, nullable=True, comment="Финальный репорт отправить")
+    issued_at = Column(DateTime, nullable=True, comment="Выдано (дата)")
 
+    case = relationship("Case", back_populates="referral") 
+
+    attachments = relationship("ReferralAttachment", back_populates="referral", cascade="all, delete-orphan", lazy="joined")
+
+
+class ReferralAttachment(Base):
+    __tablename__ = "referral_attachments"
+
+    id = Column(
+        String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
+    )
+    referral_id = Column(String, ForeignKey("referrals.id"), nullable=False, comment="ID связанного направления")
+    filename = Column(String, nullable=False, comment="Имя файла")
+    content_type = Column(String, nullable=False, comment="Тип содержимого (например, image/jpeg, application/pdf)")
+    file_data = Column(LargeBinary, nullable=False, comment="Бинарные данные файла") 
+
+    referral = relationship("Referral", back_populates="attachments")
 
 # Модели для девайсов
 
