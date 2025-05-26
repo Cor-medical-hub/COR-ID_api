@@ -24,11 +24,11 @@ DICOM_ROOT_DIR = "dicom_users_data"
 os.makedirs(DICOM_ROOT_DIR, exist_ok=True)
 
 @lru_cache(maxsize=16)
-def load_volume(user_id: str):
+def load_volume(user_cor_id: str):
     print("[INFO] Загружаем том из DICOM-файлов...")
 
     # Чтение всех файлов
-    user_dicom_dir = os.path.join(DICOM_ROOT_DIR, user_id)
+    user_dicom_dir = os.path.join(DICOM_ROOT_DIR, user_cor_id)
     if not os.path.exists(user_dicom_dir):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="DICOM данные для этого пользователя не найдены.")
 
@@ -129,7 +129,7 @@ def reconstruct(
     current_user: User = Depends(auth_service.get_current_user)
 ):
     try:
-        volume, ds = load_volume(str(current_user.id))
+        volume, ds = load_volume(str(current_user.cor_id))
 
         # Получаем spacing
         ps = ds.PixelSpacing if hasattr(ds, 'PixelSpacing') else [1, 1]
@@ -194,7 +194,7 @@ def reconstruct(
 @router.post("/upload")
 async def upload_dicom_files(files: List[UploadFile] = File(...), current_user: User = Depends(auth_service.get_current_user)):
     try:
-        user_dicom_dir = os.path.join(DICOM_ROOT_DIR, str(current_user.id))        
+        user_dicom_dir = os.path.join(DICOM_ROOT_DIR, str(current_user.cor_id))        
         if os.path.exists(user_dicom_dir):
             shutil.rmtree(user_dicom_dir)
         os.makedirs(user_dicom_dir, exist_ok=True)
@@ -259,7 +259,7 @@ async def upload_dicom_files(files: List[UploadFile] = File(...), current_user: 
         load_volume.cache_clear() 
 
         return {
-            "message": f"Successfully processed {processed_files} files, {valid_files} DICOM files validated for user {current_user.id}"
+            "message": f"Successfully processed {processed_files} files, {valid_files} DICOM files validated for user {current_user.cor_id}"
         }
     except Exception as e:
         import traceback
