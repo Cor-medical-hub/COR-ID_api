@@ -281,7 +281,7 @@ def get_volume_info(current_user: User = Depends(auth_service.get_current_user))
 @router.get("/metadata")
 def get_metadata(current_user: User = Depends(auth_service.get_current_user)):
     try:
-        volume, ds = load_volume(str(current_user.id))
+        volume, ds = load_volume(str(current_user.cor_id))
         depth, height, width = volume.shape
 
         spacing = ds.PixelSpacing if hasattr(ds, 'PixelSpacing') else [1.0, 1.0]
