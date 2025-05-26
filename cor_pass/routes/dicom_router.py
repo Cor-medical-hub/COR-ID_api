@@ -269,13 +269,16 @@ async def upload_dicom_files(files: List[UploadFile] = File(...), current_user: 
 @router.get("/volume_info")
 def get_volume_info(current_user: User = Depends(auth_service.get_current_user)):
     try:
-        volume, ds = load_volume(str(current_user.id))
+        print(f"Loading volume for user cor_id: {current_user.cor_id}")  # Логирование
+        volume, ds = load_volume(str(current_user.cor_id))
+        print(f"Volume shape: {volume.shape}")  # Логирование
         return {
             "slices": volume.shape[0],
             "width": volume.shape[1],
             "height": volume.shape[2]
         }
     except Exception as e:
+        print(f"Error in volume_info: {str(e)}")  # Логирование
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/metadata")
