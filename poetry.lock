@@ -1058,6 +1058,20 @@ files = [
 ]
 
 [[package]]
+name = "openslide-bin"
+version = "4.0.0.8"
+description = "Binary build of OpenSlide"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "openslide-bin-4.0.0.8.tar.gz", hash = "sha256:bae3b5e374ada9d6b5110d19f60a71e1d164578be98c46c0761c028dec8949e4"},
+    {file = "openslide_bin-4.0.0.8-py3-none-macosx_11_0_universal2.whl", hash = "sha256:9389cf7bb1b4ecd9e79e6d00151ae6a43a1e8b07ce7119609324d9260345f3c7"},
+    {file = "openslide_bin-4.0.0.8-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:79c94c39a48d497caa39ecdad5ef64a931b31c6592354a142497bc3db2e88494"},
+    {file = "openslide_bin-4.0.0.8-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:d9cb149af1a5c2eddbc0e3b75f552d932a840689f011d53724912de37071cc40"},
+    {file = "openslide_bin-4.0.0.8-py3-none-win_amd64.whl", hash = "sha256:a06abf5b6f7807fa7aad2b240496a1d825cbd885267d521458eacbcfd782ed44"},
+]
+
+[[package]]
 name = "openslide-python"
 version = "1.4.2"
 description = "Python interface to OpenSlide"
@@ -2550,4 +2564,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "73ecf51864ff30383de7c99f3a61bf1611ed55cc46ebb6f3e04fcdf4a2b46b08"
+content-hash = "2c5c68576fbe6672088e86277dd6efbee7411afd814c9885797bc298417fd438"
