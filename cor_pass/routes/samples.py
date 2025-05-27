@@ -91,7 +91,7 @@ async def update_sample_macrodescription(
 
 
 @router.delete(
-    "/",
+    "/delete",
     response_model=DeleteSampleResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,

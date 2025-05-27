@@ -58,3 +58,4 @@ async def delete_glasses_endpoint(
     """Удаляет несколько стекол по их ID."""
     result = await glass_service.delete_glasses(db=db, glass_ids=request_body.glass_ids)
     return result
+

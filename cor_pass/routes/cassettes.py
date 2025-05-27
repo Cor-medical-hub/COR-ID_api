@@ -70,7 +70,7 @@ async def update_cassette_comment(
 
 
 @router.delete(
-    "/",
+    "/delete",
     response_model=DeleteCassetteResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
