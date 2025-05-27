@@ -103,8 +103,7 @@ async def signup(
 
     # Создаём токены
     access_token = await auth_service.create_access_token(
-        data={"oid": str(new_user.id), "corid": new_user.cor_id, "roles": user_roles},
-        expires_delta=12,
+        data={"oid": str(new_user.id), "corid": new_user.cor_id, "roles": user_roles}
     )
     refresh_token = await auth_service.create_refresh_token(
         data={"oid": str(new_user.id), "corid": new_user.cor_id, "roles": user_roles}
