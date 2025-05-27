@@ -259,7 +259,7 @@ async def get_case_parameters(
         )
         return responce
     else:
-        return {f"Параметры кейса не найдены"}
+        return None
 
 
 async def update_case_parameters(
@@ -304,8 +304,9 @@ async def update_case_parameters(
             fixation=case_parameters_db.fixation,
         )
         return responce
+    else:
+        return None
 
-    return {f"case {case_id} parameters updated"}
 
 
 async def get_single_case(db: AsyncSession, case_id: str) -> db_models.Case | None:
