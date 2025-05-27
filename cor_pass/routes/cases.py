@@ -26,7 +26,7 @@ router = APIRouter(prefix="/cases", tags=["Cases"])
 
 
 @router.post(
-    "/",
+    "/create",
     dependencies=[Depends(doctor_access)],
     response_model=PatientFirstCaseDetailsResponse,
 )
@@ -106,7 +106,7 @@ async def update_case_parameters(
 
 
 @router.delete(
-    "/",
+    "/delete",
     response_model=DeleteCasesResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
@@ -166,43 +166,6 @@ async def update_case_code(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-
-
-
-# @router.post("/referrals/", response_model=ReferralResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(doctor_access)])
-# async def create_new_referral(
-#     case_id: str,
-#     referral_data: ReferralCreate,
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     """
-#     **Создание нового направления**\n
-#     Создает новую запись о направлении со всей основной информацией.
-#     """
-#     # Проверка, существует ли Case с таким case_id, если это необходимо
-#     # from models import Case # Импортировать вашу модель Case
-#     case = await case_service.get_case(db, case_id)
-#     if not case:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated Case not found")
-
-#     db_referral = await case_service.create_referral(db, referral_data)
-#     # Формируем URLs для вложений (их пока нет, но для совместимости схемы)
-#     attachments_response = [
-#         ReferralAttachmentResponse(
-#             id=att.id,
-#             filename=att.filename,
-#             content_type=att.content_type,
-#             file_url=router.url_path_for("get_referral_attachment", attachment_id=att.id)
-#         ) for att in db_referral.attachments
-#     ]
-
-#     # Сначала создаем модель из SQLAlchemy-объекта
-#     referral_response_obj = ReferralResponse.model_validate(db_referral)
-
-#     # Затем явно присваиваем отформатированный список вложений
-#     referral_response_obj.attachments = attachments_response
-
-#     return referral_response_obj
 
 @router.post("/referrals/upsert", response_model=ReferralResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(doctor_access)])
 async def upsert_referral_endpoint(

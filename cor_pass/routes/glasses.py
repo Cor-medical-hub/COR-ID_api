@@ -47,7 +47,7 @@ async def read_glass_info(glass_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete(
-    "/glasses",
+    "/delete",
     response_model=DeleteGlassesResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
@@ -58,3 +58,4 @@ async def delete_glasses_endpoint(
     """Удаляет несколько стекол по их ID."""
     result = await glass_service.delete_glasses(db=db, glass_ids=request_body.glass_ids)
     return result
+

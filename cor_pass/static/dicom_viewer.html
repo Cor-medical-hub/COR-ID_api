@@ -12,6 +12,35 @@
 </head>
 <body>
 
+  <div id="Dicom_upload_modal" class="modal" style="display: block;">
+
+    <div class="modal-header">     
+      <div class="modal-buttons">
+          <button class="modal-button close" data-action="close" id="closeDicom_upload_modal">✖</button>
+      </div>       
+      <h3 style="margin-top:30; color:#291161;font-size: 17px;">Upload Medical Files</h3>
+    </div>  
+      
+    <div class="dicom-upload-container">
+      <input type="file" id="dicom-upload" accept=".zip,.dcm" multiple>
+      <button onclick="handleUpload()">Upload DICOM files</button>
+      <div class="dicom-progress-container">
+
+          <div class="dicom-progress-bar" id="progress-bar">0%</div>
+      </div>
+      <div class="file-info" id="file-info"></div>
+      <div id="upload-status"></div>
+
+      <div class="svs-preview-container" id="svs-preview-container" style="display: none;">
+        <h3 style="margin-top:5px;margin-bottom:5px;  color: #7527B2; font-size: 15px;">SVS Preview</h3>
+        <img id="svs-thumbnail" src="" alt="SVS Thumbnail" style="max-width: 512px; border: 1px solid #ccc;" />
+      </div>
+    </div>
+    
+  </div>
+
+
+
   <div class="viewer">
     <div class="view">
       <label class="label-padded">Coronal</label> 
@@ -44,7 +73,7 @@
     </div>
 
     <div class="dicom-upload-container">
-      <input type="file" id="dicom-upload" accept=".zip,.dcm" multiple>
+   <!--  <input type="file" id="dicom-upload" accept=".zip,.dcm" multiple>
       <button onclick="handleUpload()">Upload DICOM files</button>
       <div class="dicom-progress-container">
 
@@ -53,13 +82,17 @@
       <div class="file-info" id="file-info"></div>
       <div id="upload-status"></div>
 
+      <div class="svs-preview-container" id="svs-preview-container" style="display: none;">
+        <h3 style="margin-top:5px;margin-bottom:5px;  color: #7527B2; font-size: 15px;">SVS Preview</h3>
+        <img id="svs-thumbnail" src="" alt="SVS Thumbnail" style="max-width: 512px; border: 1px solid #ccc;" />
+      </div> --> 
 
       <div class="metadata-container" id="metadata-container" style="display: none;">
         <h3 style="margin-top:5px;margin-bottom:5px;  color: #7527B2; font-size: 15px;">DICOM Metadata</h3>
         <div id="metadata-content"></div>
       </div>
 
-      <div class="viewer-controls">
+      <div class="viewer-controls" id="viewer-controls">
         <label>View Mode:
           <select id="view-mode" onchange="updateViewMode()">
             <option value="auto">Auto (Window Level)</option>
@@ -79,7 +112,8 @@
 
   </div>
 
-
+  <script src="/static/translation.js"></script>  
+  <script src="/static/general_fun.js"></script>   
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   
   <script>
@@ -113,7 +147,7 @@ function applyManualWindow() {
 }
 
 
-    async function update(plane, callback) {
+async function update(plane, callback) {
     const idx = parseInt(document.getElementById(plane).value);
     const canvas = document.getElementById('canvas-' + plane);
     const ctx = canvas.getContext('2d');
@@ -127,7 +161,10 @@ function applyManualWindow() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         drawCrossOnPlane(ctx, plane);
-        if (callback) callback();
+        // Добавляем проверку, является ли callback функцией перед вызовом
+        if (callback && typeof callback === 'function') {
+            callback();
+        }
     };
 
     // Создаем URL с параметрами
@@ -163,7 +200,7 @@ function applyManualWindow() {
             window.location.href = '/';
         }
     }
-}    
+}
 
     // Добавление метки по клику
  function addMarker(event, plane) {
@@ -279,132 +316,229 @@ function applyManualWindow() {
 
 <script>
  
-async function handleUpload() {
-    const fileInput = document.getElementById('dicom-upload');
-    const statusDiv = document.getElementById('upload-status');
-    const progressBar = document.getElementById('progress-bar');
-    const fileInfoDiv = document.getElementById('file-info');
-    const metadataContainer = document.getElementById('metadata-container');
-    const metadataContent = document.getElementById('metadata-content');
-    
-    if (!fileInput.files.length) {
-        statusDiv.textContent = 'Please select files';
-        return;
+ async function handleUpload() {
+  const fileInput = document.getElementById('dicom-upload');
+  const statusDiv = document.getElementById('upload-status');
+  const progressBar = document.getElementById('progress-bar');
+  const fileInfoDiv = document.getElementById('file-info');
+  const metadataContainer = document.getElementById('metadata-container');
+  const metadataContent = document.getElementById('metadata-content');
+  const svsPreviewContainer = document.getElementById('svs-preview-container');
+  const dcmViewerControls = document.getElementById('viewer-controls');
+  const svsThumbnail = document.getElementById('svs-thumbnail');
+
+  if (!fileInput.files.length) {
+    statusDiv.textContent = 'Please select files';
+    return;
+  }
+
+  statusDiv.textContent = 'Preparing upload...';
+  progressBar.style.width = '0%';
+  progressBar.textContent = '0%';
+  metadataContainer.style.display = 'none';
+  svsPreviewContainer.style.display = 'none';
+
+  const formData = new FormData();
+  let totalSize = 0;
+  let fileCount = 0;
+
+  const token = localStorage.getItem('authToken') || 
+                new URLSearchParams(window.location.search).get('access_token');
+
+  for (const file of fileInput.files) {
+    const fileName = file.name;
+    const parts = fileName.split('.');
+    const fileExt = (parts.length > 1) ? parts.pop().toLowerCase() : '';
+    if (fileExt === '' || ['dcm', 'zip', 'svs'].includes(fileExt)) {
+      formData.append('files', file);
+      totalSize += file.size;
+      fileCount++;
+    }
+  }
+
+  if (fileCount === 0) {
+    statusDiv.textContent = 'No valid files selected';
+    return;
+  }
+
+  fileInfoDiv.textContent = `Selected ${fileCount} files (${formatFileSize(totalSize)})`;
+  statusDiv.textContent = 'Uploading...';
+
+  try {
+    const response = await fetch('/api/dicom/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    statusDiv.textContent = 'Preparing upload...';
-    progressBar.style.width = '0%';
-    progressBar.textContent = '0%';
-    metadataContainer.style.display = 'none';
-    
-    const formData = new FormData();
-    let totalSize = 0;
-    let fileCount = 0;
-    
-    // Получаем токен 
-    const token = localStorage.getItem('authToken') || 
-                  new URLSearchParams(window.location.search).get('access_token');
-    
-    // Добавляем файлы
-    for (const file of fileInput.files) {
-        const fileName = file.name;
-        const parts = fileName.split('.');
-        const hasExtension = parts.length > 1;
-        const fileExt = hasExtension ? parts.pop().toLowerCase() : '';
-        const accessToken = new URLSearchParams(window.location.search).get('access_token');
+    const result = await response.json();
+    statusDiv.textContent = result.message;
+    progressBar.style.width = '100%';
+    progressBar.textContent = '100%';
 
-        // Разрешаем файлы без расширения или с .dcm/.zip
-        if (fileExt === '' || fileExt === 'dcm' || fileExt === 'zip') {
-            formData.append('files', file);
-            totalSize += file.size;
-            fileCount++;
-        }
-    }
-    
-    
-    if (fileCount === 0) {
-        statusDiv.textContent = 'No valid files selected';
-        return;
-    }
-    
-    fileInfoDiv.textContent = `Selected ${fileCount} files (${formatFileSize(totalSize)})`;
-    statusDiv.textContent = 'Uploading...';
-    
-    try {
-    
-        const token = localStorage.getItem('authToken') || 
-        new URLSearchParams(window.location.search).get('access_token');
-        const response = await fetch('/api/dicom/upload', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
+    // Проверяем сообщение — SVS или DICOM
+    if (result.message.includes('SVS')) {
+      // Отображаем миниатюру SVS
+      try {
+        const previewResponse = await fetch('/api/dicom/preview_svs', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (!previewResponse.ok) {
+          throw new Error('Failed to load SVS preview');
         }
 
-        const result = await response.json();
-        statusDiv.textContent = result.message;
-        progressBar.style.width = '100%';
-        progressBar.textContent = '100%';
+        const blob = await previewResponse.blob();
+        svsThumbnail.src = URL.createObjectURL(blob);
+        svsPreviewContainer.style.display = 'block';
+        dcmViewerControls.style.display = 'none';
+        metadataContainer.style.display = 'none';
 
-      
-        const volumeInfo = await fetch('/api/dicom/volume_info', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        }).then(r => r.json());
-        
-        updateSliders(volumeInfo);
 
-        // Получаем метаданные с токеном
+ 
+        // Загружаем метаданные SVS
         try {
-            const metadata = await fetch("/api/dicom/metadata", {
+            const metadataResponse = await fetch('/api/dicom/svs_metadata', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
-            }).then(res => res.json());
+            });
             
-            metadataContainer.style.display = 'block';
-            metadataContent.innerHTML = `
-                        <p><strong>Dimensions:</strong> Axial: ${metadata.shape.depth}, Coronal: ${metadata.shape.height}, Sagittal: ${metadata.shape.width}</p>
-                        <p><strong>Spacing:</strong> X: ${metadata.spacing.x.toFixed(2)} mm, Y: ${metadata.spacing.y.toFixed(2)} mm, Z: ${metadata.spacing.z.toFixed(2)} mm</p>
+            if (metadataResponse.ok) {
+                const svsMetadata = await metadataResponse.json();
+                metadataContainer.style.display = 'block';
+                
+                // Форматируем метаданные для отображения
+                                let metadataHTML = `
+                    <h4>Basic Information</h4>
+                    <p><strong>Filename:</strong> ${svsMetadata.filename}</p>
+                    <p><strong>Dimensions:</strong> ${svsMetadata.dimensions.width.toLocaleString()} × ${svsMetadata.dimensions.height.toLocaleString()} px (Levels: ${svsMetadata.dimensions.levels})</p>
+                    <p><strong>Microns per pixel:</strong> ${svsMetadata.basic_info.mpp}</p>
+                    <p><strong>Magnification:</strong> ${svsMetadata.basic_info.magnification}x</p>
+                    <p><strong>Scan Date:</strong> ${svsMetadata.basic_info.scan_date}</p>
+                    <p><strong>Scanner:</strong> ${svsMetadata.basic_info.scanner}</p>
 
-                        <p><strong>Study UID:</strong> ${metadata.study_info.StudyInstanceUID}</p>
-                        <p><strong>Series UID:</strong> ${metadata.study_info.SeriesInstanceUID}</p>
-                        <p><strong>Modality:</strong> ${metadata.study_info.Modality}</p>
-                        <p><strong>Date:</strong> ${metadata.study_info.StudyDate}</p>
+                    <h4>Slide Properties</h4>
+                    <table class="metadata-table">
+                        <tr><td><strong>Vendor</strong></td><td>${svsMetadata.basic_info.vendor}</td></tr>
+                        <tr><td><strong>Format</strong></td><td>${svsMetadata.full_properties['tiff.ImageDescription']?.split('|')[0] || 'N/A'}</td></tr>
+                    </table>
 
-                        <p><strong>Patient:</strong> ${metadata.study_info.PatientName}</p>
-                        <p><strong>Birth Date:</strong> ${metadata.study_info.PatientBirthDate}</p>
+                    <h4>Level Details</h4>
+                    <div class="level-details">
+                        <table class="metadata-table">
+                            <thead>
+                                <tr>
+                                    <th>Level</th>
+                                    <th>Downsample</th>
+                                    <th>Dimensions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${svsMetadata.levels.map((level, i) => `
+                                    <tr>
+                                        <td>${i}</td>
+                                        <td>${level.downsample.toFixed(1)}</td>
+                                        <td>${level.width.toLocaleString()} × ${level.height.toLocaleString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
 
-                        <p><strong>Manufacturer:</strong> ${metadata.study_info.Manufacturer}</p>
-                        <p><strong>Model:</strong> ${metadata.study_info.DeviceModel}</p>
-
-                        <p><strong>KVP:</strong> ${metadata.study_info.KVP}</p>
-                        <p><strong>Current (mA):</strong> ${metadata.study_info.XRayTubeCurrent}</p>
-                        <p><strong>Exposure (mAs):</strong> ${metadata.study_info.Exposure}</p>
-                      `;
-        } catch (error) {
-            console.error("Error fetching metadata:", error);
-            metadataContent.innerHTML = "<p>Failed to load metadata</p>";
+                    <h4>Technical Metadata</h4>
+                    <details>
+                      <summary>Show full metadata</summary>
+                      <pre>${
+                        svsMetadata.full_properties 
+                          ? Object.entries(svsMetadata.full_properties).map(([k, v]) => `${k}: ${v}`).join('\n') 
+                          : 'No technical metadata available.'
+                      }</pre>
+                    </details>
+                `;
+                                
+                // Добавляем все свойства
+                if (svsMetadata.properties && typeof svsMetadata.properties === 'object') {
+                  for (const [key, value] of Object.entries(svsMetadata.properties)) {
+                    metadataHTML += `<p><strong>${key}:</strong> ${value}</p>`;
+                  }
+                }
+                
+                metadataContent.innerHTML = metadataHTML;
+            }
+        } catch (metadataError) {
+            console.error("Error loading SVS metadata:", metadataError);
+            metadataContent.innerHTML = "<p>Failed to load SVS metadata</p>";
         }
-        
-        ['axial', 'sagittal', 'coronal'].forEach(update);
 
-    } catch (error) {
-        statusDiv.textContent = `Error: ${error.message}`;
-        progressBar.style.background = '#f44336';
-        
-        // Если ошибка 401 (Unauthorized), перенаправляем на страницу авторизации
-        if (error.message.includes('401')) {
-            window.location.href = '/';
+
+
+
+      } catch (err) {
+        console.error("Error loading SVS preview:", err);
+        svsPreviewContainer.style.display = 'none';
+      }
+
+    } else {
+      // Предполагаем, что это DICOM
+      svsPreviewContainer.style.display = 'none';
+
+      const volumeInfo = await fetch('/api/dicom/volume_info', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
+      }).then(r => r.json());
+
+      updateSliders(volumeInfo);
+
+      try {
+        const metadata = await fetch("/api/dicom/metadata", {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).then(res => res.json());
+
+        metadataContainer.style.display = 'block';
+        metadataContent.innerHTML = `
+          <p><strong>Dimensions:</strong> Axial: ${metadata.shape.depth}, Coronal: ${metadata.shape.height}, Sagittal: ${metadata.shape.width}</p>
+          <p><strong>Spacing:</strong> X: ${metadata.spacing.x.toFixed(2)} mm, Y: ${metadata.spacing.y.toFixed(2)} mm, Z: ${metadata.spacing.z.toFixed(2)} mm</p>
+          <p><strong>Study UID:</strong> ${metadata.study_info.StudyInstanceUID}</p>
+          <p><strong>Series UID:</strong> ${metadata.study_info.SeriesInstanceUID}</p>
+          <p><strong>Modality:</strong> ${metadata.study_info.Modality}</p>
+          <p><strong>Date:</strong> ${metadata.study_info.StudyDate}</p>
+          <p><strong>Patient:</strong> ${metadata.study_info.PatientName}</p>
+          <p><strong>Birth Date:</strong> ${metadata.study_info.PatientBirthDate}</p>
+          <p><strong>Manufacturer:</strong> ${metadata.study_info.Manufacturer}</p>
+          <p><strong>Model:</strong> ${metadata.study_info.DeviceModel}</p>
+          <p><strong>KVP:</strong> ${metadata.study_info.KVP}</p>
+          <p><strong>Current (mA):</strong> ${metadata.study_info.XRayTubeCurrent}</p>
+          <p><strong>Exposure (mAs):</strong> ${metadata.study_info.Exposure}</p>
+        `;
+      } catch (error) {
+        console.error("Error fetching metadata:", error);
+        metadataContent.innerHTML = "<p>Failed to load metadata</p>";
+      }
+
+      ['axial', 'sagittal', 'coronal'].forEach(update);
     }
+
+  } catch (error) {
+    statusDiv.textContent = `Error: ${error.message}`;
+    progressBar.style.background = '#f44336';
+    if (error.message.includes('401')) {
+      window.location.href = '/';
+    }
+  }
 }
+
 
 
 function updateSliders(volumeInfo) {
@@ -432,7 +566,7 @@ function updateSliders(volumeInfo) {
 // Функция для обновления отображаемого значения ползунка
 function updateSliderValue(plane) {
   const slider = document.getElementById(plane);
-  const valueDisplay = slider.nextElementSibling; // Предполагаем, что следующий элемент - это span для значения
+  const valueDisplay = slider.nextElementSibling; 
   if (valueDisplay && valueDisplay.classList.contains('dcm-range-value')) {
     valueDisplay.textContent = slider.value;
   }
@@ -446,7 +580,14 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
   </script>
+ <script> 
+ document.addEventListener('DOMContentLoaded', () => {
+ 
   
+  makeModalDraggable('Dicom_upload_modal');
+ 
+});
+</script>
 
 </body>
 </html>

@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Optional
+import uuid
 
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
@@ -14,6 +15,7 @@ from cor_pass.database.models import Device, DeviceAccess
 from cor_pass.repository import person as repository_users
 from cor_pass.repository import device as repository_devices
 from cor_pass.config.config import settings
+from cor_pass.services import redis_service
 from cor_pass.services.logger import logger
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,15 +67,16 @@ class Auth:
             expire = datetime.now(timezone.utc) + timedelta(
                 seconds=settings.access_token_expiration
             )
+        jti = str(uuid.uuid4())
         to_encode.update(
-            {"iat": datetime.now(timezone.utc), "exp": expire, "scp": "access_token"}
+            {"iat": datetime.now(timezone.utc), "exp": expire, "scp": "access_token", "jti": jti}
         )
 
         encoded_access_token = jwt.encode(
             to_encode, key=self.SECRET_KEY, algorithm=self.ALGORITHM
         )
         logger.debug(f"Access token: {encoded_access_token}")
-        return encoded_access_token
+        return encoded_access_token, jti
 
     async def create_refresh_token(
         self, data: dict, expires_delta: Optional[float] = None
@@ -96,8 +99,9 @@ class Auth:
             expire = datetime.now(timezone.utc) + timedelta(
                 hours=settings.refresh_token_expiration
             )
+        jti = str(uuid.uuid4())
         to_encode.update(
-            {"iat": datetime.now(timezone.utc), "exp": expire, "scp": "refresh_token"}
+            {"iat": datetime.now(timezone.utc), "exp": expire, "scp": "refresh_token", "jti": jti}
         )
 
         encoded_refresh_token = jwt.encode(
@@ -167,8 +171,17 @@ class Auth:
             )
             # Проверяем, есть ли время истечения
             exp = payload.get("exp")
-            if exp is None:
+            jti = payload.get("jti")
+            if exp is None or jti is None: 
                 raise credentials_exception
+            
+            # Проверка черного списка Redis
+            if await redis_service.is_jti_blacklisted(jti):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been revoked.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
 
             # Сравниваем текущее время с временем истечения токена
             if datetime.fromtimestamp(exp) < datetime.now():

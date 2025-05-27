@@ -144,6 +144,7 @@ class UserSessionModel(BaseModel):
     ip_address: str
     device_os: str
     refresh_token: str
+    jti: str
 
 
 class UserSessionResponseModel(BaseModel):
@@ -155,6 +156,7 @@ class UserSessionResponseModel(BaseModel):
     device_os: str
     created_at: datetime
     updated_at: datetime
+    jti: Optional[str]
 
 
 class UserSessionDBModel(BaseModel):
