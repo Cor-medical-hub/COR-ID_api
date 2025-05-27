@@ -1058,6 +1058,31 @@ files = [
 ]
 
 [[package]]
+name = "openslide-python"
+version = "1.4.2"
+description = "Python interface to OpenSlide"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "openslide_python-1.4.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:b40ace8cb584a2d15bc563eb177a2b01d526f679f08d4d3d296f89edb650e8f4"},
+    {file = "openslide_python-1.4.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f03407e215d10b2282e9354dbeb724b3db119266dca87489d320d6285e18f259"},
+    {file = "openslide_python-1.4.2-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:9667942664fe3406c11b053a29c8327b6cc29de3b60840b8afe8cd490070b9e0"},
+    {file = "openslide_python-1.4.2-cp310-cp310-win_amd64.whl", hash = "sha256:281b7eb916605c1914f6bdea47696615a764ab236709acfc847e03bf5a807225"},
+    {file = "openslide_python-1.4.2-cp311-abi3-macosx_10_9_universal2.whl", hash = "sha256:0f459f0e071048a5e3cafbf814fdac92da55df9b07730a832b54b99191f8a612"},
+    {file = "openslide_python-1.4.2-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b24566c2167d5909b4f54d5ee53c1caada5ec1aa14921a19de67a694ed988765"},
+    {file = "openslide_python-1.4.2-cp311-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:69cc23d608120bc528399d006c47501ac5e390770d4d5090800defd51be1b595"},
+    {file = "openslide_python-1.4.2-cp311-abi3-win_amd64.whl", hash = "sha256:e53cfb967c0987c76a9b890bb9551e238b12a99d947362434a08d4aa40ba1739"},
+    {file = "openslide_python-1.4.2-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:2f246074995148e010eea8a7ad6028d0467f56095ad62696db548f103ccea630"},
+    {file = "openslide_python-1.4.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9a0f5efcf6fb494710ede6083d78510b273b4f63e8cc4536c20bf7242aa3c4d4"},
+    {file = "openslide_python-1.4.2-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:26c72a652c8f64209f215e9453393a65725400b9779994e4fa0bb1d12a212a2e"},
+    {file = "openslide_python-1.4.2-cp39-cp39-win_amd64.whl", hash = "sha256:c9b7e306fcbaaa1f8aa336ffb615f4349e2f5bbe1b6caa03a74980d7fbb7f0ad"},
+    {file = "openslide_python-1.4.2.tar.gz", hash = "sha256:610d7a71552afe7be33038c10d8a2b20b9824ca2836710870e81f193257411bc"},
+]
+
+[package.dependencies]
+Pillow = "*"
+
+[[package]]
 name = "orjson"
 version = "3.10.6"
 description = "Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy"
@@ -2525,4 +2550,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "86e711326ca6e023f70f25f6edadce391e6394d9ce7a14e75cb7f98d2474c4a4"
+content-hash = "73ecf51864ff30383de7c99f3a61bf1611ed55cc46ebb6f3e04fcdf4a2b46b08"

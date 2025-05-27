@@ -35,6 +35,7 @@ pydicom = "^3.0.1"
 asyncpg = "^0.30.0"
 numpy = "^2.2.5"
 scikit-image = "^0.25.2"
+openslide-python = "^1.4.2"
 
 
 [build-system]
