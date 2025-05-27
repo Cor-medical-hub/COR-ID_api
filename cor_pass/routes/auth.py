@@ -102,7 +102,7 @@ async def signup(
     user_roles = await repository_person.get_user_roles(email=body.email, db=db)
 
     # Создаём токены
-    access_token = await auth_service.create_access_token(
+    access_token, access_token_jti = await auth_service.create_access_token(
         data={"oid": str(new_user.id), "corid": new_user.cor_id, "roles": user_roles}
     )
     refresh_token = await auth_service.create_refresh_token(
@@ -117,7 +117,8 @@ async def signup(
         "device_type": device_information["device_type"],  # Тип устройства
         "device_info": device_information["device_info"],  # Информация об устройстве
         "ip_address": device_information["ip_address"],  # IP-адрес
-        "device_os": device_information["device_os"],  # Операционная система
+        "device_os": device_information["device_os"],
+        "jti": access_token_jti  # Идентификатор актуального access токена  # Операционная система
     }
     new_session = await repository_session.create_user_session(
         body=UserSession(**session_data),  # Передаём данные для сессии
@@ -227,7 +228,7 @@ async def login(
         else None
     )
 
-    access_token = await auth_service.create_access_token(
+    access_token, access_token_jti = await auth_service.create_access_token(
         data=token_data, expires_delta=expires_delta
     )
     refresh_token = await auth_service.create_refresh_token(
@@ -241,7 +242,8 @@ async def login(
         "device_type": device_information["device_type"],  # Тип устройства
         "device_info": device_information["device_info"],  # Информация об устройстве
         "ip_address": device_information["ip_address"],  # IP-адрес
-        "device_os": device_information["device_os"],  # Операционная система
+        "device_os": device_information["device_os"],
+        "jti": access_token_jti  # Идентификатор актуального access токена
     }
     new_session = await repository_session.create_user_session(
         body=UserSessionModel(**session_data),  # Передаём данные для сессии
@@ -407,7 +409,7 @@ async def confirm_login(
             else None
         )
 
-        access_token = await auth_service.create_access_token(
+        access_token, access_token_jti = await auth_service.create_access_token(
             data=token_data, expires_delta=expires_delta
         )
         refresh_token = await auth_service.create_refresh_token(
@@ -514,25 +516,23 @@ async def refresh_token(
     # Проверка ролей
     user_roles = await repository_person.get_user_roles(email=user.email, db=db)
 
-    if user.email in settings.eternal_accounts:
-        access_token = await auth_service.create_access_token(
-            data={"oid": str(user.id), "corid": user.cor_id, "roles": user_roles},
-            expires_delta=settings.eternal_token_expiration,
-        )
-        refresh_token = await auth_service.create_refresh_token(
-            data={"oid": str(user.id), "corid": user.cor_id, "roles": user_roles},
-            expires_delta=settings.eternal_token_expiration,
-        )
-    else:
-        access_token = await auth_service.create_access_token(
-            data={"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
-        )
-        refresh_token = await auth_service.create_refresh_token(
-            data={"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
-        )
+    # Получаем токены
+    token_data = {"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
+    expires_delta = (
+        settings.eternal_token_expiration
+        if user.email in settings.eternal_accounts
+        else None
+    )
+
+    access_token, access_token_jti = await auth_service.create_access_token(
+        data=token_data, expires_delta=expires_delta
+    )
+    refresh_token = await auth_service.create_refresh_token(
+        data=token_data, expires_delta=expires_delta
+    )
 
     await repository_session.update_session_token(
-        user, refresh_token, device_information["device_info"], db
+        user=user, token=refresh_token, device_info=device_information["device_info"], db=db, jti=access_token_jti
     )
     logger.debug(
         f"{user.email}'s refresh token updated for device {device_information.get('device_info')}"
@@ -720,13 +720,19 @@ async def restore_account_by_text(
     # Проверка ролей
     user_roles = await repository_person.get_user_roles(email=user.email, db=db)
 
-    # Создаём токены
-    access_token = await auth_service.create_access_token(
-        data={"oid": str(user.id), "corid": user.cor_id, "roles": user_roles},
-        expires_delta=12,
+    # Получаем токены
+    token_data = {"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
+    expires_delta = (
+        settings.eternal_token_expiration
+        if user.email in settings.eternal_accounts
+        else None
+    )
+
+    access_token, access_token_jti = await auth_service.create_access_token(
+        data=token_data, expires_delta=expires_delta
     )
     refresh_token = await auth_service.create_refresh_token(
-        data={"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
+        data=token_data, expires_delta=expires_delta
     )
 
     # Создаём новую сессию
@@ -738,6 +744,7 @@ async def restore_account_by_text(
         "device_info": device_information["device_info"],  # Информация об устройстве
         "ip_address": device_information["ip_address"],  # IP-адрес
         "device_os": device_information["device_os"],  # Операционная система
+        "jti": access_token_jti  # Идентификатор актуального access токена
     }
     new_session = await repository_session.create_user_session(
         body=UserSession(**session_data),  # Передаём данные для сессии
@@ -799,12 +806,18 @@ async def upload_recovery_file(
         )
         await db.commit()
 
-        access_token = await auth_service.create_access_token(
-            data={"oid": str(user.id), "corid": user.cor_id, "roles": user_roles},
-            expires_delta=12,
+        # Получаем токены
+        token_data = {"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
+        expires_delta = (
+            settings.eternal_token_expiration
+            if user.email in settings.eternal_accounts
+            else None
+        )
+        access_token, access_token_jti = await auth_service.create_access_token(
+            data=token_data, expires_delta=expires_delta
         )
         refresh_token = await auth_service.create_refresh_token(
-            data={"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
+            data=token_data, expires_delta=expires_delta
         )
         # Создаём новую сессию
         device_information = di.get_device_info(request)
@@ -817,6 +830,7 @@ async def upload_recovery_file(
             ],  # Информация об устройстве
             "ip_address": device_information["ip_address"],  # IP-адрес
             "device_os": device_information["device_os"],  # Операционная система
+            "jti": access_token_jti  # Идентификатор актуального access токена
         }
         new_session = await repository_session.create_user_session(
             body=UserSession(**session_data),  # Передаём данные для сессии

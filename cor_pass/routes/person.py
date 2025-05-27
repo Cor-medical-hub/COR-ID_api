@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from datetime import datetime, timedelta
 from cor_pass.database.db import get_db
+from cor_pass.services import redis_service
 from cor_pass.services.auth import auth_service
 from cor_pass.services.cipher import decrypt_data, decrypt_user_key
 from cor_pass.services.qr_code import generate_qr_code
@@ -20,6 +21,7 @@ from cor_pass.schemas import (
 from cor_pass.repository import person
 from cor_pass.repository import cor_id as repository_cor_id
 from cor_pass.repository import user_session as repository_session
+from cor_pass.config.config import settings
 from pydantic import EmailStr
 from fastapi.responses import StreamingResponse
 from typing import List
@@ -501,9 +503,23 @@ async def remove_session(
     :rtype: UserSessionResponseModel
     :raises HTTPException 404: If the session with the specified ID does not exist.
     """
+    session_to_revoke = await repository_session.get_session_by_id(db=db, session_id=session_id, user=current_user)
+    if not session_to_revoke:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Сессия не найдена.")
+    
+    # Убеждаемся, что отзываемая сессия принадлежит текущему пользователю
+    if session_to_revoke.user_id != current_user.cor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Вы не можете отозвать чужую сессию.")
+    # Добавляем JTI Access токена этой сессии в черный список Redis
+    if session_to_revoke.jti:
+        # Срок жизни в блэклисте должен быть равен или больше, чем максимальное время жизни Access Token
+        blacklist_expires = timedelta(seconds=settings.access_token_expiration)
+        await redis_service.add_jti_to_blacklist(session_to_revoke.jti, blacklist_expires)
+
     session = await repository_session.delete_session(current_user, db, session_id)
     if session is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
         )
+    
     return session
