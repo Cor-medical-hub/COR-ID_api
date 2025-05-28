@@ -10,7 +10,7 @@ from cor_pass.schemas import (
 from cor_pass.repository import glass as glass_service
 from typing import List
 
-from cor_pass.services.access import user_access, doctor_access
+from cor_pass.services.access import doctor_access
 
 router = APIRouter(prefix="/glasses", tags=["Glass"])
 

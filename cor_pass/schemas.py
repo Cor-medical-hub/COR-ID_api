@@ -157,6 +157,10 @@ class UserSessionResponseModel(BaseModel):
     created_at: datetime
     updated_at: datetime
     jti: Optional[str]
+    country_code: Optional[str] = None
+    country_name: Optional[str] = None
+    region_name: Optional[str] = None
+    city_name: Optional[str] = None
 
 
 class UserSessionDBModel(BaseModel):

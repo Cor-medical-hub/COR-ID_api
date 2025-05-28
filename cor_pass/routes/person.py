@@ -4,6 +4,7 @@ from cor_pass.database.db import get_db
 from cor_pass.services import redis_service
 from cor_pass.services.auth import auth_service
 from cor_pass.services.cipher import decrypt_data, decrypt_user_key
+from cor_pass.services.ip2_location import get_ip_geolocation
 from cor_pass.services.qr_code import generate_qr_code
 from cor_pass.services.recovery_file import generate_recovery_file
 from cor_pass.services.email import send_email_code_with_qr
@@ -439,7 +440,8 @@ async def read_sessions(
     :rtype: List[UserSessionResponseModel]
     """
     try:
-        sessions = await repository_session.get_all_user_sessions(
+        # Получаем все сессии пользователя из базы данных
+        sessions_from_db = await repository_session.get_all_user_sessions(
             db, current_user.cor_id, skip, limit
         )
     except Exception as e:
@@ -449,7 +451,29 @@ async def read_sessions(
             detail="Internal server error",
         )
 
-    return sessions
+    # Создаем список для результатов с геолокацией
+    response_sessions = []
+    for session in sessions_from_db:
+        # Для каждой сессии получаем данные геолокации по IP-адресу
+        geolocation_data = get_ip_geolocation(session.ip_address)
+
+        # Создаем экземпляр UserSessionResponseModel, объединяя данные сессии и геолокации
+        session_response = UserSessionResponseModel(
+            id=session.id,
+            user_id=session.user_id,
+            device_type=session.device_type,
+            device_info=session.device_info,
+            ip_address=session.ip_address,
+            device_os=session.device_os,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            jti=session.jti,
+            # Распаковываем словарь с геолокацией
+            **geolocation_data
+        )
+        response_sessions.append(session_response)
+
+    return response_sessions
 
 
 @router.get(
@@ -483,7 +507,22 @@ async def read_session_info(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
         )
-    return user_session
+     # Получаем данные геолокации
+    geolocation_data = get_ip_geolocation(user_session.ip_address)
+    response_data = {
+        "id": user_session.id,
+        "user_id": user_session.user_id,
+        "device_type": user_session.device_type,
+        "device_info": user_session.device_info,
+        "ip_address": user_session.ip_address,
+        "device_os": user_session.device_os,
+        "created_at": user_session.created_at,
+        "updated_at": user_session.updated_at,
+        "jti": user_session.jti,
+        **geolocation_data # Распаковываем словарь с геолокацией
+    }
+
+    return UserSessionResponseModel(**response_data)
 
 
 @router.delete("/sessions/{session_id}", response_model=UserSessionResponseModel)
@@ -494,7 +533,6 @@ async def remove_session(
 ):
     """
     **Remove a session. / Удаление сессии** \n
-
     :param session_id: The ID of the session to remove.
     :type session_id: str
     :param db: The database session. Dependency on get_db.
@@ -507,12 +545,9 @@ async def remove_session(
     if not session_to_revoke:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Сессия не найдена.")
     
-    # Убеждаемся, что отзываемая сессия принадлежит текущему пользователю
     if session_to_revoke.user_id != current_user.cor_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Вы не можете отозвать чужую сессию.")
-    # Добавляем JTI Access токена этой сессии в черный список Redis
     if session_to_revoke.jti:
-        # Срок жизни в блэклисте должен быть равен или больше, чем максимальное время жизни Access Token
         blacklist_expires = timedelta(seconds=settings.access_token_expiration)
         await redis_service.add_jti_to_blacklist(session_to_revoke.jti, blacklist_expires)
 
