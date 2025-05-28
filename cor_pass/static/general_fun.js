@@ -13,7 +13,15 @@ const modalConfigs = {
     addPatientModal: { width: '460px', height: '700px', top: '15px', left: '300px' },
     addDeviceModal: { width: '250px', height: '550px', top: '50px', left: '250px' },
     Dicom_upload_modal: { width: '460px', height: 'auto', top: '20px', left: '300px' },
+    recovery_modal: { width: '250px', height: 'auto', top: '50px', left: '50px' },
 };
+
+
+  //Функция получения токена 
+  function getToken() {
+    return localStorage.getItem('access_token') || new URLSearchParams(window.location.search).get('access_token');
+  }
+  
 
 function makeModalDraggable(modalId) {
     const modal = document.getElementById(modalId);
