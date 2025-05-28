@@ -343,7 +343,11 @@ def get_metadata(current_user: User = Depends(auth_service.get_current_user)):
 
 
 @router.get("/preview_svs")
-def preview_svs(current_user: User = Depends(auth_service.get_current_user)):
+def preview_svs(
+    full: bool = Query(False),
+    level: int = Query(0),  # Добавляем параметр уровня
+    current_user: User = Depends(auth_service.get_current_user)
+):
     user_slide_dir = os.path.join(DICOM_ROOT_DIR, str(current_user.cor_id), "slides")
     svs_files = [f for f in os.listdir(user_slide_dir) if f.lower().endswith('.svs')]
 
@@ -354,9 +358,25 @@ def preview_svs(current_user: User = Depends(auth_service.get_current_user)):
 
     try:
         slide = OpenSlide(svs_path)
-        thumbnail = slide.get_thumbnail((300, 300))
+        
+        if full:
+            # Полное изображение в выбранном разрешении
+            level = min(level, slide.level_count - 1)  # Проверяем, чтобы уровень был допустимым
+            size = slide.level_dimensions[level]
+            
+            # Читаем регион целиком
+            img = slide.read_region((0, 0), level, size)
+            
+            # Конвертируем в RGB, если нужно
+            if img.mode == 'RGBA':
+                img = img.convert('RGB')
+        else:
+            # Миниатюра
+            size = (300, 300)
+            img = slide.get_thumbnail(size)
+        
         buf = BytesIO()
-        thumbnail.save(buf, format="PNG")
+        img.save(buf, format="PNG")
         buf.seek(0)
         return StreamingResponse(buf, media_type="image/png")
     except Exception as e:
@@ -409,3 +429,34 @@ def get_svs_metadata(current_user: User = Depends(auth_service.get_current_user)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+
+@router.get("/svs/{filename}")
+def get_svs_slide(
+    filename: str,
+    current_user: User = Depends(auth_service.get_current_user)
+):
+    slide_path = os.path.join(DICOM_ROOT_DIR, str(current_user.cor_id), "slides", filename)
+    
+    if not os.path.isfile(slide_path):
+        raise HTTPException(status_code=404, detail="Файл не найден")
+
+    try:
+        slide = OpenSlide(slide_path)
+
+        # Получаем самый высокий уровень детализации (обычно 0)
+        img = slide.read_region((0, 0), 0, slide.dimensions)
+        img = img.convert("RGB")
+
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
+
+        return StreamingResponse(buffer, media_type="image/png")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при чтении SVS: {e}")
+
