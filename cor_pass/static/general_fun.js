@@ -17,10 +17,7 @@ const modalConfigs = {
 };
 
 
-  //Функция получения токена 
-  function getToken() {
-    return localStorage.getItem('access_token') || new URLSearchParams(window.location.search).get('access_token');
-  }
+  
   
 
 function makeModalDraggable(modalId) {
