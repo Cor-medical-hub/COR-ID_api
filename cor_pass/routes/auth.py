@@ -620,7 +620,7 @@ async def confirm_email(body: VerificationModel, db: AsyncSession = Depends(get_
         confirmation = True
         logger.debug(f"Your {body.email} is confirmed")
         if exist_user:
-            access_token = await auth_service.create_access_token(
+            access_token, jti = await auth_service.create_access_token(
                 data={"oid": str(exist_user.id), "corid": exist_user.cor_id}
             )
         return {
