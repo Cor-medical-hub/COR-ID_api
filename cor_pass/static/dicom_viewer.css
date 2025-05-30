@@ -290,6 +290,10 @@ details pre {
   transform: scale(1.02);
 }
 
+#svs-thumbnail:active {
+  box-shadow: 0 0 5px #555;
+  transform: scale(0.99);
+}
 
 .svs-main-image.loading {
   background: url('/static/loading.gif') center center no-repeat;
