@@ -162,3 +162,5 @@ cython_debug/
 *.db
 docker-compose.yml
 Dockerfile
+docker-compose.yml
+Dockerfile
