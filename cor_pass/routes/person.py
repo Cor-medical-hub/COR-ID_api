@@ -171,23 +171,29 @@ async def get_user_email(
 
 @router.patch("/change_email")
 async def change_email(
-    email: str,
+    body: EmailSchema,
     current_user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     **Смена имейла авторизированного пользователя** \n
     """
+    existing_email = await person.get_user_by_email(body.email, db)
+    if existing_email:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Account already exist"
+        )
     user = await person.get_user_by_email(current_user.email, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+
         )
     else:
-        if email:
-            await person.change_user_email(email, user, db)
-            logger.debug(f"{current_user.id} - changed his email to {email}")
-            return {"message": f"User '{current_user.id}' changed his email to {email}"}
+        if body.email:
+            await person.change_user_email(body.email, user, db)
+            logger.debug(f"{current_user.id} - changed his email to {body.email}")
+            return {"message": f"User '{current_user.id}' changed his email to {body.email}"}
         else:
             logger.warning("Incorrect email input provided for user email change.")
             raise HTTPException(
