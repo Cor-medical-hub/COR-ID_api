@@ -13,6 +13,7 @@ from cor_pass.database.models import User
 from cor_pass.services.access import user_access
 from cor_pass.services.logger import logger
 from cor_pass.schemas import (
+    DeleteMyAccount,
     PasswordStorageSettings,
     MedicalStorageSettings,
     EmailSchema,
@@ -357,6 +358,7 @@ async def get_recovery_file(
 
 @router.delete("/delete_my_account")
 async def delete_my_account(
+    body: DeleteMyAccount,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(auth_service.get_current_user),
 ):
@@ -368,9 +370,12 @@ async def delete_my_account(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     else:
-        await person.delete_user_by_email(db=db, email=current_user.email)
-        logger.info(f"Account for user {current_user.email} was deleted")
-        return {"message": f" user {current_user.email} - was deleted"}
+        if auth_service.verify_password(body.password, current_user.password):
+            await person.delete_user_by_email(db=db, email=current_user.email)
+            logger.info(f"Account for user {current_user.email} was deleted")
+            return {"message": f" user {current_user.email} - was deleted"}
+        else:
+            return {"message": f"Password incorrect"}
 
 
 @router.get("/get_last_password_change")
@@ -569,11 +574,6 @@ async def remove_session(
     return session
 
 
-
-
-
-
-# Вспомогательная функция для формирования ProfileResponse
 async def _create_profile_response(db_profile, current_user, router_instance) -> ProfileResponse:
     """Формирует ProfileResponse, дешифруя поля и добавляя данные из User."""
     response_data = db_profile.__dict__.copy() # Копируем, чтобы не изменять исходный ORM объект
@@ -641,7 +641,6 @@ async def get_user_profile_endpoint(
         profile_data = ProfileCreate()
         db_profile = await person.upsert_user_profile(db, current_user.id, profile_data)
 
-    # Формируем ответ, используя вспомогательную функцию
     return await _create_profile_response(db_profile, current_user, router)
 
 
@@ -669,7 +668,7 @@ async def upload_profile_photo_endpoint(
 @router.get("/photo", status_code=status.HTTP_200_OK)
 async def get_profile_photo_endpoint(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(auth_service.get_current_user) # Photo всегда привязано к авторизованному пользователю
+    current_user: User = Depends(auth_service.get_current_user) 
 ):
     """
     **Получение фотографии профиля.**\n
