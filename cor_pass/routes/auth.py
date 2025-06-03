@@ -333,7 +333,7 @@ async def check_session_status(
         else None
     )
 
-    access_token = await auth_service.create_access_token(
+    access_token, access_token_jti = await auth_service.create_access_token(
         data=token_data, expires_delta=expires_delta
     )
     refresh_token = await auth_service.create_refresh_token(
