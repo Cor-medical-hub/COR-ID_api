@@ -1,5 +1,6 @@
 import base64
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+import re
 from fastapi import HTTPException, UploadFile
 from sqlalchemy import asc, desc, func, select
 from typing import List, Optional, Tuple, List
@@ -18,7 +19,9 @@ from cor_pass.database.models import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cor_pass.schemas import DoctorCreate
+from cor_pass.repository.patient import get_patient_by_corid
+from cor_pass.repository.person import get_user_by_corid
+from cor_pass.schemas import DoctorCreate, PatientDecryptedResponce
 from cor_pass.services.cipher import decrypt_data
 from cor_pass.config.config import settings
 
@@ -262,6 +265,61 @@ async def get_doctor_patients_with_status(
         )
 
     return result, total_count
+
+
+async def get_doctor_single_patient_with_status(
+    patient_cor_id: str,
+    db: AsyncSession,
+    doctor: Doctor,
+) -> PatientDecryptedResponce:
+    """
+    Получает информацию о конкретном пациенте для доктора, включая его статус и расшифрованные данные.
+    """
+    existing_patient = await get_patient_by_corid(cor_id=patient_cor_id, db=db)
+    if not existing_patient:
+        raise HTTPException(
+            status_code=404, detail=f"Пациент не найден"
+        )
+    stmt_status = select(DoctorPatientStatus).where(DoctorPatientStatus.patient_id == existing_patient.id).where(DoctorPatientStatus.doctor_id == doctor.id)
+    result_status = await db.execute(stmt_status)
+    result_status = result_status.scalar_one_or_none()
+
+    decoded_key = base64.b64decode(settings.aes_key)
+    decoded_key = base64.b64decode(settings.aes_key)
+    existing_patient.encrypted_surname = await decrypt_data(existing_patient.encrypted_surname, decoded_key)if existing_patient.encrypted_surname else None
+
+    existing_patient.encrypted_first_name = await decrypt_data(existing_patient.encrypted_first_name, decoded_key)if existing_patient.encrypted_first_name else None
+    existing_patient.encrypted_middle_name = await decrypt_data(existing_patient.encrypted_middle_name, decoded_key)if existing_patient.encrypted_middle_name else None
+
+    user_birth_year = existing_patient.birth_date
+    if user_birth_year is None and existing_patient.patient_cor_id:
+        cor_id_parts = existing_patient.patient_cor_id.split('-')
+        if len(cor_id_parts) > 1:
+            year_part = cor_id_parts[1]
+            numbers = re.findall(r'\d+', year_part)
+            if numbers:
+                try:
+                    user_birth_year = (numbers[0])
+                except ValueError:
+                    user_birth_year = None
+
+    patient_age: Optional[int] = None
+    if existing_patient.birth_date:
+        today = date.today()
+        patient_age = today.year - existing_patient.birth_date.year - \
+                        ((today.month, today.day) < (existing_patient.birth_date.month, existing_patient.birth_date.day))
+    response = PatientDecryptedResponce(
+        patient_cor_id = existing_patient.patient_cor_id,
+        surname = existing_patient.encrypted_surname,
+        first_name = existing_patient.encrypted_first_name,
+        middle_name = existing_patient.encrypted_middle_name,
+        sex = existing_patient.sex,
+        birth_date = user_birth_year,
+        status=result_status.status,
+        age=patient_age
+
+    )
+    return response
 
 
 async def upload_doctor_photo_service(

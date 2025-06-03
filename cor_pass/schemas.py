@@ -14,6 +14,7 @@ from datetime import datetime
 from cor_pass.database import models
 from cor_pass.database.models import (
     AccessLevel,
+    PatientStatus,
     Status,
     Doctor_Status,
     AuthSessionStatus,
@@ -593,6 +594,16 @@ class PatientResponce(BaseModel):
     birth_date: Optional[date]
     status: Optional[str]
 
+
+class PatientDecryptedResponce(BaseModel):
+    patient_cor_id: str
+    surname: Optional[str] = None
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    sex: Optional[str]
+    birth_date: Optional[Union[date, int]] = None
+    age: Optional[int] = None
+    status: Optional[PatientStatus] = None
 
 class PaginatedPatientsResponse(BaseModel):
     items: List[PatientResponce]

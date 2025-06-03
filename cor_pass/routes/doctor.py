@@ -17,6 +17,7 @@ from cor_pass.repository.doctor import (
     create_doctor,
     create_doctor_service,
     get_doctor_patients_with_status,
+    get_doctor_single_patient_with_status,
     upload_certificate_service,
     upload_diploma_service,
     upload_doctor_photo_service,
@@ -29,6 +30,7 @@ from cor_pass.schemas import (
     DoctorCreateResponse,
     ExistingPatientAdd,
     NewPatientRegistration,
+    PatientDecryptedResponce
 )
 from cor_pass.repository import person as repository_person
 from cor_pass.services.auth import auth_service
@@ -195,6 +197,27 @@ async def get_doctor_patients(
         limit=limit,
     )
     return {"items": patients_with_status, "total": total_count}
+
+
+@router.get(
+    "/patients/{patient_cor_id}",
+    dependencies=[Depends(doctor_access)],
+    response_model=PatientDecryptedResponce
+)
+async def get_single_patient(
+    patient_cor_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user),
+):
+    doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
+    if not doctor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+        )
+    
+    patient = await get_doctor_single_patient_with_status(db=db, patient_cor_id=patient_cor_id, doctor=doctor)
+
+    return patient
 
 
 @router.post(
