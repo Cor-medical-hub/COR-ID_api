@@ -1102,3 +1102,13 @@ class ProfileResponse(BaseModel):
 
 class DeleteMyAccount(BaseModel):
     password: str = Field(min_length=6, max_length=20)
+
+
+class FullUserInfoResponse(BaseModel):
+    user_info: UserDb # user_info всегда будет присутствовать
+    user_roles: Optional[List[str]] = None # Список ролей, может отсутствовать
+    profile: Optional[ProfileResponse] = None # Профиль, может отсутствовать
+    doctor_info: Optional[DoctorWithRelationsResponse] = None # Информация о докторе, может отсутствовать
+
+    class Config:
+        from_attributes = True 
