@@ -34,7 +34,7 @@ from cor_pass.schemas import (
     RecoveryCodeModel,
     UserSessionModel,
 )
-from cor_pass.database.models import UserSession
+from cor_pass.database.models import User, UserSession
 from cor_pass.repository import person as repository_person
 from cor_pass.repository import user_session as repository_session
 from cor_pass.repository import cor_id as repository_cor_id
@@ -354,7 +354,9 @@ async def check_session_status(
     dependencies=[Depends(user_access)],
 )
 async def confirm_login(
-    request: ConfirmLoginRequest, db: AsyncSession = Depends(get_db)
+    request: ConfirmLoginRequest,
+    current_user: User = Depends(auth_service.get_current_user), 
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Подтверждает или отклоняет запрос на вход от Cor-ID.
@@ -363,6 +365,19 @@ async def confirm_login(
     """
     email = request.email
     cor_id = request.cor_id
+
+    if email and current_user.email != email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Вы не можете подтвердить вход под данным аккаунтом",
+        )
+
+    elif cor_id and current_user.cor_id != cor_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Вы не можете подтвердить вход под данным аккаунтом",
+        )
+
     session_token = request.session_token
     confirmation_status = request.status.lower()
 
