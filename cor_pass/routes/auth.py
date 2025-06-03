@@ -752,10 +752,8 @@ async def restore_account_by_text(
         db=db,
     )
 
-    # Логируем успешный вход
     logger.debug(f"{user.email} login success via recovery code")
 
-    # Возвращаем ответ
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
