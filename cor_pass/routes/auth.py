@@ -295,6 +295,7 @@ async def check_session_status(
     Проверка стутуса заявки на вход и возврат токенов в случае её подтверждения
     """
     email = request.email
+    email = email.lower()
     cor_id = request.cor_id
     session_token = request.session_token
     db_session = await repository_session.get_auth_approved_session(session_token, db)
@@ -364,6 +365,7 @@ async def confirm_login(
     Требует авторизацию
     """
     email = request.email
+    email = email.lower()
     cor_id = request.cor_id
 
     if email and current_user.email != email:
