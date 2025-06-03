@@ -197,6 +197,7 @@ async def create_auth_session(request: InitiateLoginRequest, db: AsyncSession) -
     Асинхронно создает запись сессии для авторизации по Cor ID.
     """
     email = request.email
+    email = email.lower()
     cor_id = request.cor_id
     session_token = uuid.uuid4().hex
     expires_at = datetime.now() + timedelta(minutes=10)  # 10 минут на подтверждение
