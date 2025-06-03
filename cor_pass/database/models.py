@@ -47,6 +47,17 @@ class PatientStatus(enum.Enum):
     discharged = "discharged"
 
 
+
+class PatientStatus(enum.Enum):
+    registered = "registered"
+    diagnosed = "diagnosed"
+    under_treatment = "under_treatment"
+    hospitalized = "hospitalized"
+    discharged = "discharged"
+    died = "died"
+    in_process = "in_process"
+    referred_for_additional_consultation = "referred_for_additional_consultation"
+
 # Типы макроархива для параметров кейса
 class MacroArchive(enum.Enum):
     ESS = "ESS - без остатка"
