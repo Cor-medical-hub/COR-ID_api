@@ -42,11 +42,26 @@ async def create_cases_with_initial_data(
     urgency_char = body.urgency.value[0].upper()
     material_type_char = body.material_type.value[0].upper()
 
-    result = await db.execute(
-        select(db_models.Case).where(db_models.Case.patient_id == body.patient_cor_id)
-    )
-    cases_for_patient = result.scalars().all()
-    next_number = len(cases_for_patient) + 1 if cases_for_patient else 1
+
+    result = await db.execute(select(db_models.Case.case_code))
+    all_existing_case_codes = result.scalars().all()
+
+    max_sequential_number = 0
+    for code in all_existing_case_codes:
+        if len(code) == 9: 
+            code_year_part = code[1:3] 
+            
+            if code_year_part == year_short: 
+                try:
+                    sequential_part = code[4:] 
+                    sequential_number = int(sequential_part)
+                    
+                    if sequential_number > max_sequential_number:
+                        max_sequential_number = sequential_number
+                except ValueError:
+                    continue
+    
+    next_number = max_sequential_number + 1
 
     for _ in range(body.num_cases):
         now = datetime.now()
@@ -67,7 +82,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_case)
         next_number += 1
 
-        # Автоматично створюємо одну банку
+
         db_sample = db_models.Sample(case_id=db_case.id, sample_number="A")
         db_case.bank_count += 1
         db.add(db_sample)
@@ -75,7 +90,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_sample)
         await db.refresh(db_case)
 
-        # Автоматично створюємо одну касету
+
         db_cassette = db_models.Cassette(
             sample_id=db_sample.id,
             cassette_number=f"{db_sample.sample_number}1",
@@ -89,7 +104,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_case)
         await db.refresh(db_sample)
 
-        # Автоматично створюємо одне скло
+
         db_glass = db_models.Glass(
             cassette_id=db_cassette.id,
             glass_number=0,
@@ -105,7 +120,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_sample)
         await db.refresh(db_cassette)
 
-        # Автоматично створюємо параметри кейса
+
         db_case_parameters = db_models.CaseParameters(
             case_id=db_case.id,
             urgency=body.urgency,
@@ -126,7 +141,7 @@ async def create_cases_with_initial_data(
     if created_cases_db:
         first_case_db = created_cases_db[0]
 
-        # Отримуємо всі семпли першого кейса
+
         samples_result = await db.execute(
             select(db_models.Sample)
             .where(db_models.Sample.case_id == first_case_db.id)
@@ -139,7 +154,6 @@ async def create_cases_with_initial_data(
             sample = SampleModelScheema.model_validate(sample_db).model_dump()
             sample["cassettes"] = []
 
-            # Якщо це перший семпл, завантажуємо повну інформацію про касети та стекла
             if i == 0 and sample_db:
                 await db.refresh(sample_db, attribute_names=["cassette"])
                 for cassette_db in sample_db.cassette:
@@ -267,45 +281,110 @@ async def update_case_parameters(
     case_id: str,
     macro_description: str,
     container_count_actual: int,
-    urgency: db_models.UrgencyType = db_models.UrgencyType.S,
-    material_type: db_models.SampleType = db_models.MaterialType.R,
+    urgency: db_models.UrgencyType, 
+    material_type: db_models.SampleType, 
     macro_archive: db_models.MacroArchive = db_models.MacroArchive.ESS,
     decalcification: db_models.DecalcificationType = db_models.DecalcificationType.ABSENT,
     sample_type: db_models.SampleType = db_models.SampleType.NATIVE,
     fixation: db_models.FixationType = db_models.FixationType.NBF_10,
-) -> db_models.CaseParameters | None:
-    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
-    result = await db.execute(
+) -> CaseParametersScheema: 
+    """
+    Асинхронно обновляет параметры кейса.
+    При смене urgency или material_type также обновляет соответствующий case_code.
+    """
+    result_params = await db.execute(
         select(db_models.CaseParameters).where(
             db_models.CaseParameters.case_id == case_id
         )
     )
-    case_parameters_db = result.scalar_one_or_none()
-    if case_parameters_db:
-        case_parameters_db.macro_description = macro_description
-        case_parameters_db.container_count_actual = container_count_actual
-        case_parameters_db.urgency = urgency
-        case_parameters_db.material_type = material_type
-        case_parameters_db.macro_archive = macro_archive
-        case_parameters_db.decalcification = decalcification
-        case_parameters_db.sample_type = sample_type
-        case_parameters_db.fixation = fixation
-        await db.commit()
-        await db.refresh(case_parameters_db)
-        responce = CaseParametersScheema(
-            case_id=case_parameters_db.case_id,
-            macro_description=case_parameters_db.macro_description,
-            container_count_actual=case_parameters_db.container_count_actual,
-            urgency=case_parameters_db.urgency,
-            material_type=case_parameters_db.material_type,
-            macro_archive=case_parameters_db.macro_archive,
-            decalcification=case_parameters_db.decalcification,
-            sample_type=case_parameters_db.sample_type,
-            fixation=case_parameters_db.fixation,
+    case_parameters_db = result_params.scalar_one_or_none()
+
+    if not case_parameters_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Параметри для кейса з ID '{case_id}' не знайдено."
         )
-        return responce
-    else:
-        return None
+    
+    result_case = await db.execute(
+        select(db_models.Case).where(db_models.Case.id == case_id)
+    )
+    db_case = result_case.scalar_one_or_none()
+
+    if not db_case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Кейс з ID '{case_id}' не знайдено, неможливо оновити код."
+        )
+
+    old_urgency = case_parameters_db.urgency
+    old_material_type = case_parameters_db.material_type
+
+    case_parameters_db.macro_description = macro_description
+    case_parameters_db.container_count_actual = container_count_actual
+    case_parameters_db.urgency = urgency
+    case_parameters_db.material_type = material_type
+    case_parameters_db.macro_archive = macro_archive
+    case_parameters_db.decalcification = decalcification
+    case_parameters_db.sample_type = sample_type
+    case_parameters_db.fixation = fixation
+
+    if old_urgency != urgency or old_material_type != material_type:
+        current_code = db_case.case_code
+
+        if not current_code or len(current_code) != 9:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Некоректний формат коду кейса '{current_code}'. Оновлення неможливе."
+            )
+        year_part = current_code[1:3] 
+        sequential_suffix = current_code[4:] 
+
+        new_urgency_char = urgency.value[0].upper()
+        new_material_type_char = material_type.value[0].upper()
+
+        new_case_code = (
+            f"{new_urgency_char}"
+            f"{year_part}"
+            f"{new_material_type_char}"
+            f"{sequential_suffix}"
+        )
+
+        existing_codes_stmt = select(db_models.Case.case_code).where(
+            db_models.Case.case_code == new_case_code, 
+            db_models.Case.id != case_id 
+        )
+        existing_conflict = (await db.execute(existing_codes_stmt)).scalar_one_or_none()
+
+        if existing_conflict:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Новый код кейса '{new_case_code}' уже существует. "
+                       "Измените порядковый номер для сохранения уникальности."
+            )
+        
+        db_case.case_code = new_case_code
+        db.add(db_case)
+
+    db.add(case_parameters_db) 
+    await db.commit()
+
+
+    await db.refresh(case_parameters_db)
+    if old_urgency != urgency or old_material_type != material_type:
+        await db.refresh(db_case)
+
+    responce = CaseParametersScheema(
+        case_id=case_parameters_db.case_id,
+        macro_description=case_parameters_db.macro_description,
+        container_count_actual=case_parameters_db.container_count_actual,
+        urgency=case_parameters_db.urgency,
+        material_type=case_parameters_db.material_type,
+        macro_archive=case_parameters_db.macro_archive,
+        decalcification=case_parameters_db.decalcification,
+        sample_type=case_parameters_db.sample_type,
+        fixation=case_parameters_db.fixation,
+    )
+    return responce
 
 
 
@@ -425,28 +504,57 @@ async def get_patient_first_case_details(
 
 
 async def update_case_code_suffix(db: AsyncSession, case_id: str, new_suffix: str):
-    """Асинхронно оновлює останні 5 символів коду кейса."""
+    """
+    Асинхронно обновляет последние 5 символов кода кейса, с проверкой на уникальность нового порядкового номера в этом году.
+    """
     if len(new_suffix) != 5 or not new_suffix.isdigit():
-        raise ValueError("Новий суфікс повинен складатися з 5 цифрових символів.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Новый суффикс должен состоять из 5 цифровых символов."
+        )
 
     result = await db.execute(
         select(db_models.Case).where(db_models.Case.id == case_id)
     )
     db_case = result.scalar_one_or_none()
 
-    if db_case:
-        current_code = db_case.case_code
-        if len(current_code) >= 4:
-            new_case_code = f"{current_code[:-5]}{new_suffix}"
-            db_case.case_code = new_case_code
-            await db.commit()
-            await db.refresh(db_case)
-            return UpdateCaseCodeResponce.model_validate(db_case)
-        else:
-            raise ValueError(
-                f"Поточний код кейса '{current_code}' занадто короткий для оновлення суфікса."
-            )
-    return None
+    if not db_case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Кейс с ID '{case_id}' не найден."
+        )
+
+    current_code = db_case.case_code
+
+    if len(current_code) < 9: 
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Текущий код кейса '{current_code}' слишком короткий."
+        )
+
+    current_year_short = current_code[1:3] 
+    
+    new_full_case_code = f"{current_code[:-5]}{new_suffix}"
+
+    prefix_without_suffix = current_code[:-5]
+
+    existing_codes_stmt = select(db_models.Case.case_code).where(
+        db_models.Case.case_code.like(f"%{current_year_short}%"), 
+        db_models.Case.id != case_id 
+    )
+    existing_case_codes_in_current_year = (await db.execute(existing_codes_stmt)).scalars().all()
+
+    if new_full_case_code in existing_case_codes_in_current_year:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, 
+            detail=f"Код кейса '{new_full_case_code}' уже существует в текущем году. Выбирите другой номер."
+        )
+    
+    db_case.case_code = new_full_case_code
+    await db.commit()
+    await db.refresh(db_case)
+    
+    return UpdateCaseCodeResponce.model_validate(db_case)
 
 
 
