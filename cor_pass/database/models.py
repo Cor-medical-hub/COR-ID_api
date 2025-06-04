@@ -467,7 +467,7 @@ class Case(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     patient_id = Column(String(36), index=True)
     creation_date = Column(DateTime, default=func.now())
-    case_code = Column(String(250), index=True)
+    case_code = Column(String(250), index=True, unique=True)
     bank_count = Column(Integer, default=0)
     cassette_count = Column(Integer, default=0)
     glass_count = Column(Integer, default=0)
