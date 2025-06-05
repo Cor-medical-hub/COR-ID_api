@@ -1,10 +1,11 @@
 import base64
-from typing import List
-from fastapi import APIRouter, Body, HTTPException, Depends, status
+from typing import Dict, List
+from fastapi import APIRouter, Body, HTTPException, Depends, Response, status
 from cor_pass.database.db import get_db
 from cor_pass.repository import lawyer
 from cor_pass.repository.doctor import create_doctor, create_doctor_service
 from cor_pass.repository.lawyer import get_doctor
+from cor_pass.services.websocket_events_manager import websocket_events_manager
 from cor_pass.services.auth import auth_service
 from cor_pass.database.models import Doctor_Status, User, Status
 from cor_pass.services.access import admin_access
@@ -450,3 +451,34 @@ async def register_new_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Некорректные данные регистрации пользователя.",
         )
+
+@router.get("/admin/ws_connections", summary="Получить список активных WebSocket-соединений",
+            response_model=List[Dict], dependencies=[Depends(admin_access)])
+async def get_ws_connections():
+    """
+    Возвращает список всех активных WebSocket-соединений, включая их ID и информацию о клиенте.
+    Требуются права администратора.
+    """
+    return websocket_events_manager.get_active_connection_info()
+
+
+@router.delete("/admin/ws_connections/{connection_id}", summary="Отключить конкретное WebSocket-соединение",
+               status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(admin_access)])
+async def disconnect_specific_ws_connection(connection_id: str):
+    """
+    Отключает конкретное WebSocket-соединение по его ID.
+    Требуются права администратора.
+    """
+    await websocket_events_manager.disconnect_by_id_internal(connection_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/admin/ws_connections/", summary="Отключить все активные WebSocket-соединения",
+               status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(admin_access)])
+async def disconnect_all_ws_connections():
+    """
+    Отключает все активные WebSocket-соединения.
+    Требуются права администратора.
+    """
+    await websocket_events_manager.disconnect_all()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
