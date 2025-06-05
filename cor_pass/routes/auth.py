@@ -118,7 +118,8 @@ async def signup(
         "device_info": device_information["device_info"],  # Информация об устройстве
         "ip_address": device_information["ip_address"],  # IP-адрес
         "device_os": device_information["device_os"],
-        "jti": access_token_jti  # Идентификатор актуального access токена  # Операционная система
+        "jti": access_token_jti,
+        "access_token": access_token
     }
     new_session = await repository_session.create_user_session(
         body=UserSession(**session_data),  # Передаём данные для сессии
@@ -243,7 +244,8 @@ async def login(
         "device_info": device_information["device_info"],  # Информация об устройстве
         "ip_address": device_information["ip_address"],  # IP-адрес
         "device_os": device_information["device_os"],
-        "jti": access_token_jti  # Идентификатор актуального access токена
+        "jti": access_token_jti,
+        "access_token": access_token  
     }
     new_session = await repository_session.create_user_session(
         body=UserSessionModel(**session_data),  # Передаём данные для сессии
@@ -761,7 +763,8 @@ async def restore_account_by_text(
         "device_info": device_information["device_info"],  # Информация об устройстве
         "ip_address": device_information["ip_address"],  # IP-адрес
         "device_os": device_information["device_os"],  # Операционная система
-        "jti": access_token_jti  # Идентификатор актуального access токена
+        "jti": access_token_jti,
+        "access_token": access_token
     }
     new_session = await repository_session.create_user_session(
         body=UserSession(**session_data),  # Передаём данные для сессии
@@ -845,7 +848,8 @@ async def upload_recovery_file(
             ],  # Информация об устройстве
             "ip_address": device_information["ip_address"],  # IP-адрес
             "device_os": device_information["device_os"],  # Операционная система
-            "jti": access_token_jti  # Идентификатор актуального access токена
+            "jti": access_token_jti,
+            "access_token": access_token
         }
         new_session = await repository_session.create_user_session(
             body=UserSession(**session_data),  # Передаём данные для сессии
