@@ -298,6 +298,7 @@ class UserSession(Base):
     device_os = Column(String(250), nullable=True)
     jti = Column(String, unique=True, nullable=True, comment="JTI последнего Access токена, выданного для этой сессии")
     refresh_token = Column(LargeBinary, nullable=True)
+    access_token = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(
         DateTime, nullable=False, default=func.now(), onupdate=func.now()

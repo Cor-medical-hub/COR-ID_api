@@ -146,6 +146,7 @@ class UserSessionModel(BaseModel):
     device_os: str
     refresh_token: str
     jti: str
+    access_token: str
 
 
 class UserSessionResponseModel(BaseModel):
