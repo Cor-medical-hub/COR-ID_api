@@ -452,7 +452,7 @@ async def register_new_user(
             detail="Некорректные данные регистрации пользователя.",
         )
 
-@router.get("/admin/ws_connections", summary="Получить список активных WebSocket-соединений",
+@router.get("/ws_connections", summary="Получить список активных WebSocket-соединений",
             response_model=List[Dict], dependencies=[Depends(admin_access)])
 async def get_ws_connections():
     """
@@ -462,18 +462,19 @@ async def get_ws_connections():
     return websocket_events_manager.get_active_connection_info()
 
 
-@router.delete("/admin/ws_connections/{connection_id}", summary="Отключить конкретное WebSocket-соединение",
+@router.delete("/ws_connections/{connection_id}", summary="Отключить конкретное WebSocket-соединение",
                status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(admin_access)])
 async def disconnect_specific_ws_connection(connection_id: str):
     """
     Отключает конкретное WebSocket-соединение по его ID.
     Требуются права администратора.
     """
-    await websocket_events_manager.disconnect_by_id_internal(connection_id)
+    # Теперь вызываем исправленный async метод disconnect
+    await websocket_events_manager.disconnect(connection_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.delete("/admin/ws_connections/", summary="Отключить все активные WebSocket-соединения",
+@router.delete("/ws_connections/", summary="Отключить все активные WebSocket-соединения",
                status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(admin_access)])
 async def disconnect_all_ws_connections():
     """
