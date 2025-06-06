@@ -473,6 +473,9 @@ class Case(Base):
     cassette_count = Column(Integer, default=0)
     glass_count = Column(Integer, default=0)
     grossing_status = Column(Enum(Grossing_status), default=Grossing_status.PROCESSING)
+    pathohistological_conclusion = Column(Text, nullable=True)
+    microdescription = Column(Text, nullable=True)
+    general_macrodescription = Column(Text, nullable=True)
 
     samples = relationship(
         "Sample", back_populates="case", cascade="all, delete-orphan"
@@ -561,8 +564,7 @@ class Referral(Base):
         String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
     )
     case_id = Column(String, ForeignKey("cases.id"), unique=True ,nullable=False, comment="ID связанного кейса") 
-    case_number = Column(String, index=True, nullable=False, comment="Номер кейса") # Дублируем для удобства поиска
-
+    case_number = Column(String, index=True, nullable=False, comment="Номер кейса") 
     created_at = Column(DateTime, default=func.now(), comment="Дата создания направления")
     research_type = Column(Enum(StudyType), nullable=True, comment="Вид исследования")
     container_count = Column(Integer, nullable=True, comment="Фактическое количество контейнеров")
