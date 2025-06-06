@@ -9,6 +9,10 @@ from cor_pass.schemas import (
     CaseParametersScheema,
     CassetteForGlassPage,
     FirstCaseGlassDetailsSchema,
+    GlassBase,
+    GlassForGlassPage,
+    MicrodescriptionResponse,
+    PathohistologicalConclusionResponse,
     PatientGlassPageResponse,
     ReferralFileSchema,
     FirstCaseReferralDetailsSchema,
@@ -19,8 +23,11 @@ from cor_pass.schemas import (
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
     SampleForGlassPage,
+    SingleCaseGlassPageResponse,
     UpdateCaseCodeResponce,
     CaseCreate,
+    UpdateMicrodescription,
+    UpdatePathohistologicalConclusion,
 )
 from cor_pass.database import models as db_models
 import uuid
@@ -756,13 +763,12 @@ async def get_patient_cases_with_directions(
 
 async def get_patient_case_details_for_glass_page(
     db: AsyncSession, patient_id: str
-) -> PatientGlassPageResponse: # Указываем корректный тип возвращаемого значения
+) -> PatientGlassPageResponse: #
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
     для первого кейса, отсортированного по дате создания.
     Используется для вкладки "Стёкла" на странице врача.
     """
-    # 1. Получаем список всех кейсов пациента, отсортированных по дате создания
     cases_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.patient_id == patient_id)
@@ -770,7 +776,6 @@ async def get_patient_case_details_for_glass_page(
     )
     all_cases_db = cases_result.scalars().all()
     
-    # Конвертируем все кейсы в Pydantic-схему для "all_cases"
     all_cases_schematized = [
         CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db
     ]
@@ -780,40 +785,37 @@ async def get_patient_case_details_for_glass_page(
     if all_cases_db:
         first_case_db = all_cases_db[0]
 
-        # 2. Получаем все семплы первого кейса с полной загрузкой кассет и стёкол
-        # Используем selectinload для жадной загрузки связанных объектов
         samples_result = await db.execute(
             select(db_models.Sample)
             .where(db_models.Sample.case_id == first_case_db.id)
             .options(
                 selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
-            ) # Жадная загрузка кассет и их стёкол
+            ) 
             .order_by(db_models.Sample.sample_number)
         )
         first_case_samples_db = samples_result.scalars().all()
 
-        # 3. Конвертируем загруженные данные в Pydantic-схемы
+
         first_case_samples_schematized: List[SampleForGlassPage] = []
 
         for sample_db in first_case_samples_db:
-            # Сортировка кассет
+
             def sort_cassettes(cassette: db_models.Cassette):
                 match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
                 if match:
                     letter_part = match.group(1)
                     number_part = int(match.group(2))
                     return (letter_part, number_part)
-                return (cassette.cassette_number, 0) # Fallback
+                return (cassette.cassette_number, 0) 
 
-            # Применяем сортировку к кассетам, уже загруженным через selectinload
+
             sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
             
             cassettes_for_sample = []
             for cassette_db in sorted_cassettes_db:
-                # Сортировка стёкол
                 sorted_glasses_db = sorted(
                     cassette_db.glass,
-                    key=lambda glass: glass.glass_number # Предполагается, что glass_number числовой
+                    key=lambda glass: glass.glass_number 
                 )
                 
                 glasses_for_cassette = [
@@ -822,23 +824,139 @@ async def get_patient_case_details_for_glass_page(
                 ]
                 
                 cassette_schematized = CassetteForGlassPage.model_validate(cassette_db).model_dump()
-                cassette_schematized["glasses"] = glasses_for_cassette # Добавляем отсортированные стекла
+                cassette_schematized["glasses"] = glasses_for_cassette 
                 cassettes_for_sample.append(cassette_schematized)
 
             sample_schematized = SampleForGlassPage.model_validate(sample_db).model_dump()
-            sample_schematized["cassettes"] = cassettes_for_sample # Добавляем отсортированные кассеты
+            sample_schematized["cassettes"] = cassettes_for_sample 
             first_case_samples_schematized.append(sample_schematized)
 
-        # 4. Формируем детализацию первого кейса для вкладки "Стёкла"
+
         first_case_details_for_glass = FirstCaseGlassDetailsSchema(
             id=first_case_db.id,
             case_code=first_case_db.case_code,
             creation_date=first_case_db.creation_date,
-            samples=first_case_samples_schematized, # Все семплы с их кассетами и стёклами
+            samples=first_case_samples_schematized, 
         )
 
-    # 5. Возвращаем общий ответ
     return PatientGlassPageResponse(
         all_cases=all_cases_schematized,
         first_case_details_for_glass=first_case_details_for_glass,
     )
+
+
+async def get_single_case_details_for_glass_page(
+    db: AsyncSession, case_id:str
+) -> SingleCaseGlassPageResponse: 
+    """
+    Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
+    для первого кейса, отсортированного по дате создания.
+    Используется для вкладки "Стёкла" на странице врача.
+    """
+    result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.id == case_id)
+    )
+    case_db = result.scalar_one_or_none()
+    if not case_db:
+        return None
+    
+    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
+
+    if case_db:
+        
+        samples_result = await db.execute(
+            select(db_models.Sample)
+            .where(db_models.Sample.case_id == case_db.id)
+            .options(
+                selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+            ) 
+            .order_by(db_models.Sample.sample_number)
+        )
+        first_case_samples_db = samples_result.scalars().all()
+
+
+        first_case_samples_schematized: List[SampleForGlassPage] = []
+
+        for sample_db in first_case_samples_db:
+
+            def sort_cassettes(cassette: db_models.Cassette):
+                match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+                if match:
+                    letter_part = match.group(1)
+                    number_part = int(match.group(2))
+                    return (letter_part, number_part)
+                return (cassette.cassette_number, 0) 
+
+
+            sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+            
+            cassettes_for_sample = []
+            for cassette_db in sorted_cassettes_db:
+                sorted_glasses_db = sorted(
+                    cassette_db.glass,
+                    key=lambda glass: glass.glass_number 
+                )
+                
+                glasses_for_cassette = [
+                    GlassModelScheema.model_validate(glass).model_dump()
+                    for glass in sorted_glasses_db
+                ]
+                
+                cassette_schematized = CassetteForGlassPage.model_validate(cassette_db).model_dump()
+                cassette_schematized["glasses"] = glasses_for_cassette 
+                cassettes_for_sample.append(cassette_schematized)
+
+            sample_schematized = SampleForGlassPage.model_validate(sample_db).model_dump()
+            sample_schematized["cassettes"] = cassettes_for_sample 
+            first_case_samples_schematized.append(sample_schematized)
+
+
+        first_case_details_for_glass = FirstCaseGlassDetailsSchema(
+            id=case_db.id,
+            case_code=case_db.case_code,
+            creation_date=case_db.creation_date,
+            samples=first_case_samples_schematized, 
+        )
+
+    return SingleCaseGlassPageResponse(
+        single_case_for_glass_page=first_case_details_for_glass,
+    )
+
+
+
+
+
+
+
+
+async def update_case_pathohistological_conclusion(db: AsyncSession, case_id: str, body: UpdatePathohistologicalConclusion) -> PathohistologicalConclusionResponse | None:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+    result = await db.execute(
+        select(db_models.Case).where(db_models.Case.id == case_id)
+    )
+    case_db = result.scalar_one_or_none()
+    if case_db:
+        case_db.pathohistological_conclusion = body.pathohistological_conclusion
+        await db.commit()
+        await db.refresh(case_db)
+        response = PathohistologicalConclusionResponse(pathohistological_conclusion=body.pathohistological_conclusion)
+        return response
+    else:
+        return None
+    
+
+async def update_case_microdescription(db: AsyncSession, case_id: str, body: UpdateMicrodescription) -> MicrodescriptionResponse | None:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+    result = await db.execute(
+        select(db_models.Case).where(db_models.Case.id == case_id)
+    )
+    case_db = result.scalar_one_or_none()
+    if case_db:
+        case_db.microdescription = body.microdescription
+        await db.commit()
+        await db.refresh(case_db)
+        response = PathohistologicalConclusionResponse(pathohistological_conclusion=body.microdescription)
+        return response
+    else:
+        return None

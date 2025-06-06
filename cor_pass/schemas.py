@@ -669,6 +669,13 @@ class Glass(GlassBase):
     class Config:
         from_attributes = True
 
+class GlassForGlassPage(GlassBase):
+    id: str
+    # cassette_id: str
+
+    class Config:
+        from_attributes = True
+
 
 class DeleteGlassesRequest(BaseModel):
     glass_ids: List[str]
@@ -727,9 +734,10 @@ class Cassette(CassetteBase):
     class Config:
         from_attributes = True
 
-class CassetteForGlassPage(CassetteBase):
+class CassetteForGlassPage(BaseModel):
     # id: str
     # sample_id: str
+    cassette_number: str
     glasses: List[Glass] = []
 
     class Config:
@@ -754,10 +762,11 @@ class Sample(SampleBase):
     class Config:
         from_attributes = True
 
-class SampleForGlassPage(SampleBase):
+class SampleForGlassPage(BaseModel):
     # id: str
     # case_id: str
     # macro_description: Optional[str] = None
+    sample_number: str
     cassettes: List[CassetteForGlassPage] = []
 
     class Config:
@@ -835,6 +844,9 @@ class Case(BaseModel):
     bank_count: int
     cassette_count: int
     glass_count: int
+    # pathohistological_conclusion: Optional[str] = None
+    # microdescription: Optional[str] = None
+    # general_macrodescription: Optional[str] = None
     # samples: List = []  # Связь с банками
     # directions: List = []
     # case_parameters: Optional[List] = None
@@ -1157,6 +1169,9 @@ class FirstCaseReferralDetailsSchema(BaseModel):
     id: str
     case_code: str
     creation_date: datetime
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
+    general_macrodescription: Optional[str] = None
     # Теперь attachments - это список нашей новой схемы DirectionFileSchema
     attachments: Optional[List[ReferralFileSchema]] = None 
 
@@ -1177,6 +1192,9 @@ class FirstCaseGlassDetailsSchema(BaseModel):
     id: str
     case_code: str
     creation_date: datetime
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
+    general_macrodescription: Optional[str] = None
     # samples теперь содержит все семплы первого кейса,
     # и их кассеты и стекла загружены полностью.
     samples: List[SampleForGlassPage] 
@@ -1191,3 +1209,24 @@ class PatientGlassPageResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SingleCaseGlassPageResponse(BaseModel):
+    single_case_for_glass_page: Optional[FirstCaseGlassDetailsSchema] = None
+
+
+
+
+class PathohistologicalConclusionResponse(BaseModel):
+    pathohistological_conclusion: Optional[str] = None
+
+class UpdatePathohistologicalConclusion(BaseModel):
+    pathohistological_conclusion: str
+
+
+
+class MicrodescriptionResponse(BaseModel):
+    microdescription: Optional[str] = None
+
+class UpdateMicrodescription(BaseModel):
+    microdescription: str

@@ -29,13 +29,18 @@ from cor_pass.schemas import (
     DoctorCreate,
     DoctorCreateResponse,
     ExistingPatientAdd,
+    MicrodescriptionResponse,
     NewPatientRegistration,
+    PathohistologicalConclusionResponse,
     PatientCasesWithReferralsResponse,
     PatientDecryptedResponce,
     PatientGlassPageResponse,
     ReferralAttachmentResponse,
     ReferralResponse,
-    ReferralResponseForDoctor
+    ReferralResponseForDoctor,
+    SingleCaseGlassPageResponse,
+    UpdateMicrodescription,
+    UpdatePathohistologicalConclusion
 )
 from cor_pass.routes.cases import router as cases_router
 from cor_pass.repository import case as case_service
@@ -305,8 +310,8 @@ async def add_existing_patient_to_doctor(
     response_model=PatientGlassPageResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
-    summary="Отримати деталі для вкладки 'Стёкла' пацієнта",
-    tags=["Doctor", "Cases"]
+    summary="Получение кейсов и стёкол для страницы 'Стёкла'",
+    tags=["DoctorPage"]
 )
 async def get_patient_glass_page_data(
     patient_id: str,
@@ -314,9 +319,7 @@ async def get_patient_glass_page_data(
     
 ) -> PatientGlassPageResponse:
     """
-    Цей маршрут дозволяє авторизованому лікарю отримати дані, необхідні для вкладки 'Стёкла'
-    на сторінці пацієнта. Він повертає список всіх кейсів пацієнта та повну деталізацію
-    першого кейса (всі семпли, касети та стёкла).
+    Возвращает список всех кейсов пациента и все стёкла первого кейса
     """
     
     glass_page_data = await case_service.get_patient_case_details_for_glass_page(db=db, patient_id=patient_id)
@@ -324,17 +327,26 @@ async def get_patient_glass_page_data(
     return glass_page_data
 
 
-
-
-
-
-
-
-
-
-
-
-
+@router.get(
+    "/cases/{case_id}/glass-details",
+    response_model=SingleCaseGlassPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Cтёкла конкретного кейса для страницы 'Стёкла'",
+    tags=["DoctorPage"]
+)
+async def get_single_case_details_for_glass_page(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    
+) -> SingleCaseGlassPageResponse:
+    """
+    Возвращает стёкла конкретного кейса
+    """
+    
+    glass_page_data = await case_service.get_single_case_details_for_glass_page(db=db, case_id=case_id)
+        
+    return glass_page_data
 
 
 
@@ -345,15 +357,14 @@ async def get_patient_glass_page_data(
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
     summary="Получение кейсов и вывод файлов направления по первому кейсу",
-    tags=["Doctor", "Cases"]
+    tags=["DoctorPage"]
 )
 async def get_patient_cases_for_doctor(
     patient_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> PatientCasesWithReferralsResponse:
     """
-    Этот маршрут позволяет авторизованному врачу получить список всех кейсов конкретного пациента, 
-    а также детали первого кейса, включая ссылку на файлы его направлений
+    Возвращает список всех кейсов конкретного пациента, а также детали первого кейса, включая ссылку на файлы его направлений
     """
     patient_cases_data = await case_service.get_patient_cases_with_directions(db=db, patient_id=patient_id)
     if not patient_cases_data:
@@ -368,15 +379,14 @@ async def get_patient_cases_for_doctor(
 @router.get("/patients/referrals/{case_id}", response_model=ReferralResponseForDoctor, 
             dependencies=[Depends(doctor_access)],
             status_code=status.HTTP_200_OK,
-            summary="Dывод файлов направления по id кейса для доктора",
-            tags=["Doctor", "Cases"])
+            summary="Вывод файлов направления по id кейса для доктора",
+            tags=["DoctorPage"])
 async def get_single_referral(
     case_id: str,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    **Получение информации о направлении по case_id**\n
-    Возвращает ссылки на прикрепленные файлы.
+    Возвращает ссылки на прикрепленные файлы направлений конкретного кейса.
     """
     referral = await case_service.get_referral_by_case(db=db, case_id=case_id)
     if not referral:
@@ -400,9 +410,55 @@ async def get_single_referral(
 
 
 
-@router.post("/excision_page", dependencies=[Depends(doctor_access)])
-async def get_casses_and_excisions(
+@router.put(
+    "/pathohistological_conclusion/{case_id}",
+    response_model=PathohistologicalConclusionResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Обновляет патогистологическое заключение кейса",
+    tags=["DoctorPage"]
+)
+async def update_pathohistological_conclusion(
+    case_id: str,
+    body: UpdatePathohistologicalConclusion,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(auth_service.get_current_user),
 ):
-    pass
+    """
+    Обновляет патогистологическое заключение кейса
+
+    """
+    db_case = await case_service.update_case_pathohistological_conclusion(
+        db=db, case_id=case_id, body=body
+    )
+    if db_case is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Case not found"
+        )
+    return db_case
+
+
+@router.put(
+    "/microdescription/{case_id}",
+    response_model=MicrodescriptionResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Обновляет микроописание кейса",
+    tags=["DoctorPage"]
+)
+async def update_microdescription(
+    case_id: str,
+    body: UpdateMicrodescription,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Обновляет микроописание кейса
+
+    """
+    db_case = await case_service.update_case_microdescription(
+        db=db, case_id=case_id, body=body
+    )
+    if db_case is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Case not found"
+        )
+    return db_case

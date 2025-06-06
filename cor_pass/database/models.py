@@ -473,6 +473,9 @@ class Case(Base):
     cassette_count = Column(Integer, default=0)
     glass_count = Column(Integer, default=0)
     grossing_status = Column(Enum(Grossing_status), default=Grossing_status.PROCESSING)
+    pathohistological_conclusion = Column(Text, nullable=True)
+    microdescription = Column(Text, nullable=True)
+    general_macrodescription = Column(Text, nullable=True)
 
     samples = relationship(
         "Sample", back_populates="case", cascade="all, delete-orphan"
