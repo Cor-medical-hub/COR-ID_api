@@ -13,3 +13,11 @@ const getItemCountByAllKeys = (entity, keys = []) => {
         return counts;
     }, {});
 }
+
+
+const showTextareaButton = (textareaId) => {
+    const textareaNODE = document.querySelector(`#${textareaId}`);
+    textareaNODE.addEventListener('focus', () => {
+        textareaNODE.nextElementSibling.style.display = "block";
+    })
+}
