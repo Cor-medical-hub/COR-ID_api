@@ -155,7 +155,7 @@
                             <div id="userAge"></div>
                         </div>
                         <div class="tabs">
-                            <button class="tab">Направлення</button>
+                            <button class="tab" id="directionModalBtn">Направлення</button>
                             <button class="tab" id="caseSettingsModalBtn">Параметри кейсу</button>
                         </div>
                     </div>
@@ -288,15 +288,15 @@
 
                     <div class="directorModalFormGroup">
                         <label for="medical_card_number">Медкарта №</label>
-                        <input id="medical_card_number" type="text" class="input">
+                        <input id="medical_card_number" name="medical_card_number" type="text" class="input">
                     </div>
                     <div class="directorModalFormGroup">
                         <label for="clinical_data">Клінічні дані</label>
-                        <textarea id="clinical_data" class="input"></textarea>
+                        <textarea id="clinical_data" name="clinical_data" class="input"></textarea>
                     </div>
                     <div class="directorModalFormGroup">
                         <label for="clinical_diagnosis">Клінічний діагноз</label>
-                        <input id="clinical_diagnosis" type="text" class="input">
+                        <input id="clinical_diagnosis" name="clinical_diagnosis" type="text" class="input">
                     </div>
 
                     <div class="directorModalFormGroup">
@@ -324,23 +324,22 @@
                             <input type="hidden" id="department" name="department">
                         </div>
                     </div>
-
                     <div class="directorModalFormGroup">
                         <label for="doctor_contacts">Контакти лікаря</label>
-                        <input id="doctor_contacts" type="text" class="input" value="+380" autocomplete="off">
+                        <input id="doctor_contacts" name="doctor_contacts" type="text" class="input" value="+380" autocomplete="off">
                     </div>
 
                     <div class="directorModalFormGroup">
                         <label for="medical_procedure">Медична процедура/операція</label>
-                        <input id="medical_procedure" type="text" class="input">
+                        <input id="medical_procedure" name="medical_procedure" type="text" class="input">
                     </div>
                     <div class="directorModalFormGroup">
                         <label for="final_report_delivery">Фінальний репорт відправити</label>
-                        <input id="final_report_delivery" type="email" class="input" placeholder="email@example.com">
+                        <input id="final_report_delivery" name="final_report_delivery" type="email" class="input" placeholder="email@example.com">
                     </div>
                     <div class="directorModalFormGroup">
                         <label for="issued_at">Виданий</label>
-                        <input id="issued_at" type="date" class="input">
+                        <input id="issued_at" name="issued_at" type="date" class="input">
                     </div>
                 </form>
             </div>
