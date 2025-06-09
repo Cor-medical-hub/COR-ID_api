@@ -17,6 +17,7 @@ from cor_pass.repository.doctor import (
     create_doctor,
     create_doctor_service,
     get_doctor_patients_with_status,
+    get_doctor_single_patient_with_status,
     upload_certificate_service,
     upload_diploma_service,
     upload_doctor_photo_service,
@@ -28,8 +29,23 @@ from cor_pass.schemas import (
     DoctorCreate,
     DoctorCreateResponse,
     ExistingPatientAdd,
+    MicrodescriptionResponse,
     NewPatientRegistration,
+    PathohistologicalConclusionResponse,
+    PatientCasesWithReferralsResponse,
+    PatientDecryptedResponce,
+    PatientExcisionPageResponse,
+    PatientGlassPageResponse,
+    ReferralAttachmentResponse,
+    ReferralResponse,
+    ReferralResponseForDoctor,
+    SingleCaseExcisionPageResponse,
+    SingleCaseGlassPageResponse,
+    UpdateMicrodescription,
+    UpdatePathohistologicalConclusion
 )
+from cor_pass.routes.cases import router as cases_router
+from cor_pass.repository import case as case_service
 from cor_pass.repository import person as repository_person
 from cor_pass.services.auth import auth_service
 from cor_pass.services.access import user_access, doctor_access
@@ -197,6 +213,27 @@ async def get_doctor_patients(
     return {"items": patients_with_status, "total": total_count}
 
 
+@router.get(
+    "/patients/{patient_cor_id}",
+    dependencies=[Depends(doctor_access)],
+    response_model=PatientDecryptedResponce
+)
+async def get_single_patient(
+    patient_cor_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user),
+):
+    doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
+    if not doctor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+        )
+    
+    patient = await get_doctor_single_patient_with_status(db=db, patient_cor_id=patient_cor_id, doctor=doctor)
+
+    return patient
+
+
 @router.post(
     "/patients/register-new",
     status_code=status.HTTP_201_CREATED,
@@ -267,3 +304,212 @@ async def add_existing_patient_to_doctor(
         )
 
     return existing_patient
+
+
+
+@router.get(
+    "/patients/{patient_id}/glass-details",
+    response_model=PatientGlassPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и стёкол для страницы 'Стёкла'",
+    tags=["DoctorPage"]
+)
+async def get_patient_glass_page_data(
+    patient_id: str,
+    db: AsyncSession = Depends(get_db),
+    
+) -> PatientGlassPageResponse:
+    """
+    Возвращает список всех кейсов пациента и все стёкла первого кейса
+    """
+    
+    glass_page_data = await case_service.get_patient_case_details_for_glass_page(db=db, patient_id=patient_id)
+        
+    return glass_page_data
+
+
+@router.get(
+    "/cases/{case_id}/glass-details",
+    response_model=SingleCaseGlassPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Cтёкла конкретного кейса для страницы 'Стёкла'",
+    tags=["DoctorPage"]
+)
+async def get_single_case_details_for_glass_page(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    
+) -> SingleCaseGlassPageResponse:
+    """
+    Возвращает стёкла конкретного кейса
+    """
+    
+    glass_page_data = await case_service.get_single_case_details_for_glass_page(db=db, case_id=case_id)
+        
+    return glass_page_data
+
+
+
+
+@router.get(
+    "/patients/{patient_cor_id}/referral_page",
+    response_model=PatientCasesWithReferralsResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и вывод файлов направления по первому кейсу",
+    tags=["DoctorPage"]
+)
+async def get_patient_cases_for_doctor(
+    patient_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> PatientCasesWithReferralsResponse:
+    """
+    Возвращает список всех кейсов конкретного пациента, а также детали первого кейса, включая ссылку на файлы его направлений
+    """
+    patient_cases_data = await case_service.get_patient_cases_with_directions(db=db, patient_id=patient_id)
+    if not patient_cases_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Кейси пацієнта або направлення не знайдено."
+        )
+        
+    return patient_cases_data
+
+
+@router.get("/patients/referrals/{case_id}", response_model=ReferralResponseForDoctor, 
+            dependencies=[Depends(doctor_access)],
+            status_code=status.HTTP_200_OK,
+            summary="Вывод файлов направления по id кейса для доктора",
+            tags=["DoctorPage"])
+async def get_single_referral(
+    case_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Возвращает ссылки на прикрепленные файлы направлений конкретного кейса.
+    """
+    referral = await case_service.get_referral_by_case(db=db, case_id=case_id)
+    if not referral:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Referral not found")
+
+    # Генерируем URL для каждого прикрепленного файла
+    attachments_response = [
+        ReferralAttachmentResponse(
+            id=att.id,
+            filename=att.filename,
+            content_type=att.content_type,
+            file_url=cases_router.url_path_for("get_referral_attachment", attachment_id=att.id)
+        ) for att in referral.attachments
+    ]
+
+    case_db = await case_service.get_single_case(db=db, case_id=case_id)
+    referral_response_obj = ReferralResponseForDoctor.model_validate(referral)
+
+    referral_response_obj.attachments = attachments_response
+    referral_response_obj.pathohistological_conclusion = case_db.pathohistological_conclusion
+    referral_response_obj.microdescription = case_db.microdescription
+
+    return referral_response_obj
+
+
+
+@router.put(
+    "/pathohistological_conclusion/{case_id}",
+    response_model=PathohistologicalConclusionResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Обновляет патогистологическое заключение кейса",
+    tags=["DoctorPage"]
+)
+async def update_pathohistological_conclusion(
+    case_id: str,
+    body: UpdatePathohistologicalConclusion,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Обновляет патогистологическое заключение кейса
+
+    """
+    db_case = await case_service.update_case_pathohistological_conclusion(
+        db=db, case_id=case_id, body=body
+    )
+    if db_case is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Case not found"
+        )
+    return db_case
+
+
+@router.put(
+    "/microdescription/{case_id}",
+    response_model=MicrodescriptionResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Обновляет микроописание кейса",
+    tags=["DoctorPage"]
+)
+async def update_microdescription(
+    case_id: str,
+    body: UpdateMicrodescription,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Обновляет микроописание кейса
+
+    """
+    db_case = await case_service.update_case_microdescription(
+        db=db, case_id=case_id, body=body
+    )
+    if db_case is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Case not found"
+        )
+    return db_case
+
+@router.get(
+    "/patients/{patient_id}/excision-details",
+    response_model=PatientExcisionPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и нужных данных для страницы 'Вырезка'",
+    tags=["DoctorPage"]
+)
+async def get_patient_excision_page_data(
+    patient_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> PatientExcisionPageResponse:
+    """
+    Возвращает все кейсы и данные вырезки по последнему кейсу
+    """
+
+    excision_page_data = await case_service.get_patient_case_details_for_excision_page(db=db, patient_id=patient_id)
+        
+    return excision_page_data
+
+
+
+
+
+@router.get(
+    "/cases/{case_id}/excision-details",
+    response_model=SingleCaseExcisionPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Данные вырезки конкретного кейса для страницы 'Вырезка'",
+    tags=["DoctorPage"]
+)
+async def get_single_case_details_for_excision_page(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    
+) -> SingleCaseExcisionPageResponse:
+    """
+    Возвращает данные вырезки конкретного кейса
+    """
+    
+    excision_page_data = await case_service.get_single_case_details_for_excision_page(db=db, case_id=case_id)
+        
+    return excision_page_data
+

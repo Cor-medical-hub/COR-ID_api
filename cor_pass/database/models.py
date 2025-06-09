@@ -47,6 +47,17 @@ class PatientStatus(enum.Enum):
     discharged = "discharged"
 
 
+
+class PatientStatus(enum.Enum):
+    registered = "registered"
+    diagnosed = "diagnosed"
+    under_treatment = "under_treatment"
+    hospitalized = "hospitalized"
+    discharged = "discharged"
+    died = "died"
+    in_process = "in_process"
+    referred_for_additional_consultation = "referred_for_additional_consultation"
+
 # Типы макроархива для параметров кейса
 class MacroArchive(enum.Enum):
     ESS = "ESS - без остатка"
@@ -190,6 +201,7 @@ class User(Base):
         foreign_keys="[DeviceAccess.accessing_user_id]",
         back_populates="accessing_user",
     )
+    profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
     # Индексы
     __table_args__ = (
@@ -286,6 +298,7 @@ class UserSession(Base):
     device_os = Column(String(250), nullable=True)
     jti = Column(String, unique=True, nullable=True, comment="JTI последнего Access токена, выданного для этой сессии")
     refresh_token = Column(LargeBinary, nullable=True)
+    access_token = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
@@ -455,11 +468,14 @@ class Case(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     patient_id = Column(String(36), index=True)
     creation_date = Column(DateTime, default=func.now())
-    case_code = Column(String(250), index=True)
+    case_code = Column(String(250), index=True, unique=True)
     bank_count = Column(Integer, default=0)
     cassette_count = Column(Integer, default=0)
     glass_count = Column(Integer, default=0)
     grossing_status = Column(Enum(Grossing_status), default=Grossing_status.PROCESSING)
+    pathohistological_conclusion = Column(Text, nullable=True)
+    microdescription = Column(Text, nullable=True)
+    general_macrodescription = Column(Text, nullable=True)
 
     samples = relationship(
         "Sample", back_populates="case", cascade="all, delete-orphan"
@@ -548,8 +564,7 @@ class Referral(Base):
         String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
     )
     case_id = Column(String, ForeignKey("cases.id"), unique=True ,nullable=False, comment="ID связанного кейса") 
-    case_number = Column(String, index=True, nullable=False, comment="Номер кейса") # Дублируем для удобства поиска
-
+    case_number = Column(String, index=True, nullable=False, comment="Номер кейса") 
     created_at = Column(DateTime, default=func.now(), comment="Дата создания направления")
     research_type = Column(Enum(StudyType), nullable=True, comment="Вид исследования")
     container_count = Column(Integer, nullable=True, comment="Фактическое количество контейнеров")
@@ -661,6 +676,36 @@ class PrintingDevice(Base):
     port = Column(Integer, nullable=True)
     comment = Column(String, nullable=True)
     location = Column(String, nullable=True)
+
+
+class Profile(Base):
+    __tablename__ = "profiles"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), unique=True, nullable=False)
+
+    encrypted_surname = Column(LargeBinary, nullable=True) 
+    encrypted_first_name = Column(LargeBinary, nullable=True) 
+    encrypted_middle_name = Column(LargeBinary, nullable=True)
+
+    birth_date = Column(Date, nullable=True)
+    phone_number = Column(String(20), nullable=True)
+    city = Column(String(100), nullable=True)
+
+    car_brand = Column(String(100), nullable=True)
+    engine_type = Column(String(50), nullable=True) 
+    fuel_tank_volume = Column(Integer, nullable=True) 
+
+    photo_data = Column(LargeBinary, nullable=True)
+    photo_file_type = Column(String, nullable=True) 
+    
+    change_date = Column(DateTime, default=func.now(), onupdate=func.now())
+    create_date = Column(DateTime, default=func.now())
+
+    user = relationship("User", back_populates="profile")
+
+    def __repr__(self):
+        return f"<Profile(id='{self.id}', user_id='{self.user_id}')>"
+
 
 
 # Base.metadata.create_all(bind=engine)

@@ -43,6 +43,8 @@ from cor_pass.routes import (
     dicom_router,
     printing_device,
     printer,
+    websocket_events,
+    svs_router
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
@@ -132,7 +134,7 @@ api_description += """
 app = FastAPI(
     title="COR-ID API",
     description=api_description, 
-    version="1.0.0", 
+    version="1.0.1", 
     openapi_url="/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -289,8 +291,10 @@ app.include_router(glasses.router, prefix="/api")
 app.include_router(websocket.router, prefix="/api")
 app.include_router(device_ws.router, prefix="/api")
 app.include_router(dicom_router.router, prefix="/api")
+app.include_router(svs_router.router, prefix="/api")
 app.include_router(printing_device.router, prefix="/api")
 app.include_router(printer.router, prefix="/api")
+app.include_router(websocket_events.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(

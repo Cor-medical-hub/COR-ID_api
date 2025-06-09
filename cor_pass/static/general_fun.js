@@ -1,24 +1,32 @@
 
 const modalConfigs = {
-    columnSelectModal: { width: '250px', height: '350px', top: '300px', left: '200px' },
-    corIdModal: { width: '300px', height: '500px', top: '300px', left: '250px' },
-    editModal: { width: '250px', height: '520px', top: '50px', left: '50px' },
+    columnSelectModal: { width: '250px', height:  'auto', top: '300px', left: '200px' },
+    corIdModal: { width: '300px', height:  'auto', top: '300px', left: '250px' },
+    editModal: { width: '250px', height: 'auto', top: '50px', left: '50px' },
     myModal: { width: '250px', height: '450px', top: '50px', left: '250px' },
-    settingsModal: { width: '460px', height: '650px', top: '50px', left: '450px' },
-    sessionsModal: { width: '450px', height: '290px', top: '100px', left: '100px' },
-    step1Modal: { width: '460px', height: '650px', top: '20px', left: '300px' },
-    step2Modal: { width: '460px', height: '650px', top: '20px', left: '300px' },
-    step3Modal: { width: '460px', height: '650px', top: '20px', left: '300px' },
-    step4Modal: { width: '460px', height: '650px', top: '20px', left: '300px' },
+    settingsModal: { width: '460px', height: '710px', top: '50px', left: '450px' },
+    sessionsModal: { width: '450px', height: '350px', top: '100px', left: '100px' },
+    step1Modal: { width: '460px', height: '690px', top: '20px', left: '300px' },
+    step2Modal: { width: '460px', height: '690px', top: '20px', left: '300px' },
+    step3Modal: { width: '460px', height: '690px', top: '20px', left: '300px' },
+    step4Modal: { width: '460px', height: '690px', top: '20px', left: '300px' },
     addPatientModal: { width: '460px', height: '700px', top: '15px', left: '300px' },
     addDeviceModal: { width: '250px', height: '550px', top: '50px', left: '250px' },
-    Dicom_upload_modal: { width: '460px', height: 'auto', top: '20px', left: '300px' },
-    recovery_modal: { width: '250px', height: 'auto', top: '50px', left: '50px' },
+    Dicom_upload_modal: { width: '460px', height: 'auto', top: 'auto', left: 'auto' },
+    recovery_modal: { width: '250px', height: 'auto', top: 'auto', left: 'auto' },
+    rolesModal: { width: '250px', height: 'auto', top: '50px', left: '50px' },
 };
 
-
+//Функция получения токена 
+function getToken() {
+    return localStorage.getItem('authToken') || getTokenFromURL();
+}
   
-  
+/*
+function getToken() {
+    return localStorage.getItem('authToken') || 
+           new URLSearchParams(window.location.search).get('access_token');
+} */
 
 function makeModalDraggable(modalId) {
     const modal = document.getElementById(modalId);
@@ -445,33 +453,51 @@ function getTokenFromURL() {
 }
 
 
-// Функция для проверки истечения токена
+
+// Функция для проверки истечения токена + проверка ответа сервера
 function checkToken() {
     const token = getTokenFromURL(); // Получаем токен из URL
     if (!token) {
         console.warn("Authorization token is missing.");
         showTokenExpiredModal();
-        return false; // Токен отсутствует
+        return false;
     }
 
-    // Парсим токен и проверяем, истёк ли он
     const decodedToken = decodeToken(token);
     calculateTokenLifetime(decodedToken);
     if (!decodedToken) {
         console.error("Failed to decode token.");
         showTokenExpiredModal();
-        return false; // Токен не удалось декодировать
+        return false;
     }
 
     if (isTokenExpired(token)) {
         console.warn("Token has expired.");
         showTokenExpiredModal();
-        return false; // Токен истёк
+        return false;
     }
 
-    return true; // Токен актуален
-}
+    // Проверяем, авторизован ли пользователь на сервере
+    fetch("/api/auth/verify", {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (response.status === 401) {
+            console.warn("Server responded with 401 Unauthorized.");
+            showTokenExpiredModal();
+        }
+    })
+    .catch(error => {
+        console.error("Auth check failed:", error);
+       
+         showTokenExpiredModal();
+    });
 
+    return true;
+}
 
 // Функция для прослушки всех событий с делегированием
 function setupTokenCheckOnActions() {

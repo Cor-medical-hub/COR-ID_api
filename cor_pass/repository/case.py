@@ -7,12 +7,31 @@ from sqlalchemy.orm import selectinload
 from cor_pass.schemas import (
     Case as CaseModelScheema,
     CaseParametersScheema,
+    CassetteForGlassPage,
+    FirstCaseGlassDetailsSchema,
+    GlassBase,
+    GlassForGlassPage,
+    LastCaseExcisionDetailsSchema,
+    MicrodescriptionResponse,
+    PathohistologicalConclusionResponse,
+    PatientExcisionPageResponse,
+    PatientGlassPageResponse,
+    ReferralFileSchema,
+    FirstCaseReferralDetailsSchema,
+    PatientCasesWithReferralsResponse,
+    ReferralAttachmentResponse,
     ReferralCreate,
     Sample as SampleModelScheema,
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
+    SampleForExcisionPage,
+    SampleForGlassPage,
+    SingleCaseExcisionPageResponse,
+    SingleCaseGlassPageResponse,
     UpdateCaseCodeResponce,
     CaseCreate,
+    UpdateMicrodescription,
+    UpdatePathohistologicalConclusion,
 )
 from cor_pass.database import models as db_models
 import uuid
@@ -42,11 +61,26 @@ async def create_cases_with_initial_data(
     urgency_char = body.urgency.value[0].upper()
     material_type_char = body.material_type.value[0].upper()
 
-    result = await db.execute(
-        select(db_models.Case).where(db_models.Case.patient_id == body.patient_cor_id)
-    )
-    cases_for_patient = result.scalars().all()
-    next_number = len(cases_for_patient) + 1 if cases_for_patient else 1
+
+    result = await db.execute(select(db_models.Case.case_code))
+    all_existing_case_codes = result.scalars().all()
+
+    max_sequential_number = 0
+    for code in all_existing_case_codes:
+        if len(code) == 9: 
+            code_year_part = code[1:3] 
+            
+            if code_year_part == year_short: 
+                try:
+                    sequential_part = code[4:] 
+                    sequential_number = int(sequential_part)
+                    
+                    if sequential_number > max_sequential_number:
+                        max_sequential_number = sequential_number
+                except ValueError:
+                    continue
+    
+    next_number = max_sequential_number + 1
 
     for _ in range(body.num_cases):
         now = datetime.now()
@@ -67,7 +101,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_case)
         next_number += 1
 
-        # Автоматично створюємо одну банку
+
         db_sample = db_models.Sample(case_id=db_case.id, sample_number="A")
         db_case.bank_count += 1
         db.add(db_sample)
@@ -75,7 +109,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_sample)
         await db.refresh(db_case)
 
-        # Автоматично створюємо одну касету
+
         db_cassette = db_models.Cassette(
             sample_id=db_sample.id,
             cassette_number=f"{db_sample.sample_number}1",
@@ -89,7 +123,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_case)
         await db.refresh(db_sample)
 
-        # Автоматично створюємо одне скло
+
         db_glass = db_models.Glass(
             cassette_id=db_cassette.id,
             glass_number=0,
@@ -105,7 +139,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_sample)
         await db.refresh(db_cassette)
 
-        # Автоматично створюємо параметри кейса
+
         db_case_parameters = db_models.CaseParameters(
             case_id=db_case.id,
             urgency=body.urgency,
@@ -126,7 +160,7 @@ async def create_cases_with_initial_data(
     if created_cases_db:
         first_case_db = created_cases_db[0]
 
-        # Отримуємо всі семпли першого кейса
+
         samples_result = await db.execute(
             select(db_models.Sample)
             .where(db_models.Sample.case_id == first_case_db.id)
@@ -139,7 +173,6 @@ async def create_cases_with_initial_data(
             sample = SampleModelScheema.model_validate(sample_db).model_dump()
             sample["cassettes"] = []
 
-            # Якщо це перший семпл, завантажуємо повну інформацію про касети та стекла
             if i == 0 and sample_db:
                 await db.refresh(sample_db, attribute_names=["cassette"])
                 for cassette_db in sample_db.cassette:
@@ -267,45 +300,110 @@ async def update_case_parameters(
     case_id: str,
     macro_description: str,
     container_count_actual: int,
-    urgency: db_models.UrgencyType = db_models.UrgencyType.S,
-    material_type: db_models.SampleType = db_models.MaterialType.R,
+    urgency: db_models.UrgencyType, 
+    material_type: db_models.SampleType, 
     macro_archive: db_models.MacroArchive = db_models.MacroArchive.ESS,
     decalcification: db_models.DecalcificationType = db_models.DecalcificationType.ABSENT,
     sample_type: db_models.SampleType = db_models.SampleType.NATIVE,
     fixation: db_models.FixationType = db_models.FixationType.NBF_10,
-) -> db_models.CaseParameters | None:
-    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
-    result = await db.execute(
+) -> CaseParametersScheema: 
+    """
+    Асинхронно обновляет параметры кейса.
+    При смене urgency или material_type также обновляет соответствующий case_code.
+    """
+    result_params = await db.execute(
         select(db_models.CaseParameters).where(
             db_models.CaseParameters.case_id == case_id
         )
     )
-    case_parameters_db = result.scalar_one_or_none()
-    if case_parameters_db:
-        case_parameters_db.macro_description = macro_description
-        case_parameters_db.container_count_actual = container_count_actual
-        case_parameters_db.urgency = urgency
-        case_parameters_db.material_type = material_type
-        case_parameters_db.macro_archive = macro_archive
-        case_parameters_db.decalcification = decalcification
-        case_parameters_db.sample_type = sample_type
-        case_parameters_db.fixation = fixation
-        await db.commit()
-        await db.refresh(case_parameters_db)
-        responce = CaseParametersScheema(
-            case_id=case_parameters_db.case_id,
-            macro_description=case_parameters_db.macro_description,
-            container_count_actual=case_parameters_db.container_count_actual,
-            urgency=case_parameters_db.urgency,
-            material_type=case_parameters_db.material_type,
-            macro_archive=case_parameters_db.macro_archive,
-            decalcification=case_parameters_db.decalcification,
-            sample_type=case_parameters_db.sample_type,
-            fixation=case_parameters_db.fixation,
+    case_parameters_db = result_params.scalar_one_or_none()
+
+    if not case_parameters_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Параметри для кейса з ID '{case_id}' не знайдено."
         )
-        return responce
-    else:
-        return None
+    
+    result_case = await db.execute(
+        select(db_models.Case).where(db_models.Case.id == case_id)
+    )
+    db_case = result_case.scalar_one_or_none()
+
+    if not db_case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Кейс з ID '{case_id}' не знайдено, неможливо оновити код."
+        )
+
+    old_urgency = case_parameters_db.urgency
+    old_material_type = case_parameters_db.material_type
+
+    case_parameters_db.macro_description = macro_description
+    case_parameters_db.container_count_actual = container_count_actual
+    case_parameters_db.urgency = urgency
+    case_parameters_db.material_type = material_type
+    case_parameters_db.macro_archive = macro_archive
+    case_parameters_db.decalcification = decalcification
+    case_parameters_db.sample_type = sample_type
+    case_parameters_db.fixation = fixation
+
+    if old_urgency != urgency or old_material_type != material_type:
+        current_code = db_case.case_code
+
+        if not current_code or len(current_code) != 9:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Некоректний формат коду кейса '{current_code}'. Оновлення неможливе."
+            )
+        year_part = current_code[1:3] 
+        sequential_suffix = current_code[4:] 
+
+        new_urgency_char = urgency.value[0].upper()
+        new_material_type_char = material_type.value[0].upper()
+
+        new_case_code = (
+            f"{new_urgency_char}"
+            f"{year_part}"
+            f"{new_material_type_char}"
+            f"{sequential_suffix}"
+        )
+
+        existing_codes_stmt = select(db_models.Case.case_code).where(
+            db_models.Case.case_code == new_case_code, 
+            db_models.Case.id != case_id 
+        )
+        existing_conflict = (await db.execute(existing_codes_stmt)).scalar_one_or_none()
+
+        if existing_conflict:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Новый код кейса '{new_case_code}' уже существует. "
+                       "Измените порядковый номер для сохранения уникальности."
+            )
+        
+        db_case.case_code = new_case_code
+        db.add(db_case)
+
+    db.add(case_parameters_db) 
+    await db.commit()
+
+
+    await db.refresh(case_parameters_db)
+    if old_urgency != urgency or old_material_type != material_type:
+        await db.refresh(db_case)
+
+    responce = CaseParametersScheema(
+        case_id=case_parameters_db.case_id,
+        macro_description=case_parameters_db.macro_description,
+        container_count_actual=case_parameters_db.container_count_actual,
+        urgency=case_parameters_db.urgency,
+        material_type=case_parameters_db.material_type,
+        macro_archive=case_parameters_db.macro_archive,
+        decalcification=case_parameters_db.decalcification,
+        sample_type=case_parameters_db.sample_type,
+        fixation=case_parameters_db.fixation,
+    )
+    return responce
 
 
 
@@ -425,35 +523,64 @@ async def get_patient_first_case_details(
 
 
 async def update_case_code_suffix(db: AsyncSession, case_id: str, new_suffix: str):
-    """Асинхронно оновлює останні 5 символів коду кейса."""
+    """
+    Асинхронно обновляет последние 5 символов кода кейса, с проверкой на уникальность нового порядкового номера в этом году.
+    """
     if len(new_suffix) != 5 or not new_suffix.isdigit():
-        raise ValueError("Новий суфікс повинен складатися з 5 цифрових символів.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Новый суффикс должен состоять из 5 цифровых символов."
+        )
 
     result = await db.execute(
         select(db_models.Case).where(db_models.Case.id == case_id)
     )
     db_case = result.scalar_one_or_none()
 
-    if db_case:
-        current_code = db_case.case_code
-        if len(current_code) >= 4:
-            new_case_code = f"{current_code[:-5]}{new_suffix}"
-            db_case.case_code = new_case_code
-            await db.commit()
-            await db.refresh(db_case)
-            return UpdateCaseCodeResponce.model_validate(db_case)
-        else:
-            raise ValueError(
-                f"Поточний код кейса '{current_code}' занадто короткий для оновлення суфікса."
-            )
-    return None
+    if not db_case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Кейс с ID '{case_id}' не найден."
+        )
+
+    current_code = db_case.case_code
+
+    if len(current_code) < 9: 
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Текущий код кейса '{current_code}' слишком короткий."
+        )
+
+    current_year_short = current_code[1:3] 
+    
+    new_full_case_code = f"{current_code[:-5]}{new_suffix}"
+
+    prefix_without_suffix = current_code[:-5]
+
+    existing_codes_stmt = select(db_models.Case.case_code).where(
+        db_models.Case.case_code.like(f"%{current_year_short}%"), 
+        db_models.Case.id != case_id 
+    )
+    existing_case_codes_in_current_year = (await db.execute(existing_codes_stmt)).scalars().all()
+
+    if new_full_case_code in existing_case_codes_in_current_year:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, 
+            detail=f"Код кейса '{new_full_case_code}' уже существует в текущем году. Выбирите другой номер."
+        )
+    
+    db_case.case_code = new_full_case_code
+    await db.commit()
+    await db.refresh(db_case)
+    
+    return UpdateCaseCodeResponce.model_validate(db_case)
 
 
 
-async def create_referral(db: AsyncSession, referral_in: ReferralCreate) -> db_models.Referral:
+async def create_referral(db: AsyncSession, referral_in: ReferralCreate, case: db_models.Case) -> db_models.Referral:
     db_referral = db_models.Referral(
         case_id=referral_in.case_id,
-        case_number=referral_in.case_number,
+        case_number=case.case_code,
         research_type=referral_in.research_type,
         container_count=referral_in.container_count,
         medical_card_number=referral_in.medical_card_number,
@@ -486,7 +613,7 @@ async def update_referral(db: AsyncSession, db_referral: db_models.Referral, ref
         return db_referral
 
 
-async def upsert_referral(db: AsyncSession, referral_data: ReferralCreate) -> db_models.Referral:
+async def upsert_referral(db: AsyncSession, referral_data: ReferralCreate, case: db_models.Case) -> db_models.Referral:
     """
     Обновляет направление, если оно существует для данного case_id, иначе создает новое.
     """
@@ -500,12 +627,13 @@ async def upsert_referral(db: AsyncSession, referral_data: ReferralCreate) -> db
     if db_referral:
         print(f"Updating existing referral for case_id: {referral_data.case_id}")
         for field, value in referral_data.model_dump().items(): 
-            setattr(db_referral, field, value)        
+            setattr(db_referral, field, value)
+        db_referral.case_number = case.case_code        
         await db.commit()
         await db.refresh(db_referral)
     else:
         print(f"Creating new referral for case_id: {referral_data.case_id}")
-        db_referral = await create_referral(db, referral_data)
+        db_referral = await create_referral(db=db, referral_in=referral_data, case=case)
     
     return db_referral
 
@@ -519,6 +647,14 @@ async def get_referral(db: AsyncSession, referral_id: str) -> Optional[db_models
     return referral_db
 
 
+async def get_referral_by_case(db: AsyncSession, case_id: str) -> Optional[db_models.Referral]:
+    result = await db.execute(
+        select(db_models.Referral).where(
+            db_models.Referral.case_id == case_id
+        )
+    )
+    referral_db = result.scalars().unique().one_or_none()
+    return referral_db
 
 
 
@@ -553,3 +689,428 @@ async def upload_attachment(db: AsyncSession, referral_id: str, file: UploadFile
     await db.commit()
     await db.refresh(db_attachment)
     return db_attachment
+
+
+
+
+def generate_file_url(file_id: str, case_id: str) -> str:
+    """Генерирует URL для скачивания/просмотра файла направления."""
+    # Здесь вам нужно будет определить реальный путь к вашему маршруту для скачивания файлов.
+    # Например, если ваш маршрут выглядит так: /api/v1/cases/{case_id}/directions/{file_id}/download
+    # Важно: это просто пример, настройте его под свои реальные маршруты.
+    return f"/cases/attachments/{file_id}"
+
+
+async def get_patient_cases_with_directions(
+    db: AsyncSession, patient_id: str
+) -> PatientCasesWithReferralsResponse: # Указываем тип возвращаемого значения
+    """
+    Асинхронно получает список всех кейсов пациента и детализацию первого из них:
+    все семплы первого кейса, но кассеты и стекла загружаются только для первого семпла.
+    Включает ссылки на файлы направлений для первого кейса.
+    """
+    # 1. Получаем список всех кейсов пациента, отсортированных по дате создания
+    cases_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.patient_id == patient_id)
+        .order_by(db_models.Case.creation_date.desc())
+    )
+    all_cases_db = cases_result.scalars().all()
+    
+
+    all_cases = [CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db]
+
+    first_case_direction_details: Optional[FirstCaseReferralDetailsSchema] = None
+
+    if all_cases_db:
+        first_case_db = all_cases_db[0]
+        
+        referral_db = await db.scalar(
+            select(db_models.Referral).where(db_models.Referral.case_id == first_case_db.id)
+        )
+
+        if referral_db:
+            direction_files_result = await db.execute(
+                select(db_models.ReferralAttachment).where(
+                    db_models.ReferralAttachment.referral_id == referral_db.id
+                )
+            )
+            direction_files_db = direction_files_result.scalars().all()
+
+            attachments_for_response = []
+            for file_db in direction_files_db:
+                file_url = generate_file_url(file_db.id, first_case_db.id)
+                attachments_for_response.append(
+                    ReferralFileSchema(
+                        id=file_db.id,
+                        file_name=file_db.filename,
+                        file_type=file_db.content_type, 
+                        file_url=file_url
+                    )
+                )
+            
+            first_case_direction_details = FirstCaseReferralDetailsSchema(
+                id=first_case_db.id,
+                case_code=first_case_db.case_code,
+                creation_date=first_case_db.creation_date,
+                pathohistological_conclusion=first_case_db.pathohistological_conclusion,
+                microdescription=first_case_db.microdescription,
+                attachments=attachments_for_response
+            )
+
+    return PatientCasesWithReferralsResponse(
+        all_cases=all_cases, 
+        first_case_direction=first_case_direction_details
+    )
+
+
+
+
+
+async def get_patient_case_details_for_glass_page(
+    db: AsyncSession, patient_id: str
+) -> PatientGlassPageResponse: #
+    """
+    Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
+    для первого кейса, отсортированного по дате создания.
+    Используется для вкладки "Стёкла" на странице врача.
+    """
+    cases_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.patient_id == patient_id)
+        .order_by(db_models.Case.creation_date.desc())
+    )
+    all_cases_db = cases_result.scalars().all()
+    
+    all_cases_schematized = [
+        CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db
+    ]
+
+    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
+
+    if all_cases_db:
+        first_case_db = all_cases_db[0]
+
+        samples_result = await db.execute(
+            select(db_models.Sample)
+            .where(db_models.Sample.case_id == first_case_db.id)
+            .options(
+                selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+            ) 
+            .order_by(db_models.Sample.sample_number)
+        )
+        first_case_samples_db = samples_result.scalars().all()
+
+
+        first_case_samples_schematized: List[SampleForGlassPage] = []
+
+        for sample_db in first_case_samples_db:
+
+            def sort_cassettes(cassette: db_models.Cassette):
+                match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+                if match:
+                    letter_part = match.group(1)
+                    number_part = int(match.group(2))
+                    return (letter_part, number_part)
+                return (cassette.cassette_number, 0) 
+
+
+            sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+            
+            cassettes_for_sample = []
+            for cassette_db in sorted_cassettes_db:
+                sorted_glasses_db = sorted(
+                    cassette_db.glass,
+                    key=lambda glass: glass.glass_number 
+                )
+                
+                glasses_for_cassette = [
+                    GlassModelScheema.model_validate(glass).model_dump()
+                    for glass in sorted_glasses_db
+                ]
+                
+                cassette_schematized = CassetteForGlassPage.model_validate(cassette_db).model_dump()
+                cassette_schematized["glasses"] = glasses_for_cassette 
+                cassettes_for_sample.append(cassette_schematized)
+
+            sample_schematized = SampleForGlassPage.model_validate(sample_db).model_dump()
+            sample_schematized["cassettes"] = cassettes_for_sample 
+            first_case_samples_schematized.append(sample_schematized)
+
+
+        first_case_details_for_glass = FirstCaseGlassDetailsSchema(
+            id=first_case_db.id,
+            case_code=first_case_db.case_code,
+            creation_date=first_case_db.creation_date,
+            pathohistological_conclusion=first_case_db.pathohistological_conclusion,
+            microdescription=first_case_db.microdescription,
+            samples=first_case_samples_schematized, 
+        )
+
+    return PatientGlassPageResponse(
+        all_cases=all_cases_schematized,
+        first_case_details_for_glass=first_case_details_for_glass,
+    )
+
+
+async def get_single_case_details_for_glass_page(
+    db: AsyncSession, case_id:str
+) -> SingleCaseGlassPageResponse: 
+    """
+    Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
+    для первого кейса, отсортированного по дате создания.
+    Используется для вкладки "Стёкла" на странице врача.
+    """
+    result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.id == case_id)
+    )
+    case_db = result.scalar_one_or_none()
+    if not case_db:
+        return None
+    
+    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
+
+    if case_db:
+        
+        samples_result = await db.execute(
+            select(db_models.Sample)
+            .where(db_models.Sample.case_id == case_db.id)
+            .options(
+                selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+            ) 
+            .order_by(db_models.Sample.sample_number)
+        )
+        first_case_samples_db = samples_result.scalars().all()
+
+
+        first_case_samples_schematized: List[SampleForGlassPage] = []
+
+        for sample_db in first_case_samples_db:
+
+            def sort_cassettes(cassette: db_models.Cassette):
+                match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+                if match:
+                    letter_part = match.group(1)
+                    number_part = int(match.group(2))
+                    return (letter_part, number_part)
+                return (cassette.cassette_number, 0) 
+
+
+            sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+            
+            cassettes_for_sample = []
+            for cassette_db in sorted_cassettes_db:
+                sorted_glasses_db = sorted(
+                    cassette_db.glass,
+                    key=lambda glass: glass.glass_number 
+                )
+                
+                glasses_for_cassette = [
+                    GlassModelScheema.model_validate(glass).model_dump()
+                    for glass in sorted_glasses_db
+                ]
+                
+                cassette_schematized = CassetteForGlassPage.model_validate(cassette_db).model_dump()
+                cassette_schematized["glasses"] = glasses_for_cassette 
+                cassettes_for_sample.append(cassette_schematized)
+
+            sample_schematized = SampleForGlassPage.model_validate(sample_db).model_dump()
+            sample_schematized["cassettes"] = cassettes_for_sample 
+            first_case_samples_schematized.append(sample_schematized)
+
+
+        first_case_details_for_glass = FirstCaseGlassDetailsSchema(
+            id=case_db.id,
+            case_code=case_db.case_code,
+            creation_date=case_db.creation_date,
+            samples=first_case_samples_schematized, 
+        )
+
+    return SingleCaseGlassPageResponse(
+        single_case_for_glass_page=first_case_details_for_glass,
+    )
+
+
+
+
+
+
+
+
+async def update_case_pathohistological_conclusion(db: AsyncSession, case_id: str, body: UpdatePathohistologicalConclusion) -> PathohistologicalConclusionResponse | None:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+    result = await db.execute(
+        select(db_models.Case).where(db_models.Case.id == case_id)
+    )
+    case_db = result.scalar_one_or_none()
+    if case_db:
+        case_db.pathohistological_conclusion = body.pathohistological_conclusion
+        await db.commit()
+        await db.refresh(case_db)
+        response = PathohistologicalConclusionResponse(pathohistological_conclusion=body.pathohistological_conclusion)
+        return response
+    else:
+        return None
+    
+
+async def update_case_microdescription(db: AsyncSession, case_id: str, body: UpdateMicrodescription) -> MicrodescriptionResponse | None:
+    """Асинхронно получает информацию о кейсе по его ID, включая связанные банки."""
+    result = await db.execute(
+        select(db_models.Case).where(db_models.Case.id == case_id)
+    )
+    case_db = result.scalar_one_or_none()
+    if case_db:
+        case_db.microdescription = body.microdescription
+        await db.commit()
+        await db.refresh(case_db)
+        response = MicrodescriptionResponse(pathohistological_conclusion=body.microdescription)
+        return response
+    else:
+        return None
+    
+
+
+
+
+
+
+async def get_patient_case_details_for_excision_page(
+    db: AsyncSession, patient_id: str
+) -> PatientExcisionPageResponse: #
+    """
+    Асинхронно получает список всех кейсов пациента и полную детализацию
+    по последнему кейсу (параметры, макроописание, инфо по семплам).
+    Используется для вкладки "Excision" (удаление/макроописание) на странице врача.
+    """
+    cases_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.patient_id == patient_id)
+        .order_by(db_models.Case.creation_date.desc()) 
+    )
+    all_cases_db = cases_result.scalars().all()
+    
+
+    all_cases_schematized = [
+        CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db
+    ]
+
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+
+    if all_cases_db:
+        last_case_db = all_cases_db[0] 
+        last_case_full_info_result = await db.execute(
+            select(db_models.Case)
+            .where(db_models.Case.id == last_case_db.id)
+            .options(
+                selectinload(db_models.Case.case_parameters), 
+                selectinload(db_models.Case.samples) 
+            )
+        )
+        last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+
+        if last_case_with_relations:
+
+            case_parameters_schematized: Optional[CaseParametersScheema] = None
+            if last_case_with_relations.case_parameters:
+                case_parameters_schematized = CaseParametersScheema.model_validate(
+                    last_case_with_relations.case_parameters
+                ).model_dump()
+            
+
+            samples_for_excision_page: List[SampleForExcisionPage] = []
+            
+
+            sorted_samples = sorted(
+                last_case_with_relations.samples,
+                key=lambda s: s.sample_number 
+            )
+
+            for sample_db in sorted_samples:
+
+                samples_for_excision_page.append(
+                    SampleForExcisionPage(
+                        id=sample_db.id,
+                        sample_number=sample_db.sample_number,
+                        is_archived=sample_db.archive, 
+                        macro_description=sample_db.macro_description 
+                    )
+                )
+
+
+            last_case_details_for_excision = LastCaseExcisionDetailsSchema(
+                id=last_case_db.id,
+                case_code=last_case_db.case_code,
+                creation_date=last_case_db.creation_date,
+                pathohistological_conclusion=last_case_db.pathohistological_conclusion,
+                microdescription=last_case_db.microdescription,
+                case_parameters=case_parameters_schematized,
+                samples=samples_for_excision_page,
+            )
+
+
+    return PatientExcisionPageResponse(
+        all_cases=all_cases_schematized,
+        last_case_details_for_excision=last_case_details_for_excision,
+    )
+
+
+
+
+
+async def get_single_case_details_for_excision_page(
+    db: AsyncSession, case_id:str
+) -> SingleCaseExcisionPageResponse: 
+    """
+
+    """
+
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+
+    last_case_full_info_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.id == case_id)
+        .options(
+            selectinload(db_models.Case.case_parameters), 
+            selectinload(db_models.Case.samples) 
+        )
+    )
+    last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+
+    if last_case_with_relations:
+        case_parameters_schematized: Optional[CaseParametersScheema] = None
+        if last_case_with_relations.case_parameters:
+            case_parameters_schematized = CaseParametersScheema.model_validate(
+                last_case_with_relations.case_parameters
+            ).model_dump()
+        
+        samples_for_excision_page: List[SampleForExcisionPage] = []
+        
+        sorted_samples = sorted(
+            last_case_with_relations.samples,
+            key=lambda s: s.sample_number 
+        )
+
+        for sample_db in sorted_samples:
+            samples_for_excision_page.append(
+                SampleForExcisionPage(
+                    id=sample_db.id,
+                    sample_number=sample_db.sample_number,
+                    is_archived=sample_db.archive, 
+                    macro_description=sample_db.macro_description 
+                )
+            )
+
+        last_case_details_for_excision = LastCaseExcisionDetailsSchema(
+            id=last_case_with_relations.id,
+            case_code=last_case_with_relations.case_code,
+            creation_date=last_case_with_relations.creation_date,
+            pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+            microdescription=last_case_with_relations.microdescription,
+            case_parameters=case_parameters_schematized,
+            samples=samples_for_excision_page,
+        )
+
+    return SingleCaseExcisionPageResponse(
+        case_details_for_excision=last_case_details_for_excision,
+    )

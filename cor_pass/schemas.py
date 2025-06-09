@@ -14,6 +14,7 @@ from datetime import datetime
 from cor_pass.database import models
 from cor_pass.database.models import (
     AccessLevel,
+    PatientStatus,
     Status,
     Doctor_Status,
     AuthSessionStatus,
@@ -145,6 +146,7 @@ class UserSessionModel(BaseModel):
     device_os: str
     refresh_token: str
     jti: str
+    access_token: str
 
 
 class UserSessionResponseModel(BaseModel):
@@ -594,6 +596,16 @@ class PatientResponce(BaseModel):
     status: Optional[str]
 
 
+class PatientDecryptedResponce(BaseModel):
+    patient_cor_id: str
+    surname: Optional[str] = None
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    sex: Optional[str]
+    birth_date: Optional[Union[date, int]] = None
+    age: Optional[int] = None
+    status: Optional[PatientStatus] = None
+
 class PaginatedPatientsResponse(BaseModel):
     items: List[PatientResponce]
     total: int
@@ -657,6 +669,13 @@ class Glass(GlassBase):
     class Config:
         from_attributes = True
 
+class GlassForGlassPage(GlassBase):
+    id: str
+    # cassette_id: str
+
+    class Config:
+        from_attributes = True
+
 
 class DeleteGlassesRequest(BaseModel):
     glass_ids: List[str]
@@ -715,6 +734,15 @@ class Cassette(CassetteBase):
     class Config:
         from_attributes = True
 
+class CassetteForGlassPage(BaseModel):
+    # id: str
+    # sample_id: str
+    cassette_number: str
+    glasses: List[Glass] = []
+
+    class Config:
+        from_attributes = True
+
 
 class DeleteCassetteRequest(BaseModel):
     cassette_ids: List[str]
@@ -730,6 +758,16 @@ class Sample(SampleBase):
     case_id: str
     macro_description: Optional[str] = None
     cassettes: List[Cassette] = []
+
+    class Config:
+        from_attributes = True
+
+class SampleForGlassPage(BaseModel):
+    # id: str
+    # case_id: str
+    # macro_description: Optional[str] = None
+    sample_number: str
+    cassettes: List[CassetteForGlassPage] = []
 
     class Config:
         from_attributes = True
@@ -806,6 +844,9 @@ class Case(BaseModel):
     bank_count: int
     cassette_count: int
     glass_count: int
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
+    # general_macrodescription: Optional[str] = None
     # samples: List = []  # Связь с банками
     # directions: List = []
     # case_parameters: Optional[List] = None
@@ -850,6 +891,9 @@ class CaseParametersScheema(BaseModel):
     fixation: FixationType
     macro_description: Optional[str]
 
+    class Config:
+        from_attributes = True
+
 
 class SampleWithoutCassettesSchema(BaseModel):
     id: str
@@ -868,6 +912,8 @@ class CaseDetailsResponse(BaseModel):
     bank_count: int
     cassette_count: int
     glass_count: int
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
     samples: List[SampleWithoutCassettesSchema | Sample]
 
 
@@ -878,6 +924,8 @@ class SimpleCaseResponse(BaseModel):
     bank_count: int
     cassette_count: int
     glass_count: int
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
 
 
 class CaseListResponse(BaseModel):
@@ -921,18 +969,6 @@ class GenerateManufacturedDevices(BaseModel):
 
 
 # Модели для принтеров
-
-
-"""
-    device_class = Column(String, nullable=False)
-    device_identifier = Column(String, nullable=False, unique=True, index=True)
-    subnet_mask = Column(String, nullable=True)
-    gateway = Column(String, nullable=True)
-    ip_address = Column(String, nullable=False)
-    port = Column(Integer, nullable=True)
-    comment = Column(String, nullable=True)
-    location = Column(String, nullable=True)
-"""
 
 
 class CreatePrintingDevice(BaseModel):
@@ -979,39 +1015,25 @@ class PrintRequest(BaseModel):
     labels: List[Label]
 
 
-
-
-#Схемы для направлений 
-
-# Для использования ResearchType в Pydantic
-# class StudyType(str, Enum):
-#     CYTOLOGY = "Цитология"
-#     PATHOHISTOLOGY = "Патогистология"
-#     IMMUNOHISTOCHEMISTRY = "Иммуногистохимия"
-#     FISH_CISH = "FISH/CISH"
-
-# Схема для прикрепленного файла в ответе
 class ReferralAttachmentResponse(BaseModel):
     id: str
     filename: str
     content_type: str
-    # Вместо file_data будем возвращать URL для получения файла
     file_url: Optional[str] = Field(None, description="URL файла")
 
     class Config:
-        from_attributes = True # Для совместимости с SQLAlchemy
+        from_attributes = True 
 
-# Схема для создания прикрепленного файла (для внутреннего использования или если вы принимаете base64)
-# В случае загрузки через Form-Data, эта схема не всегда напрямую используется для приема данных.
+
 class ReferralAttachmentCreate(BaseModel):
     filename: str
     content_type: str
-    file_data: bytes # Принимаем байты, если это не Form-Data загрузка
+    file_data: bytes 
 
-# Схема для создания Направления
+
 class ReferralCreate(BaseModel):
     case_id: str = Field(..., description="ID связанного кейса")
-    case_number: str = Field(..., description="Номер кейса")
+    # case_number: str = Field(..., description="Номер кейса")
     research_type: Optional[StudyType] = Field(None, description="Вид исследования")
     container_count: Optional[int] = Field(None, description="Фактическое количество контейнеров")
     medical_card_number: Optional[str] = Field(None, description="Номер медкарты")
@@ -1025,7 +1047,7 @@ class ReferralCreate(BaseModel):
     final_report_delivery: Optional[str] = Field(None, description="Финальный репорт отправить")
     issued_at: Optional[date] = Field(None, description="Выдано (дата)")
 
-# Схема для ответа Направления (что возвращает API)
+
 class ReferralResponse(BaseModel):
     id: str
     case_id: str
@@ -1048,9 +1070,32 @@ class ReferralResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ReferralResponseForDoctor(BaseModel):
+    id: str = Field(..., description="Referral ID")
+    case_id: str = Field(..., description="Сase ID")
+    case_number: str = Field(..., description="Сase Code")
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
+    # created_at: datetime
+    # research_type: Optional[StudyType]
+    # container_count: Optional[int]
+    # medical_card_number: Optional[str]
+    # clinical_data: Optional[str]
+    # clinical_diagnosis: Optional[str]
+    # medical_institution: Optional[str]
+    # department: Optional[str]
+    # attending_doctor: Optional[str]
+    # doctor_contacts: Optional[str]
+    # medical_procedure: Optional[str]
+    # final_report_delivery: Optional[str]
+    # issued_at: Optional[date]
+    attachments: List[ReferralAttachmentResponse] = [] # Список прикрепленных файлов
+
+    class Config:
+        from_attributes = True
+
 
 class ReferralUpdate(BaseModel):
-    # case_id не включаем сюда, так как по нему мы ищем
     case_number: Optional[str] = None
     research_type: Optional[str] = None
     container_count: Optional[int] = None
@@ -1063,8 +1108,167 @@ class ReferralUpdate(BaseModel):
     doctor_contacts: Optional[str] = None
     medical_procedure: Optional[str] = None
     final_report_delivery: Optional[str] = None
-    issued_at: Optional[date] = None # Или Field(default_factory=datetime.now) если должно обновляться на текущее время
+    issued_at: Optional[date] = None 
 
     class Config:
-        from_attributes = True # Для Pydantic v2
-        # orm_mode = True # Для Pydantic v1
+        from_attributes = True 
+
+
+
+class ProfileCreate(BaseModel):
+    surname: Optional[str] = Field(None, max_length=25, description="Фамилия")
+    first_name: Optional[str] = Field(None, max_length=25, description="Имя")
+    middle_name: Optional[str] = Field(None, max_length=25, description="Отчество")
+    birth_date: Optional[date] = Field(None, description="Дата рождения")
+    phone_number: Optional[str] = Field(None, max_length=15, description="Номер телефона")
+    city: Optional[str] = Field(None, max_length=50, description="Город")
+    car_brand: Optional[str] = Field(None, max_length=50, description="Марка авто")
+    engine_type: Optional[str] = Field(None, max_length=50, description="Тип двигателя")
+    fuel_tank_volume: Optional[int] = Field(None, ge=0, le=1000, description="Обьем бензобака")
+
+    class Config: 
+        from_attributes = True 
+
+class ProfileResponse(BaseModel):
+    email: str = Field(description="Имейл пользователя")
+    sex: str = Field(description="Пол пользователя")
+    surname: Optional[str] = Field(None, description="Фамилия")
+    first_name: Optional[str] = Field(None, description="Имя")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    birth_date: Optional[date] = Field(None, description="Дата рождения")
+    phone_number: Optional[str] = Field(None, description="Номер телефона")
+    city: Optional[str] = Field(None, description="Город")
+    car_brand: Optional[str] = Field(None, description="Марка авто")
+    engine_type: Optional[str] = Field(None, description="Тип двигателя")
+    fuel_tank_volume: Optional[int] = Field(None, ge=0, le=1000, description="Обьем бензобака")
+
+    class Config:
+        from_attributes = True 
+
+class DeleteMyAccount(BaseModel):
+    password: str = Field(min_length=6, max_length=20)
+
+
+class FullUserInfoResponse(BaseModel):
+    user_info: UserDb 
+    user_roles: Optional[List[str]] = None 
+    profile: Optional[ProfileResponse] = None 
+    doctor_info: Optional[DoctorWithRelationsResponse] = None 
+    class Config:
+        from_attributes = True 
+
+
+class ReferralFileSchema(BaseModel):
+    id: Optional[str] = None 
+    file_name: Optional[str] = None 
+    file_type: Optional[str] = None 
+    file_url: Optional[str] = None 
+
+    class Config:
+        from_attributes = True
+
+
+class FirstCaseReferralDetailsSchema(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
+    general_macrodescription: Optional[str] = None
+   
+    attachments: Optional[List[ReferralFileSchema]] = None 
+
+    class Config:
+        from_attributes = True
+
+
+class PatientCasesWithReferralsResponse(BaseModel):
+    all_cases: List[Case]
+    first_case_direction: Optional[FirstCaseReferralDetailsSchema] = None
+
+    class Config:
+        from_attributes = True
+
+
+
+class FirstCaseGlassDetailsSchema(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
+    general_macrodescription: Optional[str] = None
+
+    samples: List[SampleForGlassPage] 
+
+    class Config:
+        from_attributes = True
+
+
+class PatientGlassPageResponse(BaseModel):
+    all_cases: List[Case] 
+    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None 
+
+    class Config:
+        from_attributes = True
+
+
+class SingleCaseGlassPageResponse(BaseModel):
+    single_case_for_glass_page: Optional[FirstCaseGlassDetailsSchema] = None
+
+
+
+
+class PathohistologicalConclusionResponse(BaseModel):
+    pathohistological_conclusion: Optional[str] = None
+
+class UpdatePathohistologicalConclusion(BaseModel):
+    pathohistological_conclusion: str
+
+
+
+class MicrodescriptionResponse(BaseModel):
+    microdescription: Optional[str] = None
+
+class UpdateMicrodescription(BaseModel):
+    microdescription: str
+
+
+class SampleForExcisionPage(BaseModel):
+    id: str
+    sample_number: str 
+    is_archived: bool = False 
+    macro_description: Optional[str] = None 
+
+    class Config:
+        from_attributes = True
+
+
+class LastCaseExcisionDetailsSchema(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
+    case_parameters: Optional[CaseParametersScheema] = None
+
+    samples: List[SampleForExcisionPage]
+
+    class Config:
+        from_attributes = True
+
+
+class PatientExcisionPageResponse(BaseModel):
+    all_cases: List[Case]
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None 
+
+    class Config:
+        from_attributes = True
+
+
+class SingleCaseExcisionPageResponse(BaseModel):
+
+    case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None 
+
+    class Config:
+        from_attributes = True
