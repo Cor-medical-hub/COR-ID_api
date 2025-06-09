@@ -844,8 +844,8 @@ class Case(BaseModel):
     bank_count: int
     cassette_count: int
     glass_count: int
-    # pathohistological_conclusion: Optional[str] = None
-    # microdescription: Optional[str] = None
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
     # general_macrodescription: Optional[str] = None
     # samples: List = []  # Связь с банками
     # directions: List = []
@@ -891,6 +891,9 @@ class CaseParametersScheema(BaseModel):
     fixation: FixationType
     macro_description: Optional[str]
 
+    class Config:
+        from_attributes = True
+
 
 class SampleWithoutCassettesSchema(BaseModel):
     id: str
@@ -909,6 +912,8 @@ class CaseDetailsResponse(BaseModel):
     bank_count: int
     cassette_count: int
     glass_count: int
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
     samples: List[SampleWithoutCassettesSchema | Sample]
 
 
@@ -919,6 +924,8 @@ class SimpleCaseResponse(BaseModel):
     bank_count: int
     cassette_count: int
     glass_count: int
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
 
 
 class CaseListResponse(BaseModel):
@@ -1067,6 +1074,8 @@ class ReferralResponseForDoctor(BaseModel):
     id: str = Field(..., description="Referral ID")
     case_id: str = Field(..., description="Сase ID")
     case_number: str = Field(..., description="Сase Code")
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
     # created_at: datetime
     # research_type: Optional[StudyType]
     # container_count: Optional[int]
@@ -1087,7 +1096,6 @@ class ReferralResponseForDoctor(BaseModel):
 
 
 class ReferralUpdate(BaseModel):
-    # case_id не включаем сюда, так как по нему мы ищем
     case_number: Optional[str] = None
     research_type: Optional[str] = None
     container_count: Optional[int] = None
@@ -1142,29 +1150,24 @@ class DeleteMyAccount(BaseModel):
 
 
 class FullUserInfoResponse(BaseModel):
-    user_info: UserDb # user_info всегда будет присутствовать
-    user_roles: Optional[List[str]] = None # Список ролей, может отсутствовать
-    profile: Optional[ProfileResponse] = None # Профиль, может отсутствовать
-    doctor_info: Optional[DoctorWithRelationsResponse] = None # Информация о докторе, может отсутствовать
-
+    user_info: UserDb 
+    user_roles: Optional[List[str]] = None 
+    profile: Optional[ProfileResponse] = None 
+    doctor_info: Optional[DoctorWithRelationsResponse] = None 
     class Config:
         from_attributes = True 
 
 
-
-# --- НОВАЯ СХЕМА ДЛЯ ФАЙЛА НАПРАВЛЕНИЯ ---
 class ReferralFileSchema(BaseModel):
-    # Предполагаем, что у вас есть модель DirectionFile, которая хранит info о файле
-    # Укажите поля, которые есть в вашей модели DirectionFile
-    id: str # ID файла
-    file_name: str # Имя файла
-    file_type: str # Тип файла (например, 'application/pdf', 'image/jpeg')
-    file_url: str # URL для скачивания/просмотра файла (мы его будем генерировать)
+    id: Optional[str] = None 
+    file_name: Optional[str] = None 
+    file_type: Optional[str] = None 
+    file_url: Optional[str] = None 
 
     class Config:
         from_attributes = True
 
-# --- ОБНОВЛЕННАЯ СХЕМА ДЛЯ ДЕТАЛЕЙ ПЕРВОГО КЕЙСА (включая направления) ---
+
 class FirstCaseReferralDetailsSchema(BaseModel):
     id: str
     case_code: str
@@ -1172,13 +1175,13 @@ class FirstCaseReferralDetailsSchema(BaseModel):
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
     general_macrodescription: Optional[str] = None
-    # Теперь attachments - это список нашей новой схемы DirectionFileSchema
+   
     attachments: Optional[List[ReferralFileSchema]] = None 
 
     class Config:
         from_attributes = True
 
-# --- ОБНОВЛЕННАЯ ГЛАВНАЯ СХЕМА ОТВЕТА ---
+
 class PatientCasesWithReferralsResponse(BaseModel):
     all_cases: List[Case]
     first_case_direction: Optional[FirstCaseReferralDetailsSchema] = None
@@ -1187,7 +1190,7 @@ class PatientCasesWithReferralsResponse(BaseModel):
         from_attributes = True
 
 
-# --- НОВАЯ СХЕМА ДЛЯ ДЕТАЛЕЙ ПЕРВОГО КЕЙСА (для вкладки "Стёкла") ---
+
 class FirstCaseGlassDetailsSchema(BaseModel):
     id: str
     case_code: str
@@ -1195,17 +1198,16 @@ class FirstCaseGlassDetailsSchema(BaseModel):
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
     general_macrodescription: Optional[str] = None
-    # samples теперь содержит все семплы первого кейса,
-    # и их кассеты и стекла загружены полностью.
+
     samples: List[SampleForGlassPage] 
 
     class Config:
         from_attributes = True
 
-# --- ГЛАВНАЯ СХЕМА ОТВЕТА ДЛЯ Вкладки "Стёкла" ---
+
 class PatientGlassPageResponse(BaseModel):
-    all_cases: List[Case] # Список всех кейсов пациента
-    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None # Детали первого кейса со всеми стёклами
+    all_cases: List[Case] 
+    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None 
 
     class Config:
         from_attributes = True
@@ -1230,3 +1232,43 @@ class MicrodescriptionResponse(BaseModel):
 
 class UpdateMicrodescription(BaseModel):
     microdescription: str
+
+
+class SampleForExcisionPage(BaseModel):
+    id: str
+    sample_number: str 
+    is_archived: bool = False 
+    macro_description: Optional[str] = None 
+
+    class Config:
+        from_attributes = True
+
+
+class LastCaseExcisionDetailsSchema(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime
+    pathohistological_conclusion: Optional[str] = None
+    microdescription: Optional[str] = None
+    case_parameters: Optional[CaseParametersScheema] = None
+
+    samples: List[SampleForExcisionPage]
+
+    class Config:
+        from_attributes = True
+
+
+class PatientExcisionPageResponse(BaseModel):
+    all_cases: List[Case]
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None 
+
+    class Config:
+        from_attributes = True
+
+
+class SingleCaseExcisionPageResponse(BaseModel):
+
+    case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None 
+
+    class Config:
+        from_attributes = True

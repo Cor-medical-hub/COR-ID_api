@@ -11,8 +11,10 @@ from cor_pass.schemas import (
     FirstCaseGlassDetailsSchema,
     GlassBase,
     GlassForGlassPage,
+    LastCaseExcisionDetailsSchema,
     MicrodescriptionResponse,
     PathohistologicalConclusionResponse,
+    PatientExcisionPageResponse,
     PatientGlassPageResponse,
     ReferralFileSchema,
     FirstCaseReferralDetailsSchema,
@@ -22,7 +24,9 @@ from cor_pass.schemas import (
     Sample as SampleModelScheema,
     Cassette as CassetteModelScheema,
     Glass as GlassModelScheema,
+    SampleForExcisionPage,
     SampleForGlassPage,
+    SingleCaseExcisionPageResponse,
     SingleCaseGlassPageResponse,
     UpdateCaseCodeResponce,
     CaseCreate,
@@ -749,6 +753,8 @@ async def get_patient_cases_with_directions(
                 id=first_case_db.id,
                 case_code=first_case_db.case_code,
                 creation_date=first_case_db.creation_date,
+                pathohistological_conclusion=first_case_db.pathohistological_conclusion,
+                microdescription=first_case_db.microdescription,
                 attachments=attachments_for_response
             )
 
@@ -836,6 +842,8 @@ async def get_patient_case_details_for_glass_page(
             id=first_case_db.id,
             case_code=first_case_db.case_code,
             creation_date=first_case_db.creation_date,
+            pathohistological_conclusion=first_case_db.pathohistological_conclusion,
+            microdescription=first_case_db.microdescription,
             samples=first_case_samples_schematized, 
         )
 
@@ -956,7 +964,153 @@ async def update_case_microdescription(db: AsyncSession, case_id: str, body: Upd
         case_db.microdescription = body.microdescription
         await db.commit()
         await db.refresh(case_db)
-        response = PathohistologicalConclusionResponse(pathohistological_conclusion=body.microdescription)
+        response = MicrodescriptionResponse(pathohistological_conclusion=body.microdescription)
         return response
     else:
         return None
+    
+
+
+
+
+
+
+async def get_patient_case_details_for_excision_page(
+    db: AsyncSession, patient_id: str
+) -> PatientExcisionPageResponse: #
+    """
+    Асинхронно получает список всех кейсов пациента и полную детализацию
+    по последнему кейсу (параметры, макроописание, инфо по семплам).
+    Используется для вкладки "Excision" (удаление/макроописание) на странице врача.
+    """
+    cases_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.patient_id == patient_id)
+        .order_by(db_models.Case.creation_date.desc()) 
+    )
+    all_cases_db = cases_result.scalars().all()
+    
+
+    all_cases_schematized = [
+        CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db
+    ]
+
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+
+    if all_cases_db:
+        last_case_db = all_cases_db[0] 
+        last_case_full_info_result = await db.execute(
+            select(db_models.Case)
+            .where(db_models.Case.id == last_case_db.id)
+            .options(
+                selectinload(db_models.Case.case_parameters), 
+                selectinload(db_models.Case.samples) 
+            )
+        )
+        last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+
+        if last_case_with_relations:
+
+            case_parameters_schematized: Optional[CaseParametersScheema] = None
+            if last_case_with_relations.case_parameters:
+                case_parameters_schematized = CaseParametersScheema.model_validate(
+                    last_case_with_relations.case_parameters
+                ).model_dump()
+            
+
+            samples_for_excision_page: List[SampleForExcisionPage] = []
+            
+
+            sorted_samples = sorted(
+                last_case_with_relations.samples,
+                key=lambda s: s.sample_number 
+            )
+
+            for sample_db in sorted_samples:
+
+                samples_for_excision_page.append(
+                    SampleForExcisionPage(
+                        id=sample_db.id,
+                        sample_number=sample_db.sample_number,
+                        is_archived=sample_db.archive, 
+                        macro_description=sample_db.macro_description 
+                    )
+                )
+
+
+            last_case_details_for_excision = LastCaseExcisionDetailsSchema(
+                id=last_case_db.id,
+                case_code=last_case_db.case_code,
+                creation_date=last_case_db.creation_date,
+                pathohistological_conclusion=last_case_db.pathohistological_conclusion,
+                microdescription=last_case_db.microdescription,
+                case_parameters=case_parameters_schematized,
+                samples=samples_for_excision_page,
+            )
+
+
+    return PatientExcisionPageResponse(
+        all_cases=all_cases_schematized,
+        last_case_details_for_excision=last_case_details_for_excision,
+    )
+
+
+
+
+
+async def get_single_case_details_for_excision_page(
+    db: AsyncSession, case_id:str
+) -> SingleCaseExcisionPageResponse: 
+    """
+
+    """
+
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+
+    last_case_full_info_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.id == case_id)
+        .options(
+            selectinload(db_models.Case.case_parameters), 
+            selectinload(db_models.Case.samples) 
+        )
+    )
+    last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+
+    if last_case_with_relations:
+        case_parameters_schematized: Optional[CaseParametersScheema] = None
+        if last_case_with_relations.case_parameters:
+            case_parameters_schematized = CaseParametersScheema.model_validate(
+                last_case_with_relations.case_parameters
+            ).model_dump()
+        
+        samples_for_excision_page: List[SampleForExcisionPage] = []
+        
+        sorted_samples = sorted(
+            last_case_with_relations.samples,
+            key=lambda s: s.sample_number 
+        )
+
+        for sample_db in sorted_samples:
+            samples_for_excision_page.append(
+                SampleForExcisionPage(
+                    id=sample_db.id,
+                    sample_number=sample_db.sample_number,
+                    is_archived=sample_db.archive, 
+                    macro_description=sample_db.macro_description 
+                )
+            )
+
+        last_case_details_for_excision = LastCaseExcisionDetailsSchema(
+            id=last_case_with_relations.id,
+            case_code=last_case_with_relations.case_code,
+            creation_date=last_case_with_relations.creation_date,
+            pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+            microdescription=last_case_with_relations.microdescription,
+            case_parameters=case_parameters_schematized,
+            samples=samples_for_excision_page,
+        )
+
+    return SingleCaseExcisionPageResponse(
+        case_details_for_excision=last_case_details_for_excision,
+    )

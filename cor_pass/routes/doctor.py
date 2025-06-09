@@ -34,10 +34,12 @@ from cor_pass.schemas import (
     PathohistologicalConclusionResponse,
     PatientCasesWithReferralsResponse,
     PatientDecryptedResponce,
+    PatientExcisionPageResponse,
     PatientGlassPageResponse,
     ReferralAttachmentResponse,
     ReferralResponse,
     ReferralResponseForDoctor,
+    SingleCaseExcisionPageResponse,
     SingleCaseGlassPageResponse,
     UpdateMicrodescription,
     UpdatePathohistologicalConclusion
@@ -402,9 +404,12 @@ async def get_single_referral(
         ) for att in referral.attachments
     ]
 
+    case_db = await case_service.get_single_case(db=db, case_id=case_id)
     referral_response_obj = ReferralResponseForDoctor.model_validate(referral)
 
     referral_response_obj.attachments = attachments_response
+    referral_response_obj.pathohistological_conclusion = case_db.pathohistological_conclusion
+    referral_response_obj.microdescription = case_db.microdescription
 
     return referral_response_obj
 
@@ -462,3 +467,49 @@ async def update_microdescription(
             status_code=status.HTTP_404_NOT_FOUND, detail="Case not found"
         )
     return db_case
+
+@router.get(
+    "/patients/{patient_id}/excision-details",
+    response_model=PatientExcisionPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и нужных данных для страницы 'Вырезка'",
+    tags=["DoctorPage"]
+)
+async def get_patient_excision_page_data(
+    patient_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> PatientExcisionPageResponse:
+    """
+    Возвращает все кейсы и данные вырезки по последнему кейсу
+    """
+
+    excision_page_data = await case_service.get_patient_case_details_for_excision_page(db=db, patient_id=patient_id)
+        
+    return excision_page_data
+
+
+
+
+
+@router.get(
+    "/cases/{case_id}/excision-details",
+    response_model=SingleCaseExcisionPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Данные вырезки конкретного кейса для страницы 'Вырезка'",
+    tags=["DoctorPage"]
+)
+async def get_single_case_details_for_excision_page(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    
+) -> SingleCaseExcisionPageResponse:
+    """
+    Возвращает данные вырезки конкретного кейса
+    """
+    
+    excision_page_data = await case_service.get_single_case_details_for_excision_page(db=db, case_id=case_id)
+        
+    return excision_page_data
+
