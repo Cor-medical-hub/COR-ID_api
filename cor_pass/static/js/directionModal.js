@@ -6,8 +6,29 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const uploadBox = document.getElementById('uploadBox');
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
+    let uploadedFiles = []
+    let currentReferralId = null
 
+    const closeModal  = () => {
+        uploadedFiles = []
+        currentReferralId = null
+        document.querySelector('#caseDirection').classList.remove('open')
+    }
+    const sendFileRequest = async (file) => {
+        const formGroup = new FormData()
+        formGroup.append('file', file)
 
+        return fetch(`${API_BASE_URL}/api/cases/${currentReferralId}/attachments`, {
+            method: "POST",
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            },
+            body: formGroup
+        })
+            .then(res => res.json())
+            .then(() => true)
+            .catch(() => false)
+    }
     const drawForm = ( formData ) => {
         const formDrawData = [
                 {
@@ -210,7 +231,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
         if(!files.length) {
             return;
         }
-
         const cutTo5Files = [...files].slice(0,5);
         uploadArea.querySelectorAll('.thumb').forEach(thumb => thumb.remove());
 
@@ -227,6 +247,24 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
             const imgNODE = document.createElement('img');
+
+            if(file.file_url){
+                fetch(`${API_BASE_URL}/api${file.file_url}`, {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    },
+                })
+                    .then(response => response.blob())
+                    .then(blob => {
+                        imgNODE.src = URL.createObjectURL(blob);
+                        imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
+                        fileViewerWrapperNODE.appendChild(imgNODE);
+                        uploadArea.appendChild(fileViewerWrapperNODE);
+                    })
+                return;
+            }
+
             imgNODE.src=URL.createObjectURL(file);
             imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
             fileViewerWrapperNODE.appendChild(imgNODE);
@@ -259,11 +297,26 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     body: JSON.stringify({
                         case_id: cases[lastActiveCaseIndex].id,
                         ...formData,
+                        issued_at: formData.issued_at || null
                     })
                 })
                     .then(res => res.json())
-                    .then(() => {
+                    .then((referralData) => {
                         alert('Форму збережено!')
+                        currentReferralId = referralData.id;
+
+                        if(uploadedFiles.length){
+                            Promise.all([...uploadedFiles].map(sendFileRequest))
+                                .then(res => {
+                                    alert('Файли успішно завантажились!')
+
+                                    closeModal()
+                                })
+
+                            return;
+                        }
+
+                        closeModal()
                     })
             }
             else {
@@ -292,13 +345,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
             e.preventDefault();
             uploadBox.classList.remove('hover');
             showFiles(e.dataTransfer.files)
+            uploadedFiles = [...uploadedFiles, ...e.dataTransfer.files]
         });
         fileInput.addEventListener('change',e => {
             showFiles(e.target.files)
+            uploadedFiles = [...uploadedFiles, ...e.target.files]
         });
     }
     const openDirectionModal = () => {
         document.querySelector('#directionModalBtn').addEventListener('click', e => {
+            uploadedFiles = []
+            currentReferralId = null
             document.querySelector('#caseDirection').classList.add('open')
             fetch(`${API_BASE_URL}/api/cases/referrals/${cases[lastActiveCaseIndex].id}`, {
                 method: "GET",
@@ -307,11 +364,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     "Content-Type": "application/json"
                 },
             })
-                .then(res => res.json())
+                .then(res => {
+                    if(res.status === 404){
+                        return {}
+                    }
+
+                    return res.json()
+                })
                 .then(refferalData => {
+                    currentReferralId = refferalData.id
                     drawForm( refferalData )
                     selectPicker();
                     closeSelectPickerByClickingOutside();
+                    showFiles(refferalData.attachments)
                 })
         })
     }
