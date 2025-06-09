@@ -155,7 +155,7 @@
                             <div id="userAge"></div>
                         </div>
                         <div class="tabs">
-                            <button class="tab">Направлення</button>
+                            <button class="tab" id="directionModalBtn">Направлення</button>
                             <button class="tab" id="caseSettingsModalBtn">Параметри кейсу</button>
                         </div>
                     </div>
@@ -264,86 +264,7 @@
             <span class="mid"><span id="todayMeta"></span> | Фото/скан документу</span>
         </div>
         <div class="df gap4">
-            <div class="directorModalLeft">
-                <form id="directionForm" novalidate>
-                    <div class="directorModalFormGroup">
-                        <label for="research_type">Вид дослідження <span class="req">*</span></label>
-                        <div class="directorModalFormGroup-select">
-                            <div class="directorModalFormGroup-input"><span class="label">Оберіть вид</span></div>
-                            <ul class="directorModalFormGroup-list">
-                                <li class="disabled">Оберіть вид</li>
-                                <li data-v="патогистология">Патгістологія</li>
-                                <li data-v="иммуногистохимия">Імуногістохімія</li>
-                                <li data-v="цитология">Цитологія</li>
-                                <li data-v="FISH/CISH">NGS</li>
-                            </ul>
-                            <input type="hidden" id="research_type" name="research_type" required>
-                        </div>
-                    </div>
-
-                    <div class="directorModalFormGroup">
-                        <label for="container_count">Кількість контейнерів <span class="req">*</span></label>
-                        <input id="container_count" type="number" name="container_count" class="input required" placeholder="0" min="1">
-                    </div>
-
-                    <div class="directorModalFormGroup">
-                        <label for="medical_card_number">Медкарта №</label>
-                        <input id="medical_card_number" type="text" class="input">
-                    </div>
-                    <div class="directorModalFormGroup">
-                        <label for="clinical_data">Клінічні дані</label>
-                        <textarea id="clinical_data" class="input"></textarea>
-                    </div>
-                    <div class="directorModalFormGroup">
-                        <label for="clinical_diagnosis">Клінічний діагноз</label>
-                        <input id="clinical_diagnosis" type="text" class="input">
-                    </div>
-
-                    <div class="directorModalFormGroup">
-                        <label for="medical_institution">Медичний заклад</label>
-                        <div class="directorModalFormGroup-select">
-                            <div class="directorModalFormGroup-input"><span class="label">Оберіть медичний заклад</span></div>
-                            <ul class="directorModalFormGroup-list">
-                                <li class="disabled">Оберіть медичний заклад</li>
-                                <li data-v="Феофанія">Феофанія</li>
-                                <li data-v="Інститут раку">Інститут раку</li>
-                            </ul>
-                            <input type="hidden" id="medical_institution" name="medical_institution">
-                        </div>
-                    </div>
-
-                    <div class="directorModalFormGroup">
-                        <label for="department">Відділення</label>
-                        <div class="directorModalFormGroup-select">
-                            <div class="directorModalFormGroup-input"><span class="label">Оберіть відділення</span></div>
-                            <ul class="directorModalFormGroup-list">
-                                <li class="disabled">Оберіть відділення</li>
-                                <li data-v="Хірургія">Хірургія</li>
-                                <li data-v="Терапія">Терапія</li>
-                            </ul>
-                            <input type="hidden" id="department" name="department">
-                        </div>
-                    </div>
-
-                    <div class="directorModalFormGroup">
-                        <label for="doctor_contacts">Контакти лікаря</label>
-                        <input id="doctor_contacts" type="text" class="input" value="+380" autocomplete="off">
-                    </div>
-
-                    <div class="directorModalFormGroup">
-                        <label for="medical_procedure">Медична процедура/операція</label>
-                        <input id="medical_procedure" type="text" class="input">
-                    </div>
-                    <div class="directorModalFormGroup">
-                        <label for="final_report_delivery">Фінальний репорт відправити</label>
-                        <input id="final_report_delivery" type="email" class="input" placeholder="email@example.com">
-                    </div>
-                    <div class="directorModalFormGroup">
-                        <label for="issued_at">Виданий</label>
-                        <input id="issued_at" type="date" class="input">
-                    </div>
-                </form>
-            </div>
+            <div class="directorModalLeft"></div>
 
             <div class="directorModalRight" id="uploadArea">
                 <div class="upload-box" id="uploadBox" tabindex="0">

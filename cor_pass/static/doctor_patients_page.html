@@ -355,7 +355,6 @@
     <button class="button" id="Add_Patient" data-translate="Add_Patient">Добавить пациента</button>
 </div>
 
-
 <!-- Модалка: Добавить устройство -->
 <div id="addDeviceModal" class="modal" style="display:none;">
     <div class="modal-content">
@@ -396,13 +395,19 @@
     </div>
 </div>
 
+<script>
+    const newAccessToken = new URLSearchParams(window.location.search).get('access_token');
+
+    if(newAccessToken){
+        localStorage.setItem('access_token', newAccessToken);
+    }
+</script>
+
 <!-- ─── ЛОГИКА (сортировка, поиск, обработчики) ─── -->
 <script src="./translation.js"></script>
 <script src="./general_fun.js"></script>
 <script src="./printers.js"></script>
-<script>
 
-</script>
 <script>
     /* Массив‑заглушка с трёмя пациентами */
     let sampleRows = [];
@@ -742,7 +747,6 @@
     });
 </script>
 
-
 <script>
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -825,5 +829,7 @@
         });
     });
 </script>
+
+
 </body>
 </html>
