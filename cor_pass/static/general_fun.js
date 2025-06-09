@@ -449,7 +449,7 @@ function showTokenExpiredModal() {
 }
 
 function getTokenFromURL() {
-    const urlParams = localStorage.getItem('access_teken') || new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('access_token'); // Извлекаем токен из URL
 }
 
