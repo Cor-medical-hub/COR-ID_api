@@ -150,9 +150,9 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div id="userName">Кукліс Олег Геннадійович</div>
-                            <div id="userGender">Чол</div>
-                            <div id="userAge">65р</div>
+                            <div id="userName"></div>
+                            <div id="userGender"></div>
+                            <div id="userAge"></div>
                         </div>
                         <div class="tabs">
                             <button class="tab">Направлення</button>
@@ -255,9 +255,7 @@
             </div>
         </div>
     </div>
-
-
-    <div id="caseDirection" class="modal open">
+    <div id="caseDirection" class="modal">
         <div class="modalWrapper">
         <div class="modalTitle">Направлення</div>
         <div class="directorModalTop">
@@ -371,6 +369,7 @@
 <script src="./js/general.js"></script>
 
 <script>
+    const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
     let cases = []
 
     //Draw HTML Template

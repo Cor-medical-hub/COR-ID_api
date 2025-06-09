@@ -69,8 +69,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
             uploadArea.appendChild(fileViewerWrapperNODE);
         });
     }
-    const submitCaseDirection = () => {
-            e.preventDefault();
+    const submitCaseDirection = (e) => {
+        document.querySelector('#caseDirectionSubmit').addEventListener('click', (e) => {
+            e.preventDefault(e);
             let ok= true;
 
             document.querySelectorAll('.required .directorModalFormGroup-input').forEach( box =>{
@@ -90,13 +91,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify({
+                        case_id: "d9a1028e-4ff4-4336-875f-07d31440063b",
+                        ...formData,
+
+                    })
                 })
                     .then(res => res.json())
                     .then(() => {
                         alert('Форму збережено!')
                     })
             }
+        })
+
         }
     const dropBoxEventsHandler = () => {
         uploadBox.addEventListener('click', () => {
