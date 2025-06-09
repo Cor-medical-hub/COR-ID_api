@@ -197,6 +197,16 @@ details pre {
   display: none;
 }
 
+#svs-fullscreen-viewer {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgb(255, 255, 255);
+  z-index: 9999;
+  display: flex;
+  flex-direction: row;
+}
 .svs-viewer-container {
   display: flex;
   height: 100%;
@@ -232,12 +242,19 @@ details pre {
   z-index: 10;
 }
 
+
+
+#openseadragon1 {
+  flex: 1;
+  position: relative;
+}
+
 .svs-metadata-panel {
-  width: 350px;
-  background: #fff;
-  border-left: 1px solid #ddd;
+  width: 300px;
+  height: 100%;
+  background-color: rgb(255, 255, 255);
+  color: white;
   overflow-y: auto;
-  transition: width 0.3s;
 }
 
 .svs-metadata-panel.collapsed {
@@ -314,4 +331,18 @@ details pre {
   max-width: none;
   max-height: none;
   transition: transform 0.2s ease;
+}
+
+
+#svs-fullscreen-viewer.hidden {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+#svs-fullscreen-viewer.visible {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }
