@@ -1156,7 +1156,7 @@ async def _format_report_response(
         doctor_sig_response = None
         if signature_db.doctor_signature:
             if signature_db.doctor_signature.signature_scan_data:
-                signature_data=router.url_path_for("get_signature_attachment", signature_id=signature_db.id)
+                signature_data=router.url_path_for("get_signature_attachment", signature_id=signature_db.doctor_signature_id)
             doctor_sig_type = signature_db.doctor_signature.signature_scan_type
             doctor_sig_response = DoctorSignatureResponse(
                 id=signature_db.doctor_signature.id,
