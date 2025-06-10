@@ -1,6 +1,7 @@
 import enum
 import uuid
 from sqlalchemy import (
+    ARRAY,
     Column,
     Integer,
     String,
@@ -245,6 +246,7 @@ class Doctor(Base):
     patient_statuses = relationship(
         "DoctorPatientStatus", back_populates="doctor", cascade="all, delete-orphan"
     )
+    signatures = relationship("DoctorSignature", back_populates="doctor", cascade="all, delete-orphan")
 
 
 class Diploma(Base):
@@ -487,6 +489,7 @@ class Case(Base):
         back_populates="case",
         cascade="all, delete-orphan",
     )
+    report = relationship("Report", back_populates="case", uselist=False, cascade="all, delete-orphan") 
 
 
 # Банка
@@ -706,6 +709,58 @@ class Profile(Base):
     def __repr__(self):
         return f"<Profile(id='{self.id}', user_id='{self.user_id}')>"
 
+
+
+class DoctorSignature(Base):
+    __tablename__ = "doctor_signatures"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False)
+    signature_name = Column(String(255), nullable=True) 
+    signature_scan_data = Column(LargeBinary, nullable=True)
+    signature_scan_type = Column(String, nullable=True)  
+    is_default = Column(Boolean, default=False) 
+    created_at = Column(DateTime, default=func.now())
+
+    # Связи
+    doctor = relationship("Doctor", back_populates="signatures")
+
+
+
+class ReportSignature(Base):
+    __tablename__ = "report_signatures"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String(36), ForeignKey("reports.id"), nullable=False)
+    doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False)
+    doctor_signature_id = Column(String(36), ForeignKey("doctor_signatures.id"), nullable=True) # <-- Ссылка на DoctorSignature
+    signed_at = Column(DateTime, default=func.now())
+    
+
+    # Связи
+    report = relationship("Report", back_populates="signatures")
+    doctor = relationship("Doctor") 
+    doctor_signature = relationship("DoctorSignature")
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    case_id = Column(String(36), ForeignKey("cases.id"), unique=True, nullable=False) 
+
+
+    immunohistochemical_profile = Column(Text, nullable=True)
+    molecular_genetic_profile = Column(Text, nullable=True)
+    pathomorphological_diagnosis = Column(Text, nullable=True)
+    icd_code = Column(String(50), nullable=True)
+    comment = Column(Text, nullable=True)
+    
+    # Список ID стёкол, прикрепленных к этому заключению
+    attached_glass_ids = Column(ARRAY(String(36)), nullable=True, default=[]) 
+
+    # Связи
+    case = relationship("Case", back_populates="report")
+    signatures = relationship("ReportSignature", back_populates="report") 
 
 
 # Base.metadata.create_all(bind=engine)

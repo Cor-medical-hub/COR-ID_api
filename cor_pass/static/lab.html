@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="./css/modal.css">
     <link rel="stylesheet" href="./css/caseSettings.css">
     <link rel="stylesheet" href="./css/header.css">
-    <link rel="stylesheet" href="./css/directionModal.css">
     <title>Document</title>
 </head>
 <body>
@@ -150,9 +149,9 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div id="userName"></div>
-                            <div id="userGender"></div>
-                            <div id="userAge"></div>
+                            <div id="userName">Кукліс Олег Геннадійович</div>
+                            <div id="userGender">Чол</div>
+                            <div id="userAge">65р</div>
                         </div>
                         <div class="tabs">
                             <button class="tab" id="directionModalBtn">Направлення</button>
@@ -290,7 +289,6 @@
 <script src="./js/general.js"></script>
 
 <script>
-    const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
     let cases = []
 
     //Draw HTML Template
@@ -1193,6 +1191,7 @@
             elem.querySelector('.actionButton.create img').setAttribute('src',  `./assets/plusCircle.svg`)
         })}
     const changeMacroDescription = () => {
+
         macroDescriptionTextareaNODE.nextElementSibling.addEventListener('click', () => {
             const currentSample = cases[lastActiveCaseIndex]?.samples[lastActiveSpecimenIndex];
 
@@ -1209,8 +1208,6 @@
                 .then(res => res.json())
                 .then(() => {
                     alert('Макро опис успішно оновлений')
-
-                    macroDescriptionTextareaNODE.nextElementSibling.style.display = "none";
                 })
         })
     }
@@ -1224,8 +1221,6 @@
 
         changeMacroDescription()
         setAllCases()
-
-        showTextareaButton('sampleMacroDescription')
     });
 </script>
 <script>
@@ -1339,7 +1334,6 @@
 
 <script src="./js/modal.js"></script>
 <script src="./js/caseSettings.js"></script>
-<script src="./js/directionModal.js"></script>
 
 </body>
 </html>
