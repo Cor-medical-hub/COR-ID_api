@@ -345,6 +345,7 @@
   <button class="button" id="Add_Patient" data-translate="Add_Patient">Добавить пациента</button>
 </div>
 
+
 <!-- Модалка: Добавить устройство -->
 <div id="addDeviceModal" class="modal" style="display:none;">
   <div class="modal-content">
@@ -385,20 +386,11 @@
   </div>
 </div>
 
-<script>
-    const newAccessToken = new URLSearchParams(window.location.search).get('access_token');
-
-    if(newAccessToken){
-        localStorage.setItem('access_token', newAccessToken);
-    }
-</script>
-
-<!-- ─── ЛОГИКА (сортировка, поиск, обработчики) ─── -->
-<script src="./translation.js"></script>
-<script src="./general_fun.js"></script>
-<script src="./printers.js"></script>
-
-<script>
+  <!-- ─── ЛОГИКА (сортировка, поиск, обработчики) ─── -->
+  <script src="/static/translation.js"></script>
+  <script src="/static/general_fun.js"></script>
+  <script src="/static/printers.js"></script>
+  <script>
     /* Массив‑заглушка с трёмя пациентами */
     const sampleRows=[
       {name:"Иванов Валерий Витальевич",id:"159RLHD9P-1978M",age:65,gender:"Мужской",date:"19.01.2024",status:"Новый",avatar:"https://randomuser.me/api/portraits/men/65.jpg"},
@@ -672,12 +664,13 @@ document.querySelectorAll('.tab-button').forEach(button => {
     document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
 
-            // Активируем выбранную кнопку и таб
-            button.classList.add('active');
-            document.getElementById(button.dataset.tab).classList.add('active');
-        });
-    });
-</script>
+    // Активируем выбранную кнопку и таб
+    button.classList.add('active');
+    document.getElementById(button.dataset.tab).classList.add('active');
+  });
+});
+  </script>
+
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -764,7 +757,5 @@ document.getElementById("closeAddDeviceModal").addEventListener("click", functio
     });
 });
 </script>
-
-
 </body>
 </html>
