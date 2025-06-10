@@ -443,7 +443,7 @@ async def create_doctor_signature(
         id=db_signature.id,
         doctor_id=db_signature.doctor_id,
         signature_name=db_signature.signature_name,
-        signature_scan_data_base64=signature_data, 
+        signature_scan_data=signature_data, 
         signature_scan_type=db_signature.signature_scan_type,
         is_default=db_signature.is_default,
         created_at=db_signature.created_at
@@ -470,7 +470,7 @@ async def get_doctor_signatures(
                 id=sig.id,
                 doctor_id=sig.doctor_id,
                 signature_name=sig.signature_name,
-                signature_scan_data_base64=signature_data,
+                signature_scan_data=signature_data,
                 signature_scan_type=sig.signature_scan_type,
                 is_default=sig.is_default,
                 created_at=sig.created_at
@@ -522,6 +522,6 @@ async def delete_doctor_signature(
     return {"message": "Подпись удалена."}
 
 
-async def get_signature_attachment(db: AsyncSession, signature_id: str) -> Optional[DoctorSignature]:
+async def get_signature_data(db: AsyncSession, signature_id: str) -> Optional[DoctorSignature]:
     result = await db.execute(select(DoctorSignature).where(DoctorSignature.id == signature_id))
     return result.scalar_one_or_none()
