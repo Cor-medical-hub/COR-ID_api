@@ -2,22 +2,30 @@ from fastapi import (
     APIRouter,
     Body,
     Depends,
+    File,
+    Form,
     HTTPException,
     Query,
     UploadFile,
     status,
 )
 
+from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from cor_pass.database.db import get_db
-from cor_pass.database.models import PatientStatus, User
+from cor_pass.database.models import Doctor, PatientStatus, User
 from cor_pass.repository.doctor import (
     create_doctor,
     create_doctor_service,
+    create_doctor_signature,
+    delete_doctor_signature,
     get_doctor_patients_with_status,
+    get_doctor_signatures,
     get_doctor_single_patient_with_status,
+    get_signature_data,
+    set_default_doctor_signature,
     upload_certificate_service,
     upload_diploma_service,
     upload_doctor_photo_service,
@@ -26,19 +34,25 @@ from cor_pass.repository.doctor import (
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
+    PatientTestReportPageResponse,
+    ReportResponseSchema,
+    ReportUpdateSchema,
     DoctorCreate,
     DoctorCreateResponse,
+    DoctorSignatureResponse,
     ExistingPatientAdd,
     MicrodescriptionResponse,
     NewPatientRegistration,
     PathohistologicalConclusionResponse,
     PatientCasesWithReferralsResponse,
+    PatientReportPageResponse,
     PatientDecryptedResponce,
     PatientExcisionPageResponse,
     PatientGlassPageResponse,
     ReferralAttachmentResponse,
     ReferralResponse,
     ReferralResponseForDoctor,
+    SignReportRequest,
     SingleCaseExcisionPageResponse,
     SingleCaseGlassPageResponse,
     UpdateMicrodescription,
@@ -489,9 +503,6 @@ async def get_patient_excision_page_data(
     return excision_page_data
 
 
-
-
-
 @router.get(
     "/cases/{case_id}/excision-details",
     response_model=SingleCaseExcisionPageResponse,
@@ -513,3 +524,185 @@ async def get_single_case_details_for_excision_page(
         
     return excision_page_data
 
+
+
+# --- Маршруты для управления подписями доктора ---
+@router.post(
+    "/signatures/create",
+    response_model=DoctorSignatureResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_201_CREATED,
+    summary="Создать новую подпись врача",
+    tags=["Doctor Signatures"]
+)
+async def upload_doctor_signature(
+    signature_scan_file: UploadFile = File(...), # Файл обязателен
+    signature_name: Optional[str] = Form(None), # Имя подписи опционально, как Form-поле
+    is_default: bool = Form(False), # Дефолтность, как Form-поле
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user)
+) -> DoctorSignatureResponse:
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await create_doctor_signature(
+        db=db, 
+        doctor_id=doctor.id, 
+        signature_name=signature_name, 
+        signature_scan_file=signature_scan_file,
+        is_default=is_default,
+        router=router
+    )
+
+@router.get(
+    "/signatures/all",
+    response_model=List[DoctorSignatureResponse],
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить все подписи врача",
+    tags=["Doctor Signatures"]
+)
+async def get_all_doctor_signatures(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user)
+) -> List[DoctorSignatureResponse]:
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await get_doctor_signatures(db=db, doctor_id=doctor.id, router=router)
+
+@router.put(
+    "/signatures/{signature_id}/set-default",
+    response_model=List[DoctorSignatureResponse],
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Установить подпись по умолчанию",
+    tags=["Doctor Signatures"]
+)
+async def set_default_signature(
+    signature_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user)
+) -> List[DoctorSignatureResponse]:
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await set_default_doctor_signature(db=db, doctor_id=doctor.id, signature_id=signature_id)
+
+@router.delete(
+    "/signatures/{signature_id}/delete",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(doctor_access)],
+    summary="Удалить подпись врача",
+    tags=["Doctor Signatures"]
+)
+async def delete_signature(
+    signature_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user)
+):
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await delete_doctor_signature(db=db, doctor_id=doctor.id, signature_id=signature_id)
+
+
+
+
+
+@router.get(
+    "/patients/{patient_id}/report-page-data", 
+    response_model=PatientTestReportPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить все кейсы и данные заключения",
+    tags=["DoctorPage"]
+)
+async def get_patient_report_full_page_data_route(
+    patient_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> PatientTestReportPageResponse:
+    """
+    Этот маршрут возвращает список всех кейсов пациента, детали последнего кейса 
+    (включая его параметры и заключения) и все стекла последнего кейса 
+    для выбора для прикрепления к заключению. Если заключение для последнего кейса 
+    отсутствует, оно будет автоматически создано с пустыми полями.
+    """
+    return await case_service.get_patient_report_page_data(db=db, patient_id=patient_id, router=router)
+
+
+@router.get(
+    "/cases/{case_id}/report",
+    response_model=ReportResponseSchema,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить заключение конкретного кейса",
+    tags=["DoctorPage"]
+)
+async def get_case_report_route(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ReportResponseSchema:
+    """
+    Этот маршрут возвращает подробности заключения для указанного кейса. 
+    Если заключение для этого кейса отсутствует, оно будет автоматически создано с пустыми полями.
+    """
+    return await case_service.get_report_by_case_id(db=db, case_id=case_id, router=router)
+
+
+@router.put( 
+    "/cases/{case_id}/report/upsert", 
+    response_model=ReportResponseSchema,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK, 
+    summary="Создаем или обновляем заключение",
+    tags=["DoctorPage"]
+)
+async def upsert_case_report(
+    case_id: str,
+    report_data: ReportUpdateSchema, 
+    db: AsyncSession = Depends(get_db),
+) -> ReportResponseSchema:
+    """
+    Создает новое заключение для указанного кейса или обновляет существующее.
+    """
+    return await case_service.create_or_update_report(db=db, case_id=case_id, report_data=report_data)
+
+
+
+@router.post(
+    "/cases/{case_id}/report/sign",
+    response_model=ReportResponseSchema,
+    dependencies=[Depends(doctor_access)], 
+    status_code=status.HTTP_200_OK,
+    summary="Подписать заключение",
+    tags=["DoctorPage"]
+)
+async def add_signature_to_report_route(
+    case_id: str,
+    request: SignReportRequest, 
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user)
+) -> ReportResponseSchema:
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await case_service.add_report_signature(db=db, case_id=case_id, doctor_id=doctor.id, doctor_signature_id=request.doctor_signature_id, router=router)
+
+
+
+
+
+
+
+
+@router.get("/signatures/{signature_id}/attachment", 
+            # dependencies=[Depends(doctor_access)]
+            )
+async def get_signature_attachment(
+    signature_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    **Получение содержимого прикрепленного файла**\n
+    Позволяет получить бинарные данные (фото/PDF) прикрепленного файла по его ID.
+    """
+    attachment = await get_signature_data(db=db, signature_id=signature_id)
+    if not attachment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
+
+    # Потоковая передача данных из базы данных
+    async def file_data_stream():
+        yield attachment.signature_scan_data
+
+    return StreamingResponse(file_data_stream(), media_type=attachment.signature_scan_type)
