@@ -1272,3 +1272,125 @@ class SingleCaseExcisionPageResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+        
+class DoctorSignatureBase(BaseModel):
+    signature_name: Optional[str] = None
+    is_default: bool = False
+
+
+class DoctorSignatureCreate(DoctorSignatureBase):
+    pass 
+
+class DoctorSignatureResponse(DoctorSignatureBase):
+    id: str
+    doctor_id: str
+    signature_scan_data: Optional[str] = None 
+    signature_scan_type: Optional[str] = None 
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ReportSignatureSchema(BaseModel):
+    id: str
+    doctor: DoctorResponse 
+    signed_at: datetime
+
+    doctor_signature: Optional[DoctorSignatureResponse] = None 
+
+    class Config:
+        from_attributes = True
+
+class ReportBaseSchema(BaseModel):
+    immunohistochemical_profile: Optional[str] = None
+    molecular_genetic_profile: Optional[str] = None
+    pathomorphological_diagnosis: Optional[str] = None
+    icd_code: Optional[str] = None
+    comment: Optional[str] = None
+    
+    attached_glass_ids: Optional[List[str]] = None 
+
+class ReportCreateSchema(ReportBaseSchema):
+    pass
+
+class ReportUpdateSchema(ReportBaseSchema):
+    pass
+
+
+class ReportResponseSchema(BaseModel):
+    id: str
+    case_id: str
+    
+    macro_description_from_case_params: Optional[str] = None 
+
+    immunohistochemical_profile: Optional[str] = None
+    molecular_genetic_profile: Optional[str] = None
+    pathomorphological_diagnosis: Optional[str] = None
+    icd_code: Optional[str] = None
+    comment: Optional[str] = None
+
+    signatures: List[ReportSignatureSchema] = [] 
+    
+    attached_glasses: List[Glass] = []
+
+    class Config:
+        from_attributes = True
+
+class PatientReportPageResponse(BaseModel):
+    all_cases: List[Case] 
+    
+    last_case_for_report: Optional[Case] = None 
+    report_details: Optional[ReportResponseSchema] = None
+    
+    all_glasses_for_last_case: List[FirstCaseGlassDetailsSchema] = [] 
+
+    class Config:
+        from_attributes = True
+
+
+class SignReportRequest(BaseModel):
+    doctor_signature_id: Optional[str] = None
+
+
+
+
+
+
+# Тестовые схемы под репорт
+class GlassTestModelScheema(BaseModel):
+    id: str
+    glass_number: int
+    cassette_id: str
+
+
+class CassetteTestForGlassPage(BaseModel):
+    id: str
+    cassette_number: str
+    sample_id: str 
+
+    glasses: List[GlassTestModelScheema] = [] 
+
+class SampleTestForGlassPage(BaseModel):
+    id: str
+    sample_number: str 
+    case_id: str 
+
+    cassettes: List[CassetteTestForGlassPage] = [] 
+
+class FirstCaseTestGlassDetailsSchema(BaseModel):
+    id: str
+    case_code: str
+    creation_date: datetime 
+    samples: List[SampleTestForGlassPage]
+    class Config:
+        from_attributes = True
+
+
+class PatientTestReportPageResponse(BaseModel):
+    all_cases: List[Case]
+    last_case_for_report: Optional[Case]
+    report_details: Optional[ReportResponseSchema]
+    all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
+    class Config:
+        from_attributes = True
