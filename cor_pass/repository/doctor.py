@@ -1,7 +1,7 @@
 import base64
 from datetime import date, datetime, timedelta
 import re
-from fastapi import HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, UploadFile, status
 from sqlalchemy import asc, desc, func, select
 from typing import List, Optional, Tuple, List
 
@@ -16,14 +16,16 @@ from cor_pass.database.models import (
     PatientStatus,
     User,
     Doctor_Status,
+    DoctorSignature
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.repository.person import get_user_by_corid
-from cor_pass.schemas import DoctorCreate, PatientDecryptedResponce
+from cor_pass.schemas import DoctorCreate, DoctorSignatureResponse, PatientDecryptedResponce
 from cor_pass.services.cipher import decrypt_data
 from cor_pass.config.config import settings
+
 
 
 async def create_doctor(
@@ -395,3 +397,131 @@ async def upload_certificate_service(
     certificate.file_type = file.content_type
     await db.commit()
     return {"document_id": certificate_id, "message": "Сертификат успешно загружен"}
+
+async def create_doctor_signature(
+    db: AsyncSession, 
+    doctor_id: str, # uuid
+    signature_name: Optional[str], 
+    router: APIRouter,
+    signature_scan_file: UploadFile,
+    is_default: bool = False
+    
+) -> DoctorSignatureResponse:
+    """
+    Загружает новую подпись доктора и сохраняет её в базе данных.
+    """
+    signature_bytes = await signature_scan_file.read()
+    signature_mime_type = signature_scan_file.content_type
+
+    if not signature_bytes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Файл подписи пустой.")
+    if not signature_mime_type or not signature_mime_type.startswith("image/"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Пожалуйста, загрузите файл изображения для подписи.")
+
+    if is_default:
+        await db.execute(
+            DoctorSignature.__table__.update()
+            .where(DoctorSignature.doctor_id == doctor_id)
+            .values(is_default=False)
+        )
+
+    db_signature = DoctorSignature(
+        doctor_id=doctor_id,
+        signature_name=signature_name,
+        signature_scan_data=signature_bytes,        
+        signature_scan_type=signature_mime_type,     
+        is_default=is_default,
+        created_at=func.now() 
+    )
+    db.add(db_signature)
+    await db.commit()
+    await db.refresh(db_signature)
+
+    signature_data = router.url_path_for("get_signature_attachment", signature_id=db_signature.id) if db_signature.signature_scan_data else None
+
+    return DoctorSignatureResponse(
+        id=db_signature.id,
+        doctor_id=db_signature.doctor_id,
+        signature_name=db_signature.signature_name,
+        signature_scan_data_base64=signature_data, 
+        signature_scan_type=db_signature.signature_scan_type,
+        is_default=db_signature.is_default,
+        created_at=db_signature.created_at
+    )
+
+async def get_doctor_signatures(
+    db: AsyncSession, doctor_id: str, router: APIRouter
+) -> List[DoctorSignatureResponse]:
+    """
+    Получает все подписи для указанного доктора.
+    """
+    signatures_result = await db.execute(
+        select(DoctorSignature)
+        .where(DoctorSignature.doctor_id == doctor_id)
+        .order_by(DoctorSignature.created_at.desc())
+    )
+    db_signatures = signatures_result.scalars().all()
+    
+    response_signatures = []
+    for sig in db_signatures:
+        signature_data=router.url_path_for("get_signature_attachment", signature_id=sig.id)
+        response_signatures.append(
+            DoctorSignatureResponse(
+                id=sig.id,
+                doctor_id=sig.doctor_id,
+                signature_name=sig.signature_name,
+                signature_scan_data_base64=signature_data,
+                signature_scan_type=sig.signature_scan_type,
+                is_default=sig.is_default,
+                created_at=sig.created_at
+            )
+        )
+    return response_signatures
+
+async def set_default_doctor_signature(
+    db: AsyncSession, doctor_id: str, signature_id: str
+) -> List[DoctorSignatureResponse]:
+    """
+    Устанавливает указанную подпись как подпись по умолчанию для доктора.
+    Возвращает все подписи доктора с обновленным статусом.
+    """
+
+    await db.execute(
+        DoctorSignature.__table__.update()
+        .where(DoctorSignature.doctor_id == doctor_id)
+        .values(is_default=False)
+    )
+    
+    signature_to_update = await db.scalar(
+        select(DoctorSignature).where(DoctorSignature.id == signature_id, DoctorSignature.doctor_id == doctor_id)
+    )
+    if not signature_to_update:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Подпись не найдена или принадлежит другому врачу.")
+    
+    signature_to_update.is_default = True
+    await db.commit()
+    await db.refresh(signature_to_update)
+
+    return await get_doctor_signatures(db, doctor_id) 
+
+async def delete_doctor_signature(
+    db: AsyncSession, doctor_id: str, signature_id: str
+):
+    """
+    Удаляет указанную подпись доктора.
+    """
+    signature_to_delete = await db.scalar(
+        select(DoctorSignature)
+        .where(DoctorSignature.id == signature_id, DoctorSignature.doctor_id == doctor_id)
+    )
+    if not signature_to_delete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Подпись не найдена или принадлежит другому врачу.")
+
+    await db.delete(signature_to_delete)
+    await db.commit()
+    return {"message": "Подпись удалена."}
+
+
+async def get_signature_attachment(db: AsyncSession, signature_id: str) -> Optional[DoctorSignature]:
+    result = await db.execute(select(DoctorSignature).where(DoctorSignature.id == signature_id))
+    return result.scalar_one_or_none()
