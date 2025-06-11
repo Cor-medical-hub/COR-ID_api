@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cor_pass.database import db
-from cor_pass.database.models import Doctor, Doctor_Status, User
+from cor_pass.database.models import Doctor, Doctor_Status, User, LabAssistant
 from cor_pass.services.auth import auth_service
 from cor_pass.config.config import settings
 
@@ -43,8 +43,21 @@ class CorIntRoleChecker:
         return user.email.endswith("@cor-int.com")
 
 
+class LabAssistantRoleChecker:
+    async def is_lab_assistant(
+        self,
+        user: User = Depends(auth_service.get_current_user),
+        db: AsyncSession = Depends(db.get_db),
+    ):
+        lab_assistant_query = select(LabAssistant).where(LabAssistant.lab_assistant_cor_id == user.cor_id)
+        lab_assistant = await db.scalar(lab_assistant_query)
+
+        if lab_assistant:
+            return lab_assistant 
+
 user_role_checker = UserRoleChecker()
 admin_role_checker = AdminRoleChecker()
 lawyer_role_checker = LawyerRoleChecker()
 doctor_role_checker = DoctorRoleChecker()
 cor_int_role_checker = CorIntRoleChecker()
+lab_assistant_role_checker = LabAssistantRoleChecker()

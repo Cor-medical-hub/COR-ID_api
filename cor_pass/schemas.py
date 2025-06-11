@@ -1459,3 +1459,24 @@ class PatientFinalReportPageResponse(BaseModel):
     report_details: Optional[FinalReportResponseSchema]
     class Config:
         from_attributes = True
+
+
+class LabAssistantCreate(BaseModel):
+    first_name: str = Field(..., description="Имя лаборанта")
+    surname: str = Field(..., description="Отчество лаборанта")
+    middle_name: str = Field(..., description="Фамилия лаборанта")
+
+    class Config:
+        from_attributes = True
+
+
+class LabAssistantResponse(BaseModel):
+
+    id: str
+    lab_assistant_cor_id: str
+    first_name: Optional[str] = None
+    surname: Optional[str] = None
+    middle_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
