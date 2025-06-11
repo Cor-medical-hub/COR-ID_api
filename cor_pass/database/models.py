@@ -48,7 +48,6 @@ class PatientStatus(enum.Enum):
     discharged = "discharged"
 
 
-
 class PatientStatus(enum.Enum):
     registered = "registered"
     diagnosed = "diagnosed"
@@ -557,6 +556,7 @@ class CaseParameters(Base):
     macro_description = Column(Text, nullable=True)
 
     case = relationship("Case", back_populates="case_parameters")
+
 
 
 # Направление на исследование
