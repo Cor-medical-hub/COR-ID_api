@@ -34,6 +34,8 @@ from cor_pass.repository.doctor import (
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
+    FinalReportResponseSchema,
+    PatientFinalReportPageResponse,
     PatientTestReportPageResponse,
     ReportResponseSchema,
     ReportUpdateSchema,
@@ -680,14 +682,8 @@ async def add_signature_to_report_route(
     return await case_service.add_report_signature(db=db, case_id=case_id, doctor_id=doctor.id, doctor_signature_id=request.doctor_signature_id, router=router)
 
 
-
-
-
-
-
-
 @router.get("/signatures/{signature_id}/attachment", 
-            # dependencies=[Depends(doctor_access)]
+            dependencies=[Depends(doctor_access)]
             )
 async def get_signature_attachment(
     signature_id: str,
@@ -706,3 +702,42 @@ async def get_signature_attachment(
         yield attachment.signature_scan_data
 
     return StreamingResponse(file_data_stream(), media_type=attachment.signature_scan_type)
+
+
+
+
+
+@router.get(
+    "/patients/{patient_id}/final-report-page-data", 
+    response_model=PatientFinalReportPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить все кесы и данные для финального репорта по последнему кейсу",
+    tags=["DoctorPage"]
+)
+async def get_patient_final_report_full_page_data_route(
+    patient_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> PatientFinalReportPageResponse:
+    """
+    Этот маршрут возвращает список всех кейсов пациента и данные для формирования финального заключения по последнему кейсу
+    """
+    return await case_service.get_patient_final_report_page_data(db=db, patient_id=patient_id, router=router)
+
+
+@router.get(
+    "/cases/{case_id}/final-report",
+    response_model=FinalReportResponseSchema,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить данные для финального заключения конкретного кейса",
+    tags=["DoctorPage"]
+)
+async def get_case_final_report_route(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> FinalReportResponseSchema:
+    """
+    Этот маршрут возвращает данные для финального заключения для указанного кейса
+    """
+    return await case_service.get_final_report_by_case_id(db=db, case_id=case_id, router=router)

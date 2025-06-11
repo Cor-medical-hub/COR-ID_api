@@ -286,7 +286,7 @@ async def get_doctor_single_patient_with_status(
     result_status = await db.execute(stmt_status)
     result_status = result_status.scalar_one_or_none()
 
-    decoded_key = base64.b64decode(settings.aes_key)
+
     decoded_key = base64.b64decode(settings.aes_key)
     existing_patient.encrypted_surname = await decrypt_data(existing_patient.encrypted_surname, decoded_key)if existing_patient.encrypted_surname else None
 
