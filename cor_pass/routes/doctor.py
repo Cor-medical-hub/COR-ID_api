@@ -378,13 +378,13 @@ async def get_single_case_details_for_glass_page(
     tags=["DoctorPage"]
 )
 async def get_patient_cases_for_doctor(
-    patient_id: str,
+    patient_cor_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> PatientCasesWithReferralsResponse:
     """
     Возвращает список всех кейсов конкретного пациента, а также детали первого кейса, включая ссылку на файлы его направлений
     """
-    patient_cases_data = await case_service.get_patient_cases_with_directions(db=db, patient_id=patient_id)
+    patient_cases_data = await case_service.get_patient_cases_with_directions(db=db, patient_id=patient_cor_id)
     if not patient_cases_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

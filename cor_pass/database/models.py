@@ -185,9 +185,6 @@ class User(Base):
         "Doctor", back_populates="user", cascade="all, delete-orphan"
     )
 
-    user_doctors = relationship(
-        "Doctor", back_populates="user", cascade="all, delete-orphan"
-    )
     patient = relationship("Patient", back_populates="user", uselist=False)
 
     devices = relationship("Device", back_populates="user")
@@ -202,6 +199,10 @@ class User(Base):
         back_populates="accessing_user",
     )
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+    user_lab_assistants = relationship(
+        "LabAssistant", back_populates="user", cascade="all, delete-orphan"
+    )
 
     # Индексы
     __table_args__ = (
@@ -247,6 +248,20 @@ class Doctor(Base):
     )
     signatures = relationship("DoctorSignature", back_populates="doctor", cascade="all, delete-orphan")
 
+
+class LabAssistant(Base):
+    __tablename__ = "lab_assistants"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    lab_assistant_cor_id = Column(
+        String(36), ForeignKey("users.cor_id"), unique=True, nullable=False
+    )
+    first_name = Column(String(100), nullable=True)
+    surname = Column(String(100), nullable=True)
+    middle_name = Column(String(100), nullable=True)
+    lab_assistants_photo = Column(LargeBinary, nullable=True)
+
+
+    user = relationship("User", back_populates="user_lab_assistants")
 
 class Diploma(Base):
     __tablename__ = "diplomas"
