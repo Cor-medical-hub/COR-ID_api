@@ -40,11 +40,11 @@
         <div class="header-row bottom">
             <div>
                 <div class="tabs">
-                    <button class="tab active">Направлення</button>
-                    <button class="tab">Вирізка</button>
-                    <button class="tab">Скельця</button>
-                    <button class="tab">Заключення</button>
-                    <button class="tab">Дослідження</button>
+                    <button class="tab directionPage active">Направлення</button>
+                    <button class="tab tenderloinPage">Вирізка</button>
+                    <button class="tab glassPage">Скельця</button>
+                    <button class="tab conclusionPage">Заключення</button>
+                    <button class="tab explorationPage">Дослідження</button>
                 </div>
             </div>
             <div class="meta-info">
@@ -104,7 +104,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
@@ -224,7 +223,7 @@
                 document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
                 document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
                 document.querySelector('#userAge').innerHTML = `${userData.age}р`;
-                fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}/glass-details`, {
+                fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}/referral_page`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -251,9 +250,34 @@
             window.location.href = `/static/lab.html?userCorId=${PATIENT_COR_ID}`
         })
     }
+
+    const goToTab = () => {
+        document.querySelectorAll(".tabs .tab:not(.active)").forEach(elem => {
+            elem.addEventListener('click', e => {
+                console.log(currentCase, "currentCase")
+                const element = e.currentTarget;
+                if(element.classList.contains('directionPage')){
+                    window.location.href = `/static/direction.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                }
+                if(element.classList.contains('tenderloinPage')){
+                    window.location.href = `/static/tenderloin.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                }
+                if(element.classList.contains('glassPage')){
+                    window.location.href = `/static/glass.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                }
+                if(element.classList.contains('conclusionPage')){
+                    window.location.href = `/static/conclusion.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                }
+                if(element.classList.contains('explorationPage')){
+                    window.location.href = `/static/exploration.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                }
+            })
+        })
+    }
 </script>
 <script>
     document.addEventListener("DOMContentLoaded", (event) => {
+        goToTab()
         switchRole()
         setAllCases()
         changeMicroDescription()

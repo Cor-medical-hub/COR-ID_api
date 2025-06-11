@@ -376,7 +376,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     drawForm( refferalData )
                     selectPicker();
                     closeSelectPickerByClickingOutside();
-                    showFiles(refferalData.attachments)
+                    showFiles(refferalData.attachments || [])
                 })
         })
     }
