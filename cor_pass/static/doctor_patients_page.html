@@ -683,7 +683,7 @@ function registerNewPatient() {
         status: "registered"
     };
 
-    fetch('https://dev-corid.cor-medical.ua/api/doctor/patients/register-new', {
+    fetch('/api/doctor/patients/register-new', {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
