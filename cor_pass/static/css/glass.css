@@ -8,6 +8,8 @@
     padding: 12px;
     width: 134px;
     cursor: pointer;
+    border: 2px solid #f5f4fb;
+    max-height: max-content;
 }
 .glassWrapper.active{
     border: 2px solid #5B4296;
@@ -88,4 +90,16 @@
 
 .caseItem:last-child{
     border-bottom: 1px solid #EFECF8;
+}
+.infoPlate{
+    margin-bottom: 0;
+}
+
+.topActions{
+    gap: 16px;
+}
+.topActionsItem{
+    cursor: pointer;
+    color: #7B43F2;
+    font-weight: 600;
 }

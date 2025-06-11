@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="./css/modal.css">
     <link rel="stylesheet" href="./css/caseSettings.css">
     <link rel="stylesheet" href="./css/header.css">
+    <link rel="stylesheet" href="./css/directionModal.css">
     <title>Document</title>
 </head>
 <body>
@@ -132,9 +133,6 @@
                                 <path d="M13 21v-2a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4v2"/>
                             </svg>
                         </button>
-                        <div class="role-toggle">
-                            <button class="role-btn active">Добавить пациента</button>
-                        </div>
                     </div>
                 </div>
                 <div class="header-row bottom">
@@ -149,12 +147,12 @@
                                     </svg>
                                 </button>
                             </div>
-                            <div id="userName">Кукліс Олег Геннадійович</div>
-                            <div id="userGender">Чол</div>
-                            <div id="userAge">65р</div>
+                            <div id="userName"></div>
+                            <div id="userGender"></div>
+                            <div id="userAge"></div>
                         </div>
                         <div class="tabs">
-                            <button class="tab">Направлення</button>
+                            <button class="tab" id="directionModalBtn">Направлення</button>
                             <button class="tab" id="caseSettingsModalBtn">Параметри кейсу</button>
                         </div>
                     </div>
@@ -254,11 +252,41 @@
             </div>
         </div>
     </div>
+    <div id="caseDirection" class="modal">
+        <div class="modalWrapper">
+            <div class="modalTitle">Направлення</div>
+            <div class="directorModalTop">
+                <!-- cor-id -->
+                <b>S25B01251</b>
+                <span class="mid"><span id="todayMeta"></span> | Фото/скан документу</span>
+            </div>
+            <div class="df gap4">
+                <div class="directorModalLeft"></div>
+
+                <div class="directorModalRight" id="uploadArea">
+                    <div class="upload-box" id="uploadBox" tabindex="0">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24"><path d="M12 4v10M7 9l5-5 5 5"/><rect x="4" y="18" width="16" height="2" rx="1"/></svg>
+                        </div>
+                        <span>Перетягніть сюди свої файли<br><b>або скануйте</b></span>
+                        <small class="note">до 5 файлів</small>
+                        <input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden>
+                    </div>
+                </div>
+            </div>
+            <div class="directorModalFooter">
+                <button class="btn btn-primary" id="caseDirectionSubmit">Зберегти</button>
+                <button class="btn btn-outline" id="caseDirectionScan">Сканувати</button>
+            </div>
+        </div>
+    </div>
 </div>
 
+<script src="./general_fun.js"></script>
 <script src="./js/general.js"></script>
 
 <script>
+    const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
     let cases = []
 
     //Draw HTML Template
@@ -403,31 +431,31 @@
                 document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
                 document.querySelector('#userAge').innerHTML = `${userData.age}р`;
 
-                    fetch(`${API_BASE_URL}/api/cases/patients/${PATIENT_COR_ID}/overview`, {
+                fetch(`${API_BASE_URL}/api/cases/patients/${PATIENT_COR_ID}/overview`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     },
                 })
-                        .then(res => res.json())
-                        .then(casesList => {
-                            cases = casesList.all_cases
-                            cases[0].samples = casesList.first_case_details.samples.map(({cassettes, ...sampleData}, index) => {
-                                return {
-                                    ...sampleData,
-                                    ...(!index ? {cassettes} : {})
-                                }
-                            })
-
-                            macroDescriptionTextareaNODE.value = cases[0].samples.macro_description || "";
-
-                            cases.forEach((currentCase, index) => {
-                                caseContentNODE.append(caseTemplate(currentCase, !index))
-                            })
-
-                            setPathomorphologyTemplate(0, 0)
-                            countCaseInputNODE.setAttribute('data-delete-count', cases.length - 1)
+                    .then(res => res.json())
+                    .then(casesList => {
+                        cases = casesList.all_cases
+                        cases[0].samples = casesList.first_case_details.samples.map(({cassettes, ...sampleData}, index) => {
+                            return {
+                                ...sampleData,
+                                ...(!index ? {cassettes} : {})
+                            }
                         })
+
+                        macroDescriptionTextareaNODE.value = cases[0].samples.macro_description || "";
+
+                        cases.forEach((currentCase, index) => {
+                            caseContentNODE.append(caseTemplate(currentCase, !index))
+                        })
+
+                        setPathomorphologyTemplate(0, 0)
+                        countCaseInputNODE.setAttribute('data-delete-count', cases.length - 1)
+                    })
             })
 
     }
@@ -1161,7 +1189,6 @@
             elem.querySelector('.actionButton.create img').setAttribute('src',  `./assets/plusCircle.svg`)
         })}
     const changeMacroDescription = () => {
-
         macroDescriptionTextareaNODE.nextElementSibling.addEventListener('click', () => {
             const currentSample = cases[lastActiveCaseIndex]?.samples[lastActiveSpecimenIndex];
 
@@ -1178,8 +1205,31 @@
                 .then(res => res.json())
                 .then(() => {
                     alert('Макро опис успішно оновлений')
+
+                    macroDescriptionTextareaNODE.nextElementSibling.style.display = "none";
                 })
         })
+    }
+    const switchRole = () => {
+        const {roles} = decodeToken(getToken())
+
+        console.log(roles, "roles")
+        if(roles.includes('doctor')){
+            const headerNODE = document.querySelector('.role-container')
+            const toggleDiv = document.createElement('div');
+            toggleDiv.classList.add('role-toggle')
+            toggleDiv.innerHTML = `
+            <div class="role-toggle">
+                <button class="role-btn doc">Лікар</button>
+                <button class="role-btn lab active">Лаборант</button>
+            </div>
+            `
+            headerNODE.append(toggleDiv)
+
+            document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
+                window.location.href = `/static/glass.html?userCorId=${PATIENT_COR_ID}`
+            })
+        }
     }
 </script>
 <script>
@@ -1191,6 +1241,9 @@
 
         changeMacroDescription()
         setAllCases()
+
+        showTextareaButton('sampleMacroDescription')
+        switchRole()
     });
 </script>
 <script>
@@ -1304,6 +1357,7 @@
 
 <script src="./js/modal.js"></script>
 <script src="./js/caseSettings.js"></script>
+<script src="./js/directionModal.js"></script>
 
 </body>
 </html>
