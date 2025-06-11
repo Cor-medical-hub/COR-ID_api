@@ -391,6 +391,14 @@
   <script src="./general_fun.js"></script>
   <script src="./printers.js"></script>
   <script>
+    let searchParams = new URLSearchParams(document.location.search);
+    const accessToken = searchParams.get("access_token")
+
+    if(accessToken){
+      localStorage.setItem('access_token')
+    }
+  </script>
+  <script>
     /* Массив‑заглушка с трёмя пациентами */
     let sampleRows=[];
 
@@ -675,7 +683,7 @@ function registerNewPatient() {
         status: "registered"
     };
 
-    fetch('/api/doctor/patients/register-new', {
+    fetch('https://dev-corid.cor-medical.ua/api/doctor/patients/register-new', {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',

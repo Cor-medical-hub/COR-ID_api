@@ -295,11 +295,14 @@
                 })
                     .then(res => res.json())
                     .then(cases => {
-
                         const {all_cases, first_case_details_for_glass} = cases;
                         all_cases.forEach((currentCase, index) => {
                             caseContentNODE.append(caseTemplate(currentCase, !index))
                         })
+
+                        if(!first_case_details_for_glass){
+                            return;
+                        }
 
                         currentCase = first_case_details_for_glass;
                         setAllGlasses(first_case_details_for_glass)
