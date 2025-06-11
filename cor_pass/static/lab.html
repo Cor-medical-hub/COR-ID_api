@@ -440,6 +440,11 @@
                     .then(res => res.json())
                     .then(casesList => {
                         cases = casesList.all_cases
+
+                        if(!casesList.first_case_details){
+                            return;
+                        }
+
                         cases[0].samples = casesList.first_case_details.samples.map(({cassettes, ...sampleData}, index) => {
                             return {
                                 ...sampleData,
@@ -1213,7 +1218,6 @@
     const switchRole = () => {
         const {roles} = decodeToken(getToken())
 
-        console.log(roles, "roles")
         if(roles.includes('doctor')){
             const headerNODE = document.querySelector('.role-container')
             const toggleDiv = document.createElement('div');

@@ -32,10 +32,8 @@
                     </svg>
                 </button>
                 <div class="role-toggle">
-                    <button class="role-btn">Лікар</button>
-                </div>
-                <div class="role-toggle">
-                    <button class="role-btn">Лаборант</button>
+                    <button class="role-btn doc active">Лікар</button>
+                    <button class="role-btn lab">Лаборант</button>
                 </div>
             </div>
         </div>
@@ -59,9 +57,9 @@
                         </svg>
                     </button>
                 </div>
-                <div>Кукліс Олег Геннадійович</div>
-                <div>Чол</div>
-                <div>65р</div>
+                <div id="userName"></div>
+                <div id="userGender"></div>
+                <div id="userAge"></div>
             </div>
         </div>
     </div>
@@ -72,63 +70,7 @@
             </div>
             <div class="bottom">
                 <div id="caseItems" class="caseItems">
-                    <div class="caseItem df aic jcsb">
-                        <div>
-                            <div class="caseItemDate">27.03.2025</div>
-                            <div class="caseItemLabel">S25B01251</div>
-                        </div>
-                        <div class="caseItemSample df aic jcc">
-                            1
-                        </div>
-                        <div>
-                            <div class="infoPlate cassette">
-                                1
-                            </div>
-                        </div>
-                        <div>
-                            <div class="infoPlate glass">
-                                1
-                            </div>
-                        </div>
-                    </div>
-                    <div class="caseItem df aic jcsb">
-                        <div>
-                            <div class="caseItemDate">27.03.2025</div>
-                            <div class="caseItemLabel">S25B01251</div>
-                        </div>
-                        <div class="caseItemSample df aic jcc">
-                            1
-                        </div>
-                        <div>
-                            <div class="infoPlate cassette">
-                                1
-                            </div>
-                        </div>
-                        <div>
-                            <div class="infoPlate glass">
-                                1
-                            </div>
-                        </div>
-                    </div>
-                    <div class="caseItem df active aic jcsb">
-                        <div>
-                            <div class="caseItemDate">27.03.2025</div>
-                            <div class="caseItemLabel">S25B01251</div>
-                        </div>
-                        <div class="caseItemSample df aic jcc">
-                            1
-                        </div>
-                        <div>
-                            <div class="infoPlate cassette">
-                                1
-                            </div>
-                        </div>
-                        <div>
-                            <div class="infoPlate glass">
-                                1
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -148,7 +90,8 @@
                     <div class="commentsWrapperTop">
                         Патогістологічний висновок
                     </div>
-                    <textarea></textarea>
+                    <textarea id="casePathohistologicalConclusion"></textarea>
+                    <button class="commentsWrapperButton">Зберегти</button>
                 </div>
             </div>
             <div style="height: 50%" class="df fdc">
@@ -156,12 +99,169 @@
                     <div class="commentsWrapperTop">
                         Мікроопис
                     </div>
-                    <textarea></textarea>
+                    <textarea id="caseMicroDescription"></textarea>
+                    <button class="commentsWrapperButton">Зберегти</button>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
+
+
+<script src="./js/general.js"></script>
+<script>
+    const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
+
+    let currentCase = null;
+    let currentGlasses = null;
+    let activeGlasses = []
+
+    const caseContentNODE = document.querySelector("#caseItems");
+    const glassContentNODE = document.querySelector("#glassItems");
+    const activeGlassCountNode = document.querySelector('#activeGlassCount');
+    const caseLabelNode = document.querySelector('#searchCaseId');
+    const caseMicroDescriptionTextareaNODE = document.querySelector('#caseMicroDescription');
+    const casePathohistologicalConclusionTextareaNODE = document.querySelector('#casePathohistologicalConclusion');
+
+    const changeMicroDescription  = () => {
+        caseMicroDescriptionTextareaNODE.nextElementSibling.addEventListener('click', () => {
+            fetch(`${API_BASE_URL}/api/doctor/microdescription/${currentCase.id}`, {
+                method: "PUT",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    microdescription: caseMicroDescriptionTextareaNODE.value.trim(),
+                })
+            })
+                .then(res => res.json())
+                .then(() => {
+                    alert('Мікро опис успішно оновлений')
+                })
+        })
+    }
+    const changePathohistologicalConclusion  = () => {
+        casePathohistologicalConclusionTextareaNODE.nextElementSibling.addEventListener('click', () => {
+            fetch(`${API_BASE_URL}/api/doctor/pathohistological_conclusion/${currentCase.id}`, {
+                method: "PUT",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    pathohistological_conclusion: casePathohistologicalConclusionTextareaNODE.value.trim(),
+                })
+            })
+                .then(res => res.json())
+                .then(() => {
+                    alert('Патогістологічний висновок успішно оновлений')
+                })
+        })
+    }
+
+    const caseTemplate = (currentCase, isActive) => {
+        const caseNewNODE = document.createElement('div');
+        caseNewNODE.classList.add('caseItem', 'df', 'aic', 'jcsb', ...(isActive ? ['active'] : []));
+        caseNewNODE.innerHTML = `
+            <div>
+                <div class="caseItemDate">27.03.2025</div>
+                <div class="caseItemLabel">S25B01251</div>
+            </div>
+            <div class="caseItemSample df aic jcc">
+                ${currentCase.bank_count}
+            </div>
+            <div>
+                <div class="infoPlate cassette">
+                    ${currentCase.cassette_count}
+                </div>
+            </div>
+            <div>
+                <div class="infoPlate glass">
+                    ${currentCase.glass_count}
+                </div>
+            </div>
+        `;
+
+        caseNewNODE.addEventListener("click", () => {
+            fetch(`${API_BASE_URL}/api/doctor/cases/${currentCase.id}/glass-details`, {
+                method: "GET",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                },
+            })
+                .then(res => res.json())
+                .then(caseData => {
+                    const {single_case_for_glass_page} = caseData;
+                    document.querySelector('.caseItem.active').classList.remove('active')
+                    caseNewNODE.classList.add('active')
+
+                    glassContentNODE.innerHTML = '';
+                    setAllGlasses(single_case_for_glass_page)
+                    currentCase = single_case_for_glass_page
+
+                    caseLabelNode.innerHTML = single_case_for_glass_page.case_code
+                    caseMicroDescriptionTextareaNODE.value = single_case_for_glass_page.microdescription || ""
+                    casePathohistologicalConclusionTextareaNODE.value = single_case_for_glass_page.pathohistological_conclusion || ""
+
+                    activeGlasses = []
+                    activeGlassCountNode.style.display = "none";
+                })
+        });
+        return caseNewNODE
+    }
+
+    const setAllCases = () => {
+        fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}`, {
+            method: "GET",
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            },
+        })
+            .then(res => res.json())
+            .then(userData => {
+                document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
+                document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
+                document.querySelector('#userAge').innerHTML = `${userData.age}р`;
+                fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}/glass-details`, {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    },
+                })
+                    .then(res => res.json())
+                    .then(cases => {
+                        const {all_cases, first_case_details_for_glass} = cases;
+                        all_cases.forEach((currentCase, index) => {
+                            caseContentNODE.append(caseTemplate(currentCase, !index))
+                        })
+
+                        currentCase = first_case_details_for_glass;
+
+                        caseLabelNode.innerHTML = first_case_details_for_glass.case_code
+                        caseMicroDescriptionTextareaNODE.value = first_case_details_for_glass.microdescription || ""
+                        casePathohistologicalConclusionTextareaNODE.value = first_case_details_for_glass.pathohistological_conclusion || ""
+                    })
+            })
+    }
+
+    const switchRole = () => {
+        document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
+            window.location.href = `/static/lab.html?userCorId=${PATIENT_COR_ID}`
+        })
+    }
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", (event) => {
+        switchRole()
+        setAllCases()
+        changeMicroDescription()
+        changePathohistologicalConclusion()
+        showTextareaButton('caseMicroDescription')
+        showTextareaButton('casePathohistologicalConclusion')
+    });
+</script>
 
 
 </body>
