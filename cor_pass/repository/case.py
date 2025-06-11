@@ -1694,9 +1694,10 @@ async def _format_final_report_response(
         case_code=case_db.case_code,
 
         biopsy_date=case_db.creation_date.date(),
-        arrival_date=referral_db.issued_at,
+        arrival_date=referral_db.issued_at if referral_db else None,
 
-        report_date=signature_db.doctor_signature.created_at.date(),
+        report_date=signature_db.doctor_signature.created_at.date() if db_report.signatures else None,
+        # report_date=db_report.signatures[0].created_at.date() if db_report.signatures else None,
 
         patient_first_name=patient_first_name,
         patient_surname=patient_surname,
@@ -1707,12 +1708,12 @@ async def _format_final_report_response(
         patient_phone_number=patient_db.phone_number,
         patient_email=patient_db.email,
 
-        medical_card_number=referral_db.medical_card_number,
-        medical_institution=referral_db.medical_institution,
-        medical_department=referral_db.department,
-        attending_doctor=referral_db.attending_doctor,
-        clinical_data=referral_db.clinical_data,
-        clinical_diagnosis=referral_db.clinical_diagnosis,
+        medical_card_number=referral_db.medical_card_number if referral_db else None,
+        medical_institution=referral_db.medical_institution if referral_db else None,
+        medical_department=referral_db.department if referral_db else None,
+        attending_doctor=referral_db.attending_doctor if referral_db else None,
+        clinical_data=referral_db.clinical_data if referral_db else None,
+        clinical_diagnosis=referral_db.clinical_diagnosis if referral_db else None,
 
         painting=glass_stainings,
 

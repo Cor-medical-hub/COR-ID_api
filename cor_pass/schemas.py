@@ -1409,9 +1409,9 @@ class FinalReportResponseSchema(BaseModel):
     report_date: Optional[date] = None
 
     # Пациент
-    patient_first_name: str
-    patient_surname: str
-    patient_middle_name: str
+    patient_first_name: Optional[str] = None
+    patient_surname: Optional[str] = None
+    patient_middle_name: Optional[str] = None
     patient_sex: Optional[str] = None
     patient_birth_date: Optional[date] = None
     patient_full_age: Optional[int] = None
