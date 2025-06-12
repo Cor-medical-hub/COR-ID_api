@@ -10,6 +10,9 @@ from cor_pass.services.auth import auth_service
 from cor_pass.database.models import Doctor_Status, User, Status
 from cor_pass.services.access import admin_access
 from cor_pass.schemas import (
+    CertificateResponse,
+    ClinicAffiliationResponse,
+    DiplomaResponse,
     DoctorCreate,
     DoctorCreateResponse,
     DoctorResponse,
@@ -181,7 +184,57 @@ async def get_all_user_info(
 
     doctor = await lawyer.get_all_doctor_info(doctor_id=user.cor_id, db=db)
     if doctor:
-        full_user_data["doctor_info"] = DoctorWithRelationsResponse.model_validate(doctor)
+        doctor_response = DoctorWithRelationsResponse(
+        id=doctor.id,
+        doctor_id=doctor.doctor_id,
+        work_email=doctor.work_email,
+        phone_number=doctor.phone_number,
+        first_name=doctor.first_name,
+        surname=doctor.surname,
+        doctors_photo=f"/doctors/{doctor.doctor_id}/photo" if doctor.doctors_photo else None,
+        last_name=doctor.last_name,
+        place_of_registration=doctor.place_of_registration,
+        passport_code=doctor.passport_code,
+        taxpayer_identification_number=doctor.taxpayer_identification_number,
+        scientific_degree=doctor.scientific_degree,
+        date_of_last_attestation=doctor.date_of_last_attestation,
+        status=doctor.status,
+        diplomas=[
+            DiplomaResponse(
+                id=diploma.id,
+                date=diploma.date,
+                series=diploma.series,
+                number=diploma.number,
+                university=diploma.university,
+                file_data=f"/diplomas/{diploma.id}" if diploma.file_data else None,
+            )
+            for diploma in doctor.diplomas
+        ],
+        certificates=[
+            CertificateResponse(
+                id=certificate.id,
+                date=certificate.date,
+                series=certificate.series,
+                number=certificate.number,
+                university=certificate.university,
+                file_data=(
+                    f"/certificates/{certificate.id}" if certificate.file_data else None
+                ),
+            )
+            for certificate in doctor.certificates
+        ],
+        clinic_affiliations=[
+            ClinicAffiliationResponse(
+                id=affiliation.id,
+                clinic_name=affiliation.clinic_name,
+                department=affiliation.department,
+                position=affiliation.position,
+                specialty=affiliation.specialty,
+            )
+            for affiliation in doctor.clinic_affiliations
+        ],
+    )
+        full_user_data["doctor_info"] = doctor_response
 
     return full_user_data
 
