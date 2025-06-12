@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru" class="layout-page">
 <head>
-  <link rel="icon" type="image/png" href="./favicon.png">
+  <link rel="icon" type="image/png" href="/static/favicon.png">
   <meta charset="UTF-8" />
   <title>Кор Lab — Пациенты</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -387,20 +387,16 @@
 </div>
 
   <!-- ─── ЛОГИКА (сортировка, поиск, обработчики) ─── -->
-  <script src="./translation.js"></script>
-  <script src="./general_fun.js"></script>
-  <script src="./printers.js"></script>
-  <script>
-    let searchParams = new URLSearchParams(document.location.search);
-    const accessToken = searchParams.get("access_token")
-
-    if(accessToken){
-      localStorage.setItem('access_token', accessToken)
-    }
-  </script>
+  <script src="/static/COR_ID_Js/translation.js"></script>
+  <script src="/static/COR_ID_Js/general_fun.js"></script>
+  <script src="/static/printers.js"></script>
   <script>
     /* Массив‑заглушка с трёмя пациентами */
-    let sampleRows=[];
+    const sampleRows=[
+      {name:"Иванов Валерий Витальевич",id:"159RLHD9P-1978M",age:65,gender:"Мужской",date:"19.01.2024",status:"Новый",avatar:"https://randomuser.me/api/portraits/men/65.jpg"},
+      {name:"Иванова Екатерина Васильевна",id:"151RLHD9P-1990F",age:34,gender:"Женский",date:"15.01.1990",status:"Новый",avatar:"https://randomuser.me/api/portraits/women/44.jpg"},
+      {name:"Сидоров Пётр Кириллович",id:"162ABCD9P-1995M",age:29,gender:"Мужской",date:"05.03.2024",status:"Новый",avatar:"https://randomuser.me/api/portraits/men/26.jpg"}
+    ];
 
     /* Текущее состояние таблицы */
     let filteredRows=[...sampleRows];
@@ -418,35 +414,33 @@
 
     /* Компаратор для сортировки по полю */
     function compare(a,b,field){
-      if(field==="date") return parseDate(a.change_date)-parseDate(b.change_date);
+      if(field==="date") return parseDate(a.date)-parseDate(b.date);
       if(field==="age")  return a.age-b.age;
       return a[field].toString().localeCompare(b[field].toString(),"ru",{sensitivity:"base"});
     }
 
     /* Рендерим строки таблицы */
-    function render(rows) {
-      const {roles} = decodeToken(getToken())
-      tbody.innerHTML = "";
-      rows.forEach(r => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td><input type="checkbox" class="rowChk"></td>
-            <td style="display:flex;align-items:center;background:var(--clr-surface-alt);">
-              ${r.avatar ? `<img class="avatar" src="${r.avatar}" alt="">` : ""}${r.name}
-            </td>
-            <td>${r.patient_cor_id}</td>
-            <td>${r.age ? `${r.age} лет` : ""}</td>
-            <td>${r.sex === "M" ? "Мужской" : "Женский"}</td>
-            <td>${new Date(r.change_date).toLocaleDateString()}</td>
-            <td><span class="status">${r.status ? `<span class="status-dot"></span>${r.status}</span>` : ""}</td>
-            <td class="ellipsis">⋮</td>`;
+    function render(rows){
+      tbody.innerHTML="";
+      rows.forEach(r=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+          <td><input type="checkbox" class="rowChk"></td>
+          <td style="display:flex;align-items:center;background:var(--clr-surface-alt);">
+            <img class="avatar" src="${r.avatar}" alt="">${r.name}
+          </td>
+          <td>${r.id}</td>
+          <td>${r.age} лет</td>
+          <td>${r.gender}</td>
+          <td>${r.date}</td>
+          <td><span class="status"><span class="status-dot"></span>${r.status}</span></td>
+          <td class="ellipsis">⋮</td>`;
         tr.onclick = () => {
-          const page = roles.includes('doctor') ? "glass" : "lab";
-          window.location.href = `/static/${page}.html?userCorId=${r.patient_cor_id}`
+          window.location.href = `/static/lab.html?userId=${r.id}`
         }
         tbody.appendChild(tr);
       });
-      footerInfo.textContent = `Всего: ${rows.length} пациентов`;
+      footerInfo.textContent=`Всего: ${rows.length} пациентов`;
     }
 
     /* Сортируем и перерисовываем */
@@ -455,69 +449,8 @@
       render(filteredRows);
     }
 
-    const getFulName = (lastName, firstName, middleName) => {
-      let result = []
-
-      if(lastName){
-        result.push(lastName)
-      }
-      if(firstName){
-        result.push(firstName)
-      }
-      if(middleName){
-        result.push(middleName)
-      }
-
-      return result.join(' ');
-    }
-
-    const getAge = (birthDate) => {
-      const today = new Date();
-      const birth = new Date(birthDate); // Can accept string like '2000-01-01'
-
-      let age = today.getFullYear() - birth.getFullYear();
-
-      // Check if the birthday has occurred this year
-      const hasHadBirthdayThisYear =
-              today.getMonth() > birth.getMonth() ||
-              (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
-
-      if (!hasHadBirthdayThisYear) {
-        age--;
-      }
-
-      return age;
-    }
-
-    fetch(`https://dev-corid.cor-medical.ua/api/doctor/patients`, {
-      method: "GET",
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        "Content-Type": "application/json"
-      },
-    })
-            .then(res => res.json())
-            .then(userList => {
-              const {items} = userList;
-              const formattedUserList = items.map( ({patient, status}) => {
-                return {
-                  ...patient,
-                  change_date: "2025-05-09T07:19:51.498743",
-                  name: getFulName(patient.surname, patient.first_name, patient.middle_name),
-                  age: patient.birth_date ? getAge(patient.birth_date) : null, // добавить
-                  status: status,
-                }
-              })
-
-
-              sampleRows = formattedUserList;
-              filteredRows = [...sampleRows];
-
-              /* Стартовый рендер */
-              sortRows(currentSort.field,currentSort.dir);
-            })
-
-
+    /* Стартовый рендер */
+    sortRows(currentSort.field,currentSort.dir);
 
     /* === Поиск по таблице === */
     document.getElementById("searchInput").addEventListener("input",e=>{
