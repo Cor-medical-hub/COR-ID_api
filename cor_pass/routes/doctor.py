@@ -660,7 +660,7 @@ async def upsert_case_report(
     """
     Создает новое заключение для указанного кейса или обновляет существующее.
     """
-    return await case_service.create_or_update_report(db=db, case_id=case_id, report_data=report_data)
+    return await case_service.create_or_update_report(db=db, case_id=case_id, report_data=report_data, router=router)
 
 
 
