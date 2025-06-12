@@ -392,7 +392,7 @@ class DoctorWithRelationsResponse(BaseModel):
     work_email: str
     phone_number: Optional[str]
     first_name: Optional[str]
-    surname: Optional[str]
+    middle_name: Optional[str]
     last_name: Optional[str]
     doctors_photo: Optional[str] = Field(None, description="Ссылка на фото")
     scientific_degree: Optional[str]
@@ -416,7 +416,7 @@ class DoctorCreate(BaseModel):
     )
     phone_number: Optional[str] = Field(None, description="Номер телефона")
     first_name: str = Field(..., description="Имя врача")
-    surname: str = Field(..., description="Отчество врача")
+    middle_name: str = Field(..., description="Отчество врача")
     last_name: str = Field(..., description="Фамилия врача")
     passport_code: str = Field(..., description="Номер паспорта")
     taxpayer_identification_number: str = Field(..., description="ИНН")
@@ -435,7 +435,7 @@ class DoctorCreate(BaseModel):
                 "work_email": "doctor@example.com",
                 "phone_number": "+3806666666",
                 "first_name": "John",
-                "surname": "Doe",
+                "middle_name": "Doe",
                 "last_name": "Smith",
                 "passport_code": "CN123456",
                 "taxpayer_identification_number": "1234567890",
@@ -476,7 +476,7 @@ class DoctorResponse(BaseModel):
     work_email: EmailStr = Field(..., description="Рабочий имейл")
     phone_number: Optional[str] = Field(None, description="Номер телефона")
     first_name: Optional[str] = Field(None, description="Имя врача")
-    surname: Optional[str] = Field(None, description="Отчество врача")
+    middle_name: Optional[str] = Field(None, description="Отчество врача")
     last_name: Optional[str] = Field(None, description="Фамилия врача")
     doctors_photo: Optional[str] = Field(None, description="Ссылка на фото врача")
     scientific_degree: Optional[str] = Field(None, description="Научная степень")
@@ -498,7 +498,7 @@ class DoctorResponseForSignature(BaseModel):
     work_email: EmailStr = Field(..., description="Рабочий имейл")
     phone_number: Optional[str] = Field(None, description="Номер телефона")
     first_name: Optional[str] = Field(None, description="Имя врача")
-    surname: Optional[str] = Field(None, description="Отчество врача")
+    middle_name: Optional[str] = Field(None, description="Отчество врача")
     last_name: Optional[str] = Field(None, description="Фамилия врача")
     # doctors_photo: Optional[str] = Field(None, description="Ссылка на фото врача")
     # scientific_degree: Optional[str] = Field(None, description="Научная степень")
@@ -520,7 +520,7 @@ class DoctorCreateResponse(BaseModel):
     work_email: EmailStr = Field(..., description="Рабочий имейл")
     phone_number: Optional[str] = Field(None, description="Номер телефона")
     first_name: str = Field(..., description="Имя врача")
-    surname: str = Field(..., description="Отчество врача")
+    middle_name: str = Field(..., description="Отчество врача")
     last_name: str = Field(..., description="Фамилия врача")
     scientific_degree: Optional[str] = Field(None, description="Научная степень")
     date_of_last_attestation: Optional[date] = Field(
@@ -662,10 +662,6 @@ class ExistingPatientAdd(BaseModel):
 
 
 # Модели для лабораторных исследований
-
-# class GrossingStatus(str, Enum):
-#     processing = "processing"
-#     completed = "completed"
 
 
 class GlassBase(BaseModel):
@@ -867,10 +863,6 @@ class Case(BaseModel):
     glass_count: int
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
-    # general_macrodescription: Optional[str] = None
-    # samples: List = []  # Связь с банками
-    # directions: List = []
-    # case_parameters: Optional[List] = None
 
     class Config:
         from_attributes = True
@@ -1054,7 +1046,6 @@ class ReferralAttachmentCreate(BaseModel):
 
 class ReferralCreate(BaseModel):
     case_id: str = Field(..., description="ID связанного кейса")
-    # case_number: str = Field(..., description="Номер кейса")
     research_type: Optional[StudyType] = Field(None, description="Вид исследования")
     container_count: Optional[int] = Field(None, description="Фактическое количество контейнеров")
     medical_card_number: Optional[str] = Field(None, description="Номер медкарты")
@@ -1097,19 +1088,6 @@ class ReferralResponseForDoctor(BaseModel):
     case_number: str = Field(..., description="Сase Code")
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
-    # created_at: datetime
-    # research_type: Optional[StudyType]
-    # container_count: Optional[int]
-    # medical_card_number: Optional[str]
-    # clinical_data: Optional[str]
-    # clinical_diagnosis: Optional[str]
-    # medical_institution: Optional[str]
-    # department: Optional[str]
-    # attending_doctor: Optional[str]
-    # doctor_contacts: Optional[str]
-    # medical_procedure: Optional[str]
-    # final_report_delivery: Optional[str]
-    # issued_at: Optional[date]
     attachments: List[ReferralAttachmentResponse] = [] # Список прикрепленных файлов
 
     class Config:
@@ -1491,8 +1469,8 @@ class CaseFinalReportPageResponse(BaseModel):
 
 class LabAssistantCreate(BaseModel):
     first_name: str = Field(..., description="Имя лаборанта")
-    surname: str = Field(..., description="Отчество лаборанта")
-    middle_name: str = Field(..., description="Фамилия лаборанта")
+    middle_name: str = Field(..., description="Отчество лаборанта")
+    last_name: str = Field(..., description="Фамилия лаборанта")
 
     class Config:
         from_attributes = True
@@ -1503,8 +1481,8 @@ class LabAssistantResponse(BaseModel):
     id: str
     lab_assistant_cor_id: str
     first_name: Optional[str] = None
-    surname: Optional[str] = None
     middle_name: Optional[str] = None
+    last_name: Optional[str] = None
 
     class Config:
         from_attributes = True

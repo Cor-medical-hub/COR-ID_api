@@ -41,7 +41,7 @@ async def create_doctor(
         work_email=doctor_data.work_email,
         phone_number=doctor_data.phone_number,
         first_name=doctor_data.first_name,
-        surname=doctor_data.surname,
+        middle_name=doctor_data.middle_name,
         last_name=doctor_data.last_name,
         scientific_degree=doctor_data.scientific_degree,
         date_of_last_attestation=doctor_data.date_of_last_attestation,
