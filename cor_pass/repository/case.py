@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.schemas import (
     Case as CaseModelScheema,
+    CaseFinalReportPageResponse,
     CaseParametersScheema,
     CassetteForGlassPage,
     CassetteTestForGlassPage,
@@ -1177,7 +1178,7 @@ async def _format_report_response(
         signatures_schematized.append(
             ReportSignatureSchema(
                 id=signature_db.id,
-                doctor=DoctorResponse.model_validate(signature_db.doctor),
+                doctor=DoctorResponseForSignature.model_validate(signature_db.doctor),
                 signed_at=signature_db.signed_at,
                 doctor_signature=doctor_sig_response
             )
@@ -1530,8 +1531,10 @@ async def get_patient_final_report_page_data(
     report_details: Optional[ReportResponseSchema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
 
+
     if all_cases_db:
         last_case_db = all_cases_db[0]
+        last_case_details = CaseModelScheema.model_validate(last_case_db)
 
         last_case_full_info_result = await db.execute(
             select(db_models.Case)
@@ -1598,7 +1601,8 @@ async def get_patient_final_report_page_data(
 
     return PatientFinalReportPageResponse(
         all_cases=all_cases_schematized,
-        report_details=report_details,
+        last_case_details=last_case_details,
+        report_details=report_details
     )
 
 
@@ -1748,7 +1752,7 @@ async def _format_final_report_response(
 
 async def get_final_report_by_case_id(
     db: AsyncSession, case_id: str, router: APIRouter
-) -> FinalReportResponseSchema:
+) -> CaseFinalReportPageResponse:
     """
     Получает заключение для конкретного кейса. Если заключения нет, оно будет создано.
     """
@@ -1763,6 +1767,9 @@ async def get_final_report_by_case_id(
     )
     if not case_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
+    
+    
+    case_schematized = CaseModelScheema.model_validate(case_db)
 
     if not case_db.report:
         new_report = db_models.Report(
@@ -1778,4 +1785,8 @@ async def get_final_report_by_case_id(
 
     referral_db = await get_referral_by_case(db=db, case_id=case_db.id)
 
-    return await _format_final_report_response(db=db, db_report=case_db.report, db_case_parameters=case_db.case_parameters, router=router, patient_db=patient_db, referral_db=referral_db, case_db=case_db)
+    report_details =  await _format_final_report_response(db=db, db_report=case_db.report, db_case_parameters=case_db.case_parameters, router=router, patient_db=patient_db, referral_db=referral_db, case_db=case_db)
+    return CaseFinalReportPageResponse(
+        case_details=case_schematized,
+        report_details=report_details,
+    )
