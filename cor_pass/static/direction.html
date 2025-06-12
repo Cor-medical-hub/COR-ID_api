@@ -79,8 +79,7 @@
                 Скельця
             </div>
             <div class="bottom df ">
-                <div class="directionWrapper">
-                    <img class="directionImg" src="./assets/document.png" alt="doc">
+                <div class="directionWrapper df fdc" id="directionAttachment">
                 </div>
             </div>
         </div>
@@ -113,12 +112,9 @@
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
 
     let currentCase = null;
-    let currentGlasses = null;
-    let activeGlasses = []
 
+    const directionAttachmentNODE = document.querySelector("#directionAttachment");
     const caseContentNODE = document.querySelector("#caseItems");
-    const glassContentNODE = document.querySelector("#glassItems");
-    const activeGlassCountNode = document.querySelector('#activeGlassCount');
     const caseLabelNode = document.querySelector('#searchCaseId');
     const caseMicroDescriptionTextareaNODE = document.querySelector('#caseMicroDescription');
     const casePathohistologicalConclusionTextareaNODE = document.querySelector('#casePathohistologicalConclusion');
@@ -184,32 +180,33 @@
         `;
 
         caseNewNODE.addEventListener("click", () => {
-            fetch(`${API_BASE_URL}/api/doctor/cases/${currentCase.id}/glass-details`, {
+            fetch(`${API_BASE_URL}/api/doctor/patients/referrals/${currentCase.id}`, {
                 method: "GET",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                 },
             })
                 .then(res => res.json())
-                .then(caseData => {
-                    const {single_case_for_glass_page} = caseData;
+                .then(case_details_for_direction => {
+                    directionAttachmentNODE.innerHTML = ""
+
                     document.querySelector('.caseItem.active').classList.remove('active')
                     caseNewNODE.classList.add('active')
 
-                    glassContentNODE.innerHTML = '';
-                    setAllGlasses(single_case_for_glass_page)
-                    currentCase = single_case_for_glass_page
+                    showFiles(case_details_for_direction.attachments)
+                    currentCase = {
+                        ...case_details_for_direction,
+                        id: case_details_for_direction.case_id
+                    }
 
-                    caseLabelNode.innerHTML = single_case_for_glass_page.case_code
-                    caseMicroDescriptionTextareaNODE.value = single_case_for_glass_page.microdescription || ""
-                    casePathohistologicalConclusionTextareaNODE.value = single_case_for_glass_page.pathohistological_conclusion || ""
-
-                    activeGlasses = []
-                    activeGlassCountNode.style.display = "none";
+                    caseLabelNode.innerHTML = case_details_for_direction.case_number
+                    caseMicroDescriptionTextareaNODE.value = case_details_for_direction.microdescription || ""
+                    casePathohistologicalConclusionTextareaNODE.value = case_details_for_direction.pathohistological_conclusion || ""
                 })
         });
         return caseNewNODE
     }
+
 
     const setAllCases = () => {
         fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}`, {
@@ -231,18 +228,58 @@
                 })
                     .then(res => res.json())
                     .then(cases => {
-                        const {all_cases, first_case_details_for_glass} = cases;
+                        const {all_cases, first_case_direction} = cases;
                         all_cases.forEach((currentCase, index) => {
                             caseContentNODE.append(caseTemplate(currentCase, !index))
                         })
 
-                        currentCase = first_case_details_for_glass;
+                        if(!first_case_direction){
+                            return;
+                        }
 
-                        caseLabelNode.innerHTML = first_case_details_for_glass.case_code
-                        caseMicroDescriptionTextareaNODE.value = first_case_details_for_glass.microdescription || ""
-                        casePathohistologicalConclusionTextareaNODE.value = first_case_details_for_glass.pathohistological_conclusion || ""
+                        currentCase = first_case_direction;
+                        setAllAttachment(first_case_direction)
+
+                        caseLabelNode.innerHTML = first_case_direction.case_code
+                        caseMicroDescriptionTextareaNODE.value = first_case_direction.microdescription || ""
+                        casePathohistologicalConclusionTextareaNODE.value = first_case_direction.pathohistological_conclusion || ""
                     })
             })
+    }
+    const setAllAttachment = (currentCase) => {
+        showFiles(currentCase.attachments)
+    }
+    const showFiles = files => {
+        if(!files.length) {
+            directionAttachmentNODE.innerHTML = "Немає жодного направлення"
+
+            return;
+        }
+
+        files.forEach((file)=>{
+            const fileViewerWrapperNODE = document.createElement('div');
+            fileViewerWrapperNODE.className = 'thumb';
+            // <img className="directionImg" src="./assets/document.png" alt="doc">
+
+            const imgNODE = document.createElement('img');
+                imgNODE.classList = "directionImg"
+
+            if(file.file_url){
+                fetch(`${API_BASE_URL}/api${file.file_url}`, {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    },
+                })
+                    .then(response => response.blob())
+                    .then(blob => {
+                        imgNODE.src = URL.createObjectURL(blob);
+                        imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
+                        fileViewerWrapperNODE.appendChild(imgNODE);
+                        directionAttachmentNODE.appendChild(fileViewerWrapperNODE);
+                    })
+            }
+        });
     }
 
     const switchRole = () => {
@@ -250,7 +287,6 @@
             window.location.href = `/static/lab.html?userCorId=${PATIENT_COR_ID}`
         })
     }
-
     const goToTab = () => {
         document.querySelectorAll(".tabs .tab:not(.active)").forEach(elem => {
             elem.addEventListener('click', e => {
