@@ -1,4 +1,11 @@
-name: prod-cor-id_v2
+# build
+#    docker compose --env-file corid_env build --with-dependencies 
+# run
+#    docker compose --env-file corid_env up 
+
+
+name: $CORID_ENV-cor-id_v2
+
 
 services:
   fastapi:
@@ -7,60 +14,48 @@ services:
       dockerfile: Dockerfile
     image: massivecapybara/corid_api:latest
     ports:
-      - "8001:8000"
-    # volumes:
-    #   - .:/app
+      - "$CORID_API_PORT:8000"
     depends_on:
       - prometheus
-      - postgres  
+      - postgres
     env_file:
-#      - development.env
-#      - dev-cor-identity.env
-      - prod-corid.cor-medical.ua.env
-#    links:
-#      - postgres
-#    networks:
-#      - backend
+      - $CORID_ENV-corid.cor-medical.ua.env
 
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - $CORID_REDIS_PORT:6379
 
 
   postgres:
     image: postgres:latest
     env_file:
-#      - development.env
-#      - dev-cor-identity.env
-      - prod-corid.cor-medical.ua.env
+      - $CORID_ENV-corid.cor-medical.ua.env
     ports:
-      - "5432:5432"
+      - $CORID_POSTGRES_PORT:5432
     volumes:
-      - postgres_data:/var/lib/postgresql/data  
-#    networks:
-#      - backend
+      - postgres_data:/var/lib/postgresql/data
 
   prometheus:
     image: prom/prometheus:latest
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "9090:9090"
+      - $CORID_PROMETEUS_PORT:9090
 
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - $CORID_GRAFANA_PORT:3000
     depends_on:
       - loki
 
   loki:
     image: grafana/loki:latest
     ports:
-      - "3100:3100"
+      - $CORID_LOKI_PORT:3100
     command: -config.file=/etc/loki/local-config.yaml
-    user: "0:0" 
+    user: "0:0"
     volumes:
       - ./loki-config.yaml:/etc/loki/loki-config.yaml
       - ./:/app
@@ -82,6 +77,3 @@ volumes:
   grafana-storage:
   loki-data:
   compactor-data:
-
-#networks:
-#  backend: {}
