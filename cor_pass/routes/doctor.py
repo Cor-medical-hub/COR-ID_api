@@ -34,6 +34,7 @@ from cor_pass.repository.doctor import (
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
+    CaseFinalReportPageResponse,
     FinalReportResponseSchema,
     PatientFinalReportPageResponse,
     PatientTestReportPageResponse,
@@ -727,7 +728,7 @@ async def get_patient_final_report_full_page_data_route(
 
 @router.get(
     "/cases/{case_id}/final-report",
-    response_model=FinalReportResponseSchema,
+    response_model=CaseFinalReportPageResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
     summary="Получить данные для финального заключения конкретного кейса",
@@ -736,7 +737,7 @@ async def get_patient_final_report_full_page_data_route(
 async def get_case_final_report_route(
     case_id: str,
     db: AsyncSession = Depends(get_db),
-) -> FinalReportResponseSchema:
+) -> CaseFinalReportPageResponse:
     """
     Этот маршрут возвращает данные для финального заключения для указанного кейса
     """
