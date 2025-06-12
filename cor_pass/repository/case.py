@@ -11,6 +11,7 @@ from cor_pass.schemas import (
     CaseParametersScheema,
     CassetteForGlassPage,
     CassetteTestForGlassPage,
+    DoctorResponseForSignature,
     FinalReportResponseSchema,
     FirstCaseTestGlassDetailsSchema,
     GlassTestModelScheema,
@@ -1333,7 +1334,7 @@ async def get_patient_report_page_data(
 
 
 async def create_or_update_report(
-    db: AsyncSession, case_id: str, report_data: Union[ReportCreateSchema, ReportUpdateSchema]
+    db: AsyncSession, case_id: str, router: APIRouter, report_data: Union[ReportCreateSchema, ReportUpdateSchema]
 ) -> ReportResponseSchema:
     """
     Создает новое заключение для кейса или обновляет существующее.
@@ -1376,7 +1377,9 @@ async def create_or_update_report(
     await db.commit()
     await db.refresh(db_report)
 
-    return await _format_report_response(db, db_report, case_db.case_parameters)
+    # patient_db = await get_patient_by_corid(db=db, cor_id=case_db.patient_id)
+    # referral_db = await get_referral_by_case(db=db, case_id=case_db.id)
+    return await _format_report_response(db=db, db_report=db_report, db_case_parameters=case_db.case_parameters, router=router)
 
 
 async def add_report_signature(
@@ -1445,6 +1448,9 @@ async def add_report_signature(
         .where(db_models.Case.id == case_id)
         .options(selectinload(db_models.Case.case_parameters))
     )
+    case_db.grossing_status = db_models.Grossing_status.COMPLETED
+    await db.commit()
+    await db.refresh(case_db)
     macro_desc_from_params = case_db.case_parameters.macro_description if case_db.case_parameters else None
 
     attached_glasses_schematized: List[GlassModelScheema] = []
@@ -1463,7 +1469,7 @@ async def add_report_signature(
         doctor_sig_response = None
         if signature_db.doctor_signature:
             if signature_db.doctor_signature.signature_scan_data:
-                signature_data=router.url_path_for("get_signature_attachment", signature_id=doctor_signature_id)
+                signature_data=router.url_path_for("get_signature_attachment", signature_id=new_signature.doctor_signature_id)
             doctor_sig_type = signature_db.doctor_signature.signature_scan_type
             doctor_sig_response = DoctorSignatureResponse(
                 id=signature_db.doctor_signature.id,
@@ -1478,7 +1484,7 @@ async def add_report_signature(
         signatures_schematized.append(
             ReportSignatureSchema(
                 id=signature_db.id,
-                doctor=DoctorResponse.model_validate(signature_db.doctor).model_dump(),
+                doctor=DoctorResponseForSignature.model_validate(signature_db.doctor).model_dump(),
                 signed_at=signature_db.signed_at,
                 doctor_signature=doctor_sig_response
             )
@@ -1681,7 +1687,7 @@ async def _format_final_report_response(
         signatures_schematized.append(
             ReportSignatureSchema(
                 id=signature_db.id,
-                doctor=DoctorResponse.model_validate(signature_db.doctor),
+                doctor=DoctorResponseForSignature.model_validate(signature_db.doctor),
                 signed_at=signature_db.signed_at,
                 doctor_signature=doctor_sig_response
             )

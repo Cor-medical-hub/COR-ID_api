@@ -492,6 +492,27 @@ class DoctorResponse(BaseModel):
         from_attributes = True
         arbitrary_types_allowed = True
 
+class DoctorResponseForSignature(BaseModel):
+    id: str = Field(..., description="ID врача")
+    doctor_id: str = Field(..., description="COR-ID врача")
+    work_email: EmailStr = Field(..., description="Рабочий имейл")
+    phone_number: Optional[str] = Field(None, description="Номер телефона")
+    first_name: Optional[str] = Field(None, description="Имя врача")
+    surname: Optional[str] = Field(None, description="Отчество врача")
+    last_name: Optional[str] = Field(None, description="Фамилия врача")
+    # doctors_photo: Optional[str] = Field(None, description="Ссылка на фото врача")
+    # scientific_degree: Optional[str] = Field(None, description="Научная степень")
+    # date_of_last_attestation: Optional[date] = Field(
+    #     None, description="Дата последней атестации"
+    # )
+    # status: Doctor_Status
+    # place_of_registration: Optional[str] = Field(None, description="Место прописки")
+    # passport_code: Optional[str] = Field(None, description="Номер паспорта")
+    # taxpayer_identification_number: Optional[str] = Field(None, description="ИНН")
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True
 
 class DoctorCreateResponse(BaseModel):
     id: str = Field(..., description="ID врача")
@@ -1294,7 +1315,7 @@ class DoctorSignatureResponse(DoctorSignatureBase):
 
 class ReportSignatureSchema(BaseModel):
     id: str
-    doctor: DoctorResponse 
+    doctor: DoctorResponseForSignature 
     signed_at: datetime
 
     doctor_signature: Optional[DoctorSignatureResponse] = None 
