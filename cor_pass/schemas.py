@@ -1157,6 +1157,25 @@ class FullUserInfoResponse(BaseModel):
     class Config:
         from_attributes = True 
 
+class UserDataResponse(BaseModel):
+    user_info: UserDb 
+    class Config:
+        from_attributes = True 
+
+class UserProfileResponseForAdmin(BaseModel):
+    profile: Optional[ProfileResponse] = None 
+    class Config:
+        from_attributes = True 
+
+class UserDoctorsDataResponseForAdmin(BaseModel):
+    doctor_info: Optional[DoctorWithRelationsResponse] = None 
+    class Config:
+        from_attributes = True 
+
+class UserRolesResponseForAdmin(BaseModel):
+    user_roles: Optional[List[str]] = None 
+    class Config:
+        from_attributes = True 
 
 class ReferralFileSchema(BaseModel):
     id: Optional[str] = None 
