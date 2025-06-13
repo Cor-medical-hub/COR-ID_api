@@ -1508,6 +1508,28 @@ class LabAssistantResponse(BaseModel):
         from_attributes = True
 
 
+class EnergyManagerCreate(BaseModel):
+    first_name: str = Field(..., description="Имя менеджера энергии")
+    middle_name: str = Field(..., description="Отчество менеджера энергии")
+    last_name: str = Field(..., description="Фамилия менеджера энергии")
+
+    class Config:
+        from_attributes = True
+
+
+class EnergyManagerResponse(BaseModel):
+
+    id: str
+    energy_manager_cor_id: str
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+
 
 class PatientResponseForGetPatients(BaseModel):
     id: str

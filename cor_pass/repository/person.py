@@ -468,6 +468,9 @@ async def get_user_roles(email: str, db: AsyncSession) -> List[str]:
     lab_assistant = await role_check.lab_assistant_role_checker.is_lab_assistant(user=user, db=db)
     if lab_assistant:
         roles.append("lab_assistant")
+    energy_manager = await role_check.energy_manager_role_checker.is_energy_manager(user=user, db=db)
+    if energy_manager:
+        roles.append("energy_manager")
     if user.is_active:
         roles.append("active_user")
     return roles

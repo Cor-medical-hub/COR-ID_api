@@ -216,6 +216,9 @@ class User(Base):
     user_lab_assistants = relationship(
         "LabAssistant", back_populates="user", cascade="all, delete-orphan"
     )
+    user_energy_managers = relationship(
+        "EnergyManager", back_populates="user", cascade="all, delete-orphan"
+    )
 
     # Индексы
     __table_args__ = (
@@ -275,6 +278,20 @@ class LabAssistant(Base):
 
 
     user = relationship("User", back_populates="user_lab_assistants")
+
+class EnergyManager(Base):
+    __tablename__ = "energy_managers"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    energy_manager_cor_id = Column(
+        String(36), ForeignKey("users.cor_id"), unique=True, nullable=False
+    )
+    first_name = Column(String(100), nullable=True)
+    surname = Column(String(100), nullable=True)
+    middle_name = Column(String(100), nullable=True)
+    lab_assistants_photo = Column(LargeBinary, nullable=True)
+
+
+    user = relationship("User", back_populates="user_energy_managers")
 
 class Diploma(Base):
     __tablename__ = "diplomas"
