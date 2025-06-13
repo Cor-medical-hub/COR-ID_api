@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from cor_pass.database.db import get_db
-from cor_pass.database.models import Doctor, PatientStatus, User
+from cor_pass.database.models import Doctor, PatientClinicStatus, PatientStatus, User
 from cor_pass.repository.doctor import (
     create_doctor,
     create_doctor_service,
@@ -24,6 +24,7 @@ from cor_pass.repository.doctor import (
     get_doctor_patients_with_status,
     get_doctor_signatures,
     get_doctor_single_patient_with_status,
+    get_patients_with_optional_status,
     get_signature_data,
     set_default_doctor_signature,
     upload_certificate_service,
@@ -36,6 +37,7 @@ from cor_pass.repository.patient import add_existing_patient, register_new_patie
 from cor_pass.schemas import (
     CaseFinalReportPageResponse,
     FinalReportResponseSchema,
+    GetAllPatientsResponce,
     PatientFinalReportPageResponse,
     PatientTestReportPageResponse,
     ReportResponseSchema,
@@ -186,48 +188,112 @@ async def upload_certificate(
     return await upload_certificate_service(document_id, file, db)
 
 
+# @router.get(
+#     "/patients",
+#     dependencies=[Depends(doctor_access)],
+#     # response_model=PatientResponce
+# )
+# async def get_doctor_patients(
+#     db: AsyncSession = Depends(get_db),
+#     current_user: User = Depends(auth_service.get_current_user),
+#     patient_status: Optional[str] = Query(None),  # Принимаем статус как строку
+#     sex: Optional[List[str]] = Query(None),
+#     sort_by: Optional[str] = Query("change_date"),
+#     sort_order: Optional[str] = Query("desc"),
+#     skip: int = Query(1, ge=1),
+#     limit: int = Query(10, ge=1, le=100),
+# ):
+#     doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
+#     if not doctor:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+#         )
+
+#     status_filters = None
+#     if patient_status:
+#         try:
+#             status_filters = [PatientStatus(patient_status)]
+#         except ValueError:
+#             raise HTTPException(
+#                 status_code=status.HTTP_400_BAD_REQUEST,
+#                 detail=f"Invalid status value: {status}. Allowed values are: {[e.value for e in PatientStatus]}",
+#             )
+
+#     patients_with_status, total_count = await get_doctor_patients_with_status(
+#         db=db,
+#         doctor=doctor,
+#         status_filters=status_filters,
+#         sex_filters=sex,
+#         sort_by=sort_by,
+#         sort_order=sort_order,
+#         skip=skip,
+#         limit=limit,
+#     )
+#     return {"items": patients_with_status, "total": total_count}
+
+
 @router.get(
     "/patients",
     dependencies=[Depends(doctor_access)],
-    # response_model=PatientResponce
+    response_model=GetAllPatientsResponce
 )
 async def get_doctor_patients(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(auth_service.get_current_user),
-    patient_status: Optional[str] = Query(None),  # Принимаем статус как строку
-    sex: Optional[List[str]] = Query(None),
-    sort_by: Optional[str] = Query("change_date"),
-    sort_order: Optional[str] = Query("desc"),
-    skip: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
+    doctor_patient_status: Optional[str] = Query(
+        None, description="Фильтрация по статусу у врача (скорее всего отпадет) (варианты: registered, diagnosed, under_treatment, hospitalized, discharged, died, in_process, referred_for_additional_consultation)"
+    ),
+    clinic_patient_status: Optional[str] = Query(
+        None, description="Фильтр поо статусу в клинике (варианты: registered, diagnosed, under_treatment, hospitalized, discharged, died, in_process, referred_for_additional_consultation, awaiting_report, completed, error)"
+    ),
+    current_doctor: Optional[bool] = Query(False, description="Фильтр по текущему врачу (бул)"),
+    sex: Optional[str] = Query(None, description="Фильтр по полу (варианты:'M','F')"),
+    sort_by: Optional[str] = Query("change_date", description="Сортировка по полю (варианты: change_date, birth_date)"),
+    sort_order: Optional[str] = Query("desc", description="Сортировка (asc или desc)"),
+    skip: int = Query(1, ge=1, description="Страницы (1-based index)"),
+    limit: int = Query(10, ge=1, le=100, description="К-ство на страницу"),
 ):
-    doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
-    if not doctor:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
-        )
+    doctor = None
+    if current_doctor:
+        doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
+        if not doctor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+            )
 
-    status_filters = None
-    if patient_status:
+    doctor_status_filters = None
+    if doctor_patient_status:
         try:
-            status_filters = [PatientStatus(patient_status)]
+            doctor_status_filters = [PatientStatus(doctor_patient_status)]
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status value: {status}. Allowed values are: {[e.value for e in PatientStatus]}",
+                detail=f"Invalid doctor patient status value: '{doctor_patient_status}'. Allowed values are: {[e.value for e in PatientStatus]}",
             )
 
-    patients_with_status, total_count = await get_doctor_patients_with_status(
+    clinic_status_filters = None
+    if clinic_patient_status:
+        try:
+            clinic_status_filters = [PatientClinicStatus(clinic_patient_status)]
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid clinic patient status value: '{clinic_patient_status}'. Allowed values are: {[e.value for e in PatientClinicStatus]}",
+            )
+
+
+    response = await get_patients_with_optional_status(
         db=db,
         doctor=doctor,
-        status_filters=status_filters,
+        doctor_status_filters=doctor_status_filters,  
+        clinic_status_filters=clinic_status_filters,  
         sex_filters=sex,
         sort_by=sort_by,
         sort_order=sort_order,
         skip=skip,
         limit=limit,
     )
-    return {"items": patients_with_status, "total": total_count}
+    return response
 
 
 @router.get(

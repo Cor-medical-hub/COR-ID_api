@@ -42,10 +42,10 @@ class AuthSessionStatus(enum.Enum):
     TIMEOUT: str = "timeout"
 
 
-class PatientStatus(enum.Enum):
-    registered = "registered"
-    under_treatment = "under_treatment"
-    discharged = "discharged"
+# class PatientStatus(enum.Enum):
+#     registered = "registered"
+#     under_treatment = "under_treatment"
+#     discharged = "discharged"
 
 
 class PatientStatus(enum.Enum):
@@ -57,6 +57,19 @@ class PatientStatus(enum.Enum):
     died = "died"
     in_process = "in_process"
     referred_for_additional_consultation = "referred_for_additional_consultation"
+
+class PatientClinicStatus(enum.Enum):
+    registered = "registered"
+    diagnosed = "diagnosed"
+    under_treatment = "under_treatment"
+    hospitalized = "hospitalized"
+    discharged = "discharged"
+    died = "died"
+    in_process = "in_process"
+    referred_for_additional_consultation = "referred_for_additional_consultation"
+    awaiting_report = "awaiting_report"
+    completed = "completed"
+    error = "error"
 
 # Типы макроархива для параметров кейса
 class MacroArchive(enum.Enum):
@@ -452,10 +465,20 @@ class Patient(Base):
 
     user = relationship("User", back_populates="patient")
     doctor_statuses = relationship("DoctorPatientStatus", back_populates="patient")
+    clinic_statuses = relationship("PatientClinicStatusModel", back_populates="patient")
 
     def __repr__(self):
         return f"<Patient(id='{self.id}', patient_cor_id='{self.patient_cor_id}')>"
 
+class PatientClinicStatusModel(Base):
+    __tablename__ = "clinic_patient_statuses"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    patient_id = Column(String(36), ForeignKey("patients.id"), nullable=False)
+    patient_status_for_clinic = Column(Enum(PatientClinicStatus), default=PatientClinicStatus.registered)
+    assigned_date = Column(DateTime, default=func.now())
+    updated_date = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    patient = relationship("Patient", back_populates="clinic_statuses")
 
 class DoctorPatientStatus(Base):
     __tablename__ = "doctor_patient_statuses"
