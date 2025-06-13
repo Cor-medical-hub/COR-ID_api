@@ -1707,7 +1707,6 @@ async def _format_final_report_response(
         arrival_date=referral_db.issued_at if referral_db else None,
 
         report_date=signature_db.doctor_signature.created_at.date() if db_report.signatures else None,
-        # report_date=db_report.signatures[0].created_at.date() if db_report.signatures else None,
 
         patient_first_name=patient_first_name,
         patient_surname=patient_surname,
@@ -1731,7 +1730,7 @@ async def _format_final_report_response(
         macroarchive=db_case_parameters.macro_archive,
         decalcification=db_case_parameters.decalcification,
         fixation=db_case_parameters.fixation,
-        num_blocks=None,
+        num_blocks=case_db.cassette_count,
 
         containers_recieved=case_db.bank_count,
 
