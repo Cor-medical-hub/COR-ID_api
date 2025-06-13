@@ -15,7 +15,6 @@ from cor_pass.schemas import (
     UserModel,
 )
 from cor_pass.repository import person as repository_person
-
 from cor_pass.repository.password_generator import generate_password
 from cor_pass.repository import cor_id as repository_cor_id
 from cor_pass.services.cipher import encrypt_data
@@ -95,6 +94,7 @@ async def register_new_patient(
     await send_email_code_with_temp_pass(
         email=new_patient.email, temp_pass=temp_password
     )
+    return new_patient
 
 
 async def add_existing_patient(
@@ -141,7 +141,6 @@ async def add_existing_patient(
 
     await db.commit()
 
-    await db.commit()
     return new_patient
 
 
