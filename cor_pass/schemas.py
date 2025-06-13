@@ -864,6 +864,7 @@ class Case(BaseModel):
     glass_count: int
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
+    grossing_status: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -1194,6 +1195,7 @@ class FirstCaseReferralDetailsSchema(BaseModel):
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
     general_macrodescription: Optional[str] = None
+    grossing_status: Optional[str] = None
    
     attachments: Optional[List[ReferralFileSchema]] = None 
 
@@ -1217,6 +1219,7 @@ class FirstCaseGlassDetailsSchema(BaseModel):
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
     general_macrodescription: Optional[str] = None
+    grossing_status: Optional[str] = None
 
     samples: List[SampleForGlassPage] 
 
@@ -1270,6 +1273,7 @@ class LastCaseExcisionDetailsSchema(BaseModel):
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
     case_parameters: Optional[CaseParametersScheema] = None
+    grossing_status: Optional[str] = None
 
     samples: List[SampleForExcisionPage]
 
@@ -1401,6 +1405,7 @@ class FirstCaseTestGlassDetailsSchema(BaseModel):
     id: str
     case_code: str
     creation_date: datetime 
+    grossing_status: Optional[str] = None
     samples: List[SampleTestForGlassPage]
     class Config:
         from_attributes = True
