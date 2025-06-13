@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from cor_pass.database.db import get_db
-from cor_pass.database.models import Doctor, PatientClinicStatus, PatientStatus, User
+from cor_pass.database.models import Doctor, MaterialType, PatientClinicStatus, PatientStatus, UrgencyType, User
 from cor_pass.repository.doctor import (
     create_doctor,
     create_doctor_service,
@@ -35,6 +35,7 @@ from cor_pass.repository.doctor import (
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
+    CaseCreate,
     CaseFinalReportPageResponse,
     FinalReportResponseSchema,
     GetAllPatientsResponce,
@@ -188,49 +189,6 @@ async def upload_certificate(
     return await upload_certificate_service(document_id, file, db)
 
 
-# @router.get(
-#     "/patients",
-#     dependencies=[Depends(doctor_access)],
-#     # response_model=PatientResponce
-# )
-# async def get_doctor_patients(
-#     db: AsyncSession = Depends(get_db),
-#     current_user: User = Depends(auth_service.get_current_user),
-#     patient_status: Optional[str] = Query(None),  # Принимаем статус как строку
-#     sex: Optional[List[str]] = Query(None),
-#     sort_by: Optional[str] = Query("change_date"),
-#     sort_order: Optional[str] = Query("desc"),
-#     skip: int = Query(1, ge=1),
-#     limit: int = Query(10, ge=1, le=100),
-# ):
-#     doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
-#     if not doctor:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
-#         )
-
-#     status_filters = None
-#     if patient_status:
-#         try:
-#             status_filters = [PatientStatus(patient_status)]
-#         except ValueError:
-#             raise HTTPException(
-#                 status_code=status.HTTP_400_BAD_REQUEST,
-#                 detail=f"Invalid status value: {status}. Allowed values are: {[e.value for e in PatientStatus]}",
-#             )
-
-#     patients_with_status, total_count = await get_doctor_patients_with_status(
-#         db=db,
-#         doctor=doctor,
-#         status_filters=status_filters,
-#         sex_filters=sex,
-#         sort_by=sort_by,
-#         sort_order=sort_order,
-#         skip=skip,
-#         limit=limit,
-#     )
-#     return {"items": patients_with_status, "total": total_count}
-
 
 @router.get(
     "/patients",
@@ -353,6 +311,14 @@ async def add_new_patient_to_doctor(
                 status_code=status.HTTP_409_CONFLICT, detail="Account already exists"
             )
         new_patient = await register_new_patient(db, new_patient_info, doctor)
+        
+        case_body = CaseCreate(    
+            patient_cor_id = new_patient.patient_cor_id,
+            num_cases= 1,
+            urgency = UrgencyType.S,
+            material_type = MaterialType.R)
+    
+        case = await case_service.create_cases_with_initial_data(db=db, body=case_body)
         return {
             "message": f"Новый пациент {new_patient_info.first_name} {new_patient_info.surname} успешно зарегистрирован и добавлен к врачу."
         }
@@ -385,6 +351,14 @@ async def add_existing_patient_to_doctor(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
         )
+    
+    case_body = CaseCreate(    
+    patient_cor_id = existing_patient.patient_cor_id,
+    num_cases= 1,
+    urgency = UrgencyType.S,
+    material_type = MaterialType.R)
+
+    case = await case_service.create_cases_with_initial_data(db=db, body=case_body)
 
     return existing_patient
 

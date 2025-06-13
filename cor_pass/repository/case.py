@@ -215,6 +215,7 @@ async def create_cases_with_initial_data(
             "bank_count": first_case_db.bank_count,
             "cassette_count": first_case_db.cassette_count,
             "glass_count": first_case_db.glass_count,
+            "grossing_status":first_case_db.grossing_status
         }
 
     return {"all_cases": all_cases, "first_case_details": first_case_details}
@@ -283,6 +284,7 @@ async def get_case(db: AsyncSession, case_id: str) -> Optional[Dict[str, Any]]:
         "cassette_count": case_db.cassette_count,
         "glass_count": case_db.glass_count,
         "samples": first_case_samples,
+        "grossing_status":case_db.grossing_status
     }
 
     return case_details
@@ -536,6 +538,7 @@ async def get_patient_first_case_details(
             "id": first_case_db.id,
             "case_code": first_case_db.case_code,
             "creation_date": first_case_db.creation_date,
+            "grossing_status":first_case_db.grossing_status,
             "samples": first_case_samples,
         }
 
@@ -772,7 +775,8 @@ async def get_patient_cases_with_directions(
                 creation_date=first_case_db.creation_date,
                 pathohistological_conclusion=first_case_db.pathohistological_conclusion,
                 microdescription=first_case_db.microdescription,
-                attachments=attachments_for_response
+                attachments=attachments_for_response,
+                grossing_status=first_case_db.grossing_status
             )
 
     return PatientCasesWithReferralsResponse(
@@ -861,7 +865,8 @@ async def get_patient_case_details_for_glass_page(
             creation_date=first_case_db.creation_date,
             pathohistological_conclusion=first_case_db.pathohistological_conclusion,
             microdescription=first_case_db.microdescription,
-            samples=first_case_samples_schematized, 
+            samples=first_case_samples_schematized,
+            grossing_status=first_case_db.grossing_status 
         )
 
     return PatientGlassPageResponse(
@@ -941,7 +946,8 @@ async def get_single_case_details_for_glass_page(
             id=case_db.id,
             case_code=case_db.case_code,
             creation_date=case_db.creation_date,
-            samples=first_case_samples_schematized, 
+            samples=first_case_samples_schematized,
+            grossing_status=case_db.grossing_status 
         )
 
     return SingleCaseGlassPageResponse(
@@ -1063,6 +1069,7 @@ async def get_patient_case_details_for_excision_page(
                 microdescription=last_case_db.microdescription,
                 case_parameters=case_parameters_schematized,
                 samples=samples_for_excision_page,
+                grossing_status=last_case_db.grossing_status
             )
 
 
@@ -1123,6 +1130,7 @@ async def get_single_case_details_for_excision_page(
             microdescription=last_case_with_relations.microdescription,
             case_parameters=case_parameters_schematized,
             samples=samples_for_excision_page,
+            grossing_status=last_case_with_relations.grossing_status
         )
 
     return SingleCaseExcisionPageResponse(
@@ -1323,7 +1331,8 @@ async def get_patient_report_page_data(
                 id=last_case_with_relations.id,
                 case_code=last_case_with_relations.case_code,
                 creation_date=last_case_with_relations.creation_date,
-                samples=all_samples_for_last_case_schematized, 
+                samples=all_samples_for_last_case_schematized,
+                grossing_status=last_case_with_relations.grossing_status 
             )
 
     return PatientTestReportPageResponse(
@@ -1707,7 +1716,6 @@ async def _format_final_report_response(
         arrival_date=referral_db.issued_at if referral_db else None,
 
         report_date=signature_db.doctor_signature.created_at.date() if db_report.signatures else None,
-        # report_date=db_report.signatures[0].created_at.date() if db_report.signatures else None,
 
         patient_first_name=patient_first_name,
         patient_surname=patient_surname,
@@ -1731,7 +1739,7 @@ async def _format_final_report_response(
         macroarchive=db_case_parameters.macro_archive,
         decalcification=db_case_parameters.decalcification,
         fixation=db_case_parameters.fixation,
-        num_blocks=None,
+        num_blocks=case_db.cassette_count,
 
         containers_recieved=case_db.bank_count,
 
