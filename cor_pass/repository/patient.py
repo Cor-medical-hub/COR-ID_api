@@ -4,10 +4,11 @@ from sqlalchemy import select
 from cor_pass.database.models import (
     Patient,
     DoctorPatientStatus,
+    PatientClinicStatus,
     PatientStatus,
-    Doctor,
+    Doctor
 )
-
+from cor_pass.database.models import PatientClinicStatusModel as db_PatientClinicStatus
 from cor_pass.schemas import (
     NewPatientRegistration,
     PasswordGeneratorSettings,
@@ -83,6 +84,14 @@ async def register_new_patient(
 
     await db.commit()
 
+    clinic_patient_status = db_PatientClinicStatus(
+        patient_id=new_patient.id,
+        patient_status_for_clinic=PatientClinicStatus.registered,
+    )
+    db.add(clinic_patient_status)
+
+    await db.commit()
+
     await send_email_code_with_temp_pass(
         email=new_patient.email, temp_pass=temp_password
     )
@@ -123,6 +132,14 @@ async def add_existing_patient(
         patient_id=new_patient.id, doctor_id=doctor_id_str, status=PatientStatus(status)
     )
     db.add(doctor_patient_status)
+
+    clinic_patient_status = db_PatientClinicStatus(
+    patient_id=new_patient.id,
+    patient_status_for_clinic=PatientClinicStatus.registered,
+    )
+    db.add(clinic_patient_status)
+
+    await db.commit()
 
     await db.commit()
     return new_patient

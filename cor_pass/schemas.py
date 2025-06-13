@@ -14,6 +14,7 @@ from datetime import datetime
 from cor_pass.database import models
 from cor_pass.database.models import (
     AccessLevel,
+    PatientClinicStatus,
     PatientStatus,
     Status,
     Doctor_Status,
@@ -1486,3 +1487,28 @@ class LabAssistantResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+class PatientResponseForGetPatients(BaseModel):
+    id: str
+    patient_cor_id: str
+    surname: Optional[str] = None
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    birth_date: Optional[date] = None
+    sex: Optional[str] = None
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    address: Optional[str] = None
+    change_date: Optional[datetime] = None
+    doctor_status: Optional[PatientStatus] = None
+    clinic_status: Optional[PatientClinicStatus] = None
+
+
+
+
+class GetAllPatientsResponce(BaseModel):
+    patients: List[PatientResponseForGetPatients]
+    total_count: int
+
