@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cor_pass.database import db
-from cor_pass.database.models import Doctor, Doctor_Status, User, LabAssistant
+from cor_pass.database.models import Doctor, Doctor_Status, EnergyManager, User, LabAssistant
 from cor_pass.services.auth import auth_service
 from cor_pass.config.config import settings
 
@@ -55,9 +55,23 @@ class LabAssistantRoleChecker:
         if lab_assistant:
             return lab_assistant 
 
+class EnergyManagerRoleChecker:
+    async def is_energy_manager(
+        self,
+        user: User = Depends(auth_service.get_current_user),
+        db: AsyncSession = Depends(db.get_db),
+    ):
+        energy_manager_query = select(EnergyManager).where(EnergyManager.energy_manager_cor_id == user.cor_id)
+        energy_manager = await db.scalar(energy_manager_query)
+
+        if energy_manager:
+            return energy_manager
+
+
 user_role_checker = UserRoleChecker()
 admin_role_checker = AdminRoleChecker()
 lawyer_role_checker = LawyerRoleChecker()
 doctor_role_checker = DoctorRoleChecker()
 cor_int_role_checker = CorIntRoleChecker()
 lab_assistant_role_checker = LabAssistantRoleChecker()
+energy_manager_role_checker = EnergyManagerRoleChecker()
