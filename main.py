@@ -272,6 +272,7 @@ async def startup():
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
     initialize_ip2location()
+    # asyncio.create_task(cerbo_GX.read_modbus_and_cache())
 
 
 auth_attempts = defaultdict(list)
