@@ -386,6 +386,9 @@ async def get_patient_glass_page_data(
     return glass_page_data
 
 
+
+
+
 @router.get(
     "/cases/{case_id}/glass-details",
     response_model=SingleCaseGlassPageResponse,
@@ -782,3 +785,123 @@ async def get_case_final_report_route(
     Этот маршрут возвращает данные для финального заключения для указанного кейса
     """
     return await case_service.get_final_report_by_case_id(db=db, case_id=case_id, router=router)
+
+
+
+
+@router.get(
+    "/current_cases/report-page-data", 
+    response_model=PatientTestReportPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить все кейсы и данные заключения",
+    tags=["Current Cases"]
+)
+async def get_current_cases_report_full_page_data_route(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+) -> PatientTestReportPageResponse:
+    """
+    Этот маршрут возвращает список всех кейсов пациента, детали последнего кейса 
+    (включая его параметры и заключения) и все стекла последнего кейса 
+    для выбора для прикрепления к заключению. Если заключение для последнего кейса 
+    отсутствует, оно будет автоматически создано с пустыми полями.
+    """
+    return await case_service.get_current_cases_report_page_data(db=db, router=router, skip=skip, limit=limit)
+
+
+
+
+@router.get(
+    "/current_cases/referral_page",
+    response_model=PatientCasesWithReferralsResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и вывод файлов направления по первому кейсу",
+    tags=["Current Cases"]
+)
+async def get_current_cases_with_directions_for_doctor(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+) -> PatientCasesWithReferralsResponse:
+    """
+    Возвращает список всех кейсов конкретного пациента, а также детали первого кейса, включая ссылку на файлы его направлений
+    """
+    patient_cases_data = await case_service.get_current_cases_with_directions(db=db, skip=skip, limit=limit)
+    if not patient_cases_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Кейси пацієнта або направлення не знайдено."
+        )
+        
+    return patient_cases_data
+
+
+
+@router.get(
+    "/current_cases/excision-details",
+    response_model=PatientExcisionPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и нужных данных для страницы 'Вырезка'",
+    tags=["Current Cases"]
+)
+async def get_patient_excision_page_data(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+) -> PatientExcisionPageResponse:
+    """
+    Возвращает все кейсы и данные вырезки по последнему кейсу
+    """
+
+    excision_page_data = await case_service.get_current_case_details_for_excision_page(db=db, skip=skip, limit=limit)
+        
+    return excision_page_data
+
+
+
+
+
+@router.get(
+    "/current_cases/glass-details",
+    response_model=PatientGlassPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и стёкол для страницы 'Текущие кейсы' (вкладка Стёкла)",
+    tags=["Current Cases"]
+)
+async def get_current_cases_glass_page_data(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+    
+) -> PatientGlassPageResponse:
+    """
+    Возвращает список всех текущих кейсов и все стёкла первого кейса
+    """
+    
+    glass_page_data = await case_service.get_current_cases_glass_details(db=db, skip=skip, limit=limit)
+        
+    return glass_page_data
+
+
+@router.get(
+    "/current_cases/final-report-page-data", 
+    response_model=PatientFinalReportPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить все кейсы и данные для финального репорта по последнему кейсу",
+    tags=["Current Cases"]
+)
+async def get_current_cases_final_report_full_page_data_route(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+) -> PatientFinalReportPageResponse:
+    """
+    Этот маршрут возвращает список всех кейсов пациента и данные для формирования финального заключения по последнему кейсу
+    """
+    return await case_service.get_current_cases_final_report_page_data(db=db, router=router, skip=skip, limit=limit)

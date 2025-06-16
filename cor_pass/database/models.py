@@ -150,8 +150,8 @@ class StainingType(enum.Enum):
 
 
 class Grossing_status(enum.Enum):
-    PROCESSING = "processing"
-    COMPLETED = "completed"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
 
 
 class User(Base):
