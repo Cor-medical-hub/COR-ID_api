@@ -387,6 +387,27 @@ async def get_patient_glass_page_data(
 
 
 @router.get(
+    "/current_cases/glass-details",
+    response_model=PatientGlassPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и стёкол для страницы 'Текущие кейсы' (вкладка Стёкла)",
+    tags=["DoctorPage"]
+)
+async def get_current_cases_glass_page_data(
+    db: AsyncSession = Depends(get_db),
+    
+) -> PatientGlassPageResponse:
+    """
+    Возвращает список всех текущих кейсов и все стёкла первого кейса
+    """
+    
+    glass_page_data = await case_service.get_current_cases_glass_details(db=db, skip=0, limit=10)
+        
+    return glass_page_data
+
+
+@router.get(
     "/cases/{case_id}/glass-details",
     response_model=SingleCaseGlassPageResponse,
     dependencies=[Depends(doctor_access)],
