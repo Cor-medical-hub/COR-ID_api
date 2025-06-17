@@ -24,6 +24,7 @@ from cor_pass.repository.doctor import (
     get_doctor_patients_with_status,
     get_doctor_signatures,
     get_doctor_single_patient_with_status,
+    get_doctor_single_patient_without_doctor_status,
     get_patients_with_optional_status,
     get_signature_data,
     set_default_doctor_signature,
@@ -270,7 +271,7 @@ async def get_single_patient(
             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
         )
     
-    patient = await get_doctor_single_patient_with_status(db=db, patient_cor_id=patient_cor_id, doctor=doctor)
+    patient = await get_doctor_single_patient_without_doctor_status(db=db, patient_cor_id=patient_cor_id, doctor=doctor)
 
     return patient
 
