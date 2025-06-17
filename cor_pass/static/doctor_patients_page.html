@@ -387,8 +387,8 @@
 </div>
 
 <!-- ─── ЛОГИКА (сортировка, поиск, обработчики) ─── -->
-<script src="/static/COR_ID_Js/translation.js"></script>
-<script src="/static/COR_ID_Js/general_fun.js"></script>
+<script src="./COR_ID_Js/translation.js"></script>
+<script src="./COR_ID_Js/general_fun.js"></script>
 <script src="./printers.js"></script>
 <script>
   let searchParams = new URLSearchParams(document.location.search);
@@ -498,14 +498,15 @@
   })
           .then(res => res.json())
           .then(userList => {
-            const {items} = userList;
-            const formattedUserList = items.map( ({patient, status}) => {
+            const {patients} = userList;
+            console.log(patients, "patients")
+            const formattedUserList = patients.map( patient => {
               return {
                 ...patient,
                 change_date: "2025-05-09T07:19:51.498743",
                 name: getFulName(patient.surname, patient.first_name, patient.middle_name),
                 age: patient.birth_date ? getAge(patient.birth_date) : null, // добавить
-                status: status,
+                status: patient?.status,
               }
             })
 

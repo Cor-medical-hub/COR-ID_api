@@ -86,7 +86,8 @@
                     <div class="commentsWrapperTop">
                         Патогістологічний висновок
                     </div>
-                    <textarea></textarea>
+                    <textarea id="casePathohistologicalConclusion"></textarea>
+                    <button class="commentsWrapperButton">Зберегти</button>
                 </div>
             </div>
             <div style="height: 50%" class="df fdc">
@@ -94,7 +95,8 @@
                     <div class="commentsWrapperTop">
                         Мікроопис
                     </div>
-                    <textarea></textarea>
+                    <textarea id="caseMicroDescription"></textarea>
+                    <button class="commentsWrapperButton">Зберегти</button>
                 </div>
             </div>
         </div>
@@ -149,6 +151,18 @@
                 })
         })
     }
+    const getImages = async (fileUrl) => {
+        return fetch(`${API_BASE_URL}/api${fileUrl}`, {
+            method: "GET",
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            },
+        })
+            .then(response => response.blob())
+            .then(blob => {
+                return blob
+            })
+    }
 
     const caseTemplate = (currentCase, isActive) => {
         const caseNewNODE = document.createElement('div');
@@ -174,7 +188,7 @@
         `;
 
         caseNewNODE.addEventListener("click", () => {
-            fetch(`${API_BASE_URL}/api/doctor/cases/${currentCase.id}/excision-details`, {
+            fetch(`${API_BASE_URL}/api/doctor/cases/${currentCase.id}/final-report`, {
                 method: "GET",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -182,44 +196,54 @@
             })
                 .then(res => res.json())
                 .then(caseData => {
-                    const {case_details_for_excision} = caseData;
+                    const {case_details, report_details} = caseData;
                     document.querySelector('.caseItem.active').classList.remove('active')
                     caseNewNODE.classList.add('active')
 
-                    setTenderloin(case_details_for_excision)
-                    currentCase = case_details_for_excision
+                    setReport(report_details)
+                    currentCase = case_details
 
-                    caseLabelNode.innerHTML = case_details_for_excision.case_code
-                    caseMicroDescriptionTextareaNODE.value = case_details_for_excision.microdescription || ""
-                    casePathohistologicalConclusionTextareaNODE.value = case_details_for_excision.pathohistological_conclusion || ""
+                    caseLabelNode.innerHTML = case_details.case_code
+                    caseMicroDescriptionTextareaNODE.value = case_details.microdescription || ""
+                    casePathohistologicalConclusionTextareaNODE.value = case_details.pathohistological_conclusion || ""
                 })
         });
         return caseNewNODE
     }
     const setReport = (currentCase) => {
-        // let macroDescription = ""
-        // const sampleInfo = currentCase.samples.reduce((sampleInfo, sample) => {
-        //     if(sample.macro_description){
-        //         return sampleInfo + (
-        //             `
-        //             <div class="tenderloinMargin">
-        //                 <span class="tenderloinSubTitle">Зразок ${sample.sample_number} (${sample.is_archived ? "з архівом" : "без архіва"}):</span>
-        //                 ${sample.macro_description}
-        //             </div>
-        //             `
-        //         )
-        //     }
-        //
-        //     return sampleInfo;
-        // }, '')
-        // // currentCase.case_parameters.macro_description
-        //
-        // if(currentCase.case_parameters.macro_description || sampleInfo){
-        //     macroDescription += `<div class="tenderloinTitle">Макроопис</div>`
-        //     macroDescription += `<div class="tenderloinMargin">${currentCase.case_parameters.macro_description || "-"}</div>`
-        //     macroDescription += sampleInfo
-        // }
-
+        explorationContentNODE.innerHTML = ``;
+        const signatures = [
+            {
+                doctor: {
+                    first_name: "1",
+                    surname: "1",
+                    middle_name: "1",
+                },
+                signed_at: "2022-11-12",
+                doctor_signature: {
+                    signature_scan_data: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
+                }
+            },
+            {
+                doctor: {
+                    first_name: "2",
+                    surname: "2",
+                    middle_name: "2",
+                },
+                signed_at: "2022-11-12",
+                doctor_signature: {
+                    signature_scan_data: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
+                }
+            },
+        ]
+        const attached_glasses = [
+            {
+                file_url: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
+            },
+            {
+                file_url: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
+            },
+        ]
 
         explorationContentNODE.innerHTML = `
             <div class="report-container">
@@ -243,27 +267,27 @@
                     <div class="doc-subtitle">
                         <strong>МЕДИЧНА ДОКУМЕНТАЦІЯ 014/о</strong> Затверджена наказом МОЗ України 29.05.2013 р. № 435
                     </div>
-                    <div class="report-number">№ U24B0826</div>
+                    <div class="report-number">№ ${currentCase.case_code}</div>
                     <div class="report-type">Патогістологія</div>
                     <hr>
 
                     <section class="report-dates">
-                        <div><strong>Дата біопсії:</strong> 28.05.2024 | 20:11</div>
-                        <div><strong>Дата надходження:</strong> 28.05.2024 | 17:09</div>
-                        <div><strong>Дата завершення:</strong> 28.05.2024 | 20:11</div>
+                        <div><strong>Дата біопсії:</strong> ${currentCase.biopsy_date || "-"}</div>
+                        <div><strong>Дата надходження:</strong> ${currentCase.arrival_date || "-"}</div>
+                        <div><strong>Дата завершення:</strong> ${currentCase.report_date || "-"}</div>
                     </section>
                     <hr>
 
                     <section class="patient-section">
                         <div class="patient-name">
-                            <strong>Пацієнт:</strong> Іванова Оксана Володимирівна
+                            <strong>Пацієнт:</strong> ${`${currentCase.patient_surname} ${currentCase.patient_first_name} ${currentCase.patient_middle_name}`}
                         </div>
                         <hr class="patient-hr">
                         <div class="patient-details">
-                            <span><strong>Стать:</strong> Жін</span>
-                            <span><strong>Д/н:</strong> 22.03.1955</span>
-                            <span><strong>Вік:</strong> 69 років</span>
-                            <span><strong>Контакт:</strong> +38 (050) 398 75 01, 456@gmail.com</span>
+                            <span><strong>Стать:</strong> ${currentCase.patient_sex === "F"? "Жін": "Чол" }</span>
+                            <span><strong>Д/н:</strong> ${new Date(currentCase.patient_birth_date).toLocaleDateString()}</span>
+                            <span><strong>Вік:</strong> ${getAge(currentCase.patient_birth_date)} років</span>
+                            <span><strong>Контакт:</strong> ${currentCase.patient_phone_number}, ${currentCase.patient_email}</span>
                         </div>
                     </section>
                     <hr>
@@ -271,27 +295,27 @@
                     <section class="case-info">
                         <div class="info-item">
                             <div class="info-label"><strong>Медична карта:</strong></div>
-                            <div class="info-value">№ 12387387439</div>
+                            <div class="info-value">№ ${currentCase.medical_card_number || "-"}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label"><strong>Медичний заклад:</strong></div>
-                            <div class="info-value">Яківська лікарня ім. Корчо</div>
+                            <div class="info-value">${currentCase.medical_institution || "-"}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label"><strong>Відділення:</strong></div>
-                            <div class="info-value">Патологічне</div>
+                            <div class="info-value">${currentCase.medical_department || "-"}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label"><strong>Лікуючий лікар:</strong></div>
-                            <div class="info-value">Тодуров I.M.</div>
+                            <div class="info-value">${currentCase.attending_doctor || "-"}</div>
                         </div>
                     </section>
                     <hr>
 
                     <section class="clinical-section">
-                        <p><strong>Клінічні дані:</strong> Lorem ipsum dolor sit amet.</p>
+                        <p><strong>Клінічні дані:</strong> ${currentCase.clinical_data || "-"}</p>
                         <hr class="mini-hr">
-                        <p><strong>Клінічний діагноз:</strong> Aenean leo ligula, porttitor eu.</p>
+                        <p><strong>Клінічний діагноз:</strong> ${currentCase.clinical_diagnosis || "-"}</p>
                     </section>
                     <hr>
 
@@ -299,32 +323,32 @@
                         <div class="stats-item">
                             <strong>Кількість контейнерів:</strong>
                             <div class="stats-line">
-                                <strong>Отримано</strong> <span class="stats-value">6</span>
-                                <strong>Заявлено</strong> <span class="stats-value">6</span>
+                                <strong>Отримано</strong> <span class="stats-value">${currentCase.containers_recieved || "-"}</span>
+                                <strong>Заявлено</strong> <span class="stats-value">${currentCase.containers_actual || "-"}</span>
                             </div>
                         </div>
                         <div class="stats-item">
                             <strong>Кількість блоків:</strong>
                             <div class="stats-line">
-                                <span class="stats-value">6</span>
+                                <span class="stats-value">${currentCase.num_blocks || "-"}</span>
                             </div>
                         </div>
                         <div class="stats-item">
                             <strong>Фіксація:</strong>
                             <div class="stats-line">
-                                <span class="stats-value">10% NBF</span>
+                                <span class="stats-value">${currentCase.fixation || "-"}</span>
                             </div>
                         </div>
                         <div class="stats-item">
                             <strong>Декальцинація:</strong>
                             <div class="stats-line">
-                                <span class="stats-value">Відсутня</span>
+                                <span class="stats-value">${currentCase.decalcification || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
-                            <strong>Макрохран:</strong>
+                            <strong>Макроархів:</strong>
                             <div class="stats-line">
-                                <span class="stats-value">ESS—Без запасу</span>
+                                <span class="stats-value">${currentCase.macroarchive || "-"}</span>
                             </div>
                         </div>
                         <div class="stats-item">
@@ -337,48 +361,75 @@
                     <hr>
 
                     <section class="text-section">
-                        <p><strong>Макроскопічний опис:</strong> Cytokeratin 7 – виражена реакція.</p>
+                        <p><strong>Макроскопічний опис:</strong> ${currentCase.macrodescription || "-"}</p>
                     </section>
                     <hr>
                     <section class="text-section">
-                        <p><strong>Мікроскопічний опис:</strong> Низькодиференційована пухлина.</p>
+                        <p><strong>Мікроскопічний опис:</strong> ${currentCase.microdescription || "-"}</p>
                     </section>
                     <hr>
                     <section class="text-section">
-                        <p><strong>Патоморфологічний діагноз:</strong> Lorem ipsum dolor sit amet.</p>
+                        <p><strong>Патоморфологічний діагноз:</strong> ${currentCase.pathomorphological_diagnosis || "-"}</p>
                     </section>
                     <hr>
                     <section class="text-section">
-                        <p><strong>Коментар:</strong> Потрібна клінічна кореляція.</p>
+                        <p><strong>Коментар:</strong> ${currentCase.comment || "-"}</p>
                     </section>
                     <hr>
 
-                    <section class="images-section">
-                        <img src="./assets/pato1.jfif" alt="slide1">
-                        <img src="./assets/pato2.jfif" alt="slide2">
+                    <section class="images-section" id="attachedGlassesReport">
                     </section>
 
-                    <section class="signoff-section">
-                        <div class="signoff-left">
-                            <strong>Лікар-патологоанатом:</strong> Григорчук О.В.
-                            <img src="./assets/sign.jpg" alt="signature">
-                        </div>
-                        <div class="signoff-right"><strong>Дата:</strong> 28.05.2024 | 17:27</div>
-                    </section>
+                    <section id="signaturesDoctorReport">
 
+                    </section>
                 </div>
-
                 <div class="doc-footer">
                     <div class="footer-left">
                         <strong>МЕДИЧНА ДОКУМЕНТАЦІЯ 014/о</strong> Затверджена наказом МОЗ України 29.05.2013 р. № 435
                     </div>
                     <div class="footer-right">Документ створено ПЗ COR-Lab</div>
                 </div>
-
             </div>
         `
-    }
 
+        const allFiles = [
+            ...attached_glasses.map(({file_url}) => file_url),
+            ...signatures.map(({doctor_signature}) => doctor_signature.signature_scan_data)
+        ]
+
+        Promise.all(allFiles.map(getImages))
+            .then(filesBlob => {
+                const glassFiles = filesBlob.slice(0, attached_glasses.length)
+                const doctorFiles = filesBlob.slice(attached_glasses.length)
+
+                glassFiles.forEach((blob) => {
+                    const attachedGlassesReportNODE = document.querySelector('#attachedGlassesReport')
+                    const imgNODE = document.createElement('img');
+                    imgNODE.src = URL.createObjectURL(blob);
+                    imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
+                    attachedGlassesReportNODE.appendChild(imgNODE);
+                })
+
+
+                console.log(doctorFiles, "doctorFiles")
+                doctorFiles.forEach((blob, index) => {
+                    const currentDoctor = signatures[index]
+                    const signaturesDoctorReportNODE = document.querySelector('#signaturesDoctorReport')
+                    signaturesDoctorReportNODE.innerHTML += `
+                    <div class="signoff-section">
+                        <div class="signoff-left">
+                            <strong>Лікар-патологоанатом:</strong> ${currentDoctor.doctor.surname} ${currentDoctor.doctor.first_name} ${currentDoctor.doctor.middle_name}
+                            <img src="${URL.createObjectURL(blob)}" alt="signature">
+                        </div>
+                        <div class="signoff-right"><strong>Дата:</strong> ${new Date(currentDoctor.signed_at).toLocaleDateString()}</div>
+                    </div>
+                    `
+                })
+
+
+            })
+    }
     const setAllCases = () => {
         fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}`, {
             method: "GET",
@@ -399,9 +450,9 @@
                 })
                     .then(res => res.json())
                     .then(cases => {
-                        const {all_cases, report_details} = cases;
+                        const {all_cases, report_details, last_case_details} = cases;
                         all_cases.forEach((currentCase, index) => {
-                            caseContentNODE.append(caseTemplate(currentCase, !index))
+                            caseContentNODE.append(caseTemplate(last_case_details, !index))
                         })
 
                         if(!report_details){
@@ -411,9 +462,9 @@
                         currentCase = report_details;
                         setReport(report_details)
 
-                        caseLabelNode.innerHTML = report_details.case_code
-                        caseMicroDescriptionTextareaNODE.value = report_details.microdescription || ""
-                        casePathohistologicalConclusionTextareaNODE.value = report_details.pathohistological_conclusion || ""
+                        caseLabelNode.innerHTML = last_case_details.case_code
+                        caseMicroDescriptionTextareaNODE.value = last_case_details.microdescription || ""
+                        casePathohistologicalConclusionTextareaNODE.value = last_case_details.pathohistological_conclusion || ""
                     })
             })
     }
@@ -423,7 +474,6 @@
             window.location.href = `/static/lab.html?userCorId=${PATIENT_COR_ID}`
         })
     }
-
     const goToTab = () => {
         document.querySelectorAll(".tabs .tab:not(.active)").forEach(elem => {
             elem.addEventListener('click', e => {
