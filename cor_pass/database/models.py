@@ -42,10 +42,10 @@ class AuthSessionStatus(enum.Enum):
     TIMEOUT: str = "timeout"
 
 
-class PatientStatus(enum.Enum):
-    registered = "registered"
-    under_treatment = "under_treatment"
-    discharged = "discharged"
+# class PatientStatus(enum.Enum):
+#     registered = "registered"
+#     under_treatment = "under_treatment"
+#     discharged = "discharged"
 
 
 class PatientStatus(enum.Enum):
@@ -57,6 +57,19 @@ class PatientStatus(enum.Enum):
     died = "died"
     in_process = "in_process"
     referred_for_additional_consultation = "referred_for_additional_consultation"
+
+class PatientClinicStatus(enum.Enum):
+    registered = "registered"
+    diagnosed = "diagnosed"
+    under_treatment = "under_treatment"
+    hospitalized = "hospitalized"
+    discharged = "discharged"
+    died = "died"
+    in_process = "in_process"
+    referred_for_additional_consultation = "referred_for_additional_consultation"
+    awaiting_report = "awaiting_report"
+    completed = "completed"
+    error = "error"
 
 # Типы макроархива для параметров кейса
 class MacroArchive(enum.Enum):
@@ -137,8 +150,8 @@ class StainingType(enum.Enum):
 
 
 class Grossing_status(enum.Enum):
-    PROCESSING = "processing"
-    COMPLETED = "completed"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
 
 
 class User(Base):
@@ -203,6 +216,12 @@ class User(Base):
     user_lab_assistants = relationship(
         "LabAssistant", back_populates="user", cascade="all, delete-orphan"
     )
+    user_energy_managers = relationship(
+        "EnergyManager", back_populates="user", cascade="all, delete-orphan"
+    )
+    user_lawyers = relationship(
+        "Lawyer", back_populates="user", cascade="all, delete-orphan"
+    )
 
     # Индексы
     __table_args__ = (
@@ -220,7 +239,7 @@ class Doctor(Base):
     work_email = Column(String(250), unique=True, nullable=False)
     phone_number = Column(String(20), nullable=True)
     first_name = Column(String(100), nullable=True)
-    surname = Column(String(100), nullable=True)
+    middle_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
     doctors_photo = Column(LargeBinary, nullable=True)
     scientific_degree = Column(String(100), nullable=True)
@@ -262,6 +281,33 @@ class LabAssistant(Base):
 
 
     user = relationship("User", back_populates="user_lab_assistants")
+
+class EnergyManager(Base):
+    __tablename__ = "energy_managers"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    energy_manager_cor_id = Column(
+        String(36), ForeignKey("users.cor_id"), unique=True, nullable=False
+    )
+    first_name = Column(String(100), nullable=True)
+    surname = Column(String(100), nullable=True)
+    middle_name = Column(String(100), nullable=True)
+    lab_assistants_photo = Column(LargeBinary, nullable=True)
+
+
+    user = relationship("User", back_populates="user_energy_managers")
+
+class Lawyer(Base):
+    __tablename__ = "lawyers"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    lawyer_cor_id = Column(
+        String(36), ForeignKey("users.cor_id"), unique=True, nullable=False
+    )
+    first_name = Column(String(100), nullable=True)
+    surname = Column(String(100), nullable=True)
+    middle_name = Column(String(100), nullable=True)
+
+
+    user = relationship("User", back_populates="user_lawyers")
 
 class Diploma(Base):
     __tablename__ = "diplomas"
@@ -452,10 +498,20 @@ class Patient(Base):
 
     user = relationship("User", back_populates="patient")
     doctor_statuses = relationship("DoctorPatientStatus", back_populates="patient")
+    clinic_statuses = relationship("PatientClinicStatusModel", back_populates="patient")
 
     def __repr__(self):
         return f"<Patient(id='{self.id}', patient_cor_id='{self.patient_cor_id}')>"
 
+class PatientClinicStatusModel(Base):
+    __tablename__ = "clinic_patient_statuses"
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    patient_id = Column(String(36), ForeignKey("patients.id"), nullable=False)
+    patient_status_for_clinic = Column(Enum(PatientClinicStatus), default=PatientClinicStatus.registered)
+    assigned_date = Column(DateTime, default=func.now())
+    updated_date = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    patient = relationship("Patient", back_populates="clinic_statuses")
 
 class DoctorPatientStatus(Base):
     __tablename__ = "doctor_patient_statuses"

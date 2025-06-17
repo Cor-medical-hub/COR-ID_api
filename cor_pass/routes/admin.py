@@ -20,7 +20,11 @@ from cor_pass.schemas import (
     FullUserInfoResponse,
     NewUserRegistration,
     ProfileResponse,
+    UserDataResponse,
     UserDb,
+    UserDoctorsDataResponseForAdmin,
+    UserProfileResponseForAdmin,
+    UserRolesResponseForAdmin,
 )
 from cor_pass.repository import person
 from pydantic import EmailStr
@@ -190,7 +194,7 @@ async def get_all_user_info(
         work_email=doctor.work_email,
         phone_number=doctor.phone_number,
         first_name=doctor.first_name,
-        surname=doctor.surname,
+        middle_name=doctor.middle_name,
         doctors_photo=f"/doctors/{doctor.doctor_id}/photo" if doctor.doctors_photo else None,
         last_name=doctor.last_name,
         place_of_registration=doctor.place_of_registration,
@@ -239,6 +243,191 @@ async def get_all_user_info(
     return full_user_data
 
 
+
+
+@router.get(
+    "/get_user_info/{user_cor_id}/user-data", 
+    response_model=UserDataResponse, 
+    dependencies=[Depends(admin_access)]
+)
+async def get_user_data_info(
+    user_cor_id: str,
+    current_user: User = Depends(auth_service.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **Get a list of user's info. / Получение всей информации по пользователю**\n
+    Level of Access:
+    - Admin
+    """
+    user_data = {}
+
+    user = await person.get_user_by_corid(db=db, cor_id=user_cor_id)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+
+    last_active = None
+    if await redis_client.exists(str(user.id)): 
+        users_last_activity_str = await redis_client.get(str(user.id))
+        try:
+            last_active = users_last_activity_str
+        except (ValueError, TypeError) as e:
+            print(f"Error parsing last_active from Redis: {e}")
+            last_active = None 
+
+    user_data["user_info"] = UserDb(
+        id=user.id,
+        cor_id=user.cor_id,
+        email=user.email,
+        account_status=user.account_status,
+        is_active=user.is_active,
+        last_password_change=user.last_password_change,
+        user_sex=user.user_sex, 
+        birth=user.birth, 
+        user_index=user.user_index,
+        created_at=user.created_at,
+        last_active=last_active, 
+    )
+
+    return user_data
+
+
+@router.get(
+    "/get_user_info/{user_cor_id}/user-roles", 
+    response_model=UserRolesResponseForAdmin, 
+    dependencies=[Depends(admin_access)]
+)
+async def get_user_roles_info(
+    user_cor_id: str,
+    current_user: User = Depends(auth_service.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **Get a list of user's info. / Получение всей информации по пользователю**\n
+    Level of Access:
+    - Admin
+    """
+    user_data = {}
+
+    user = await person.get_user_by_corid(db=db, cor_id=user_cor_id)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+
+    user_roles = await person.get_user_roles(email=user.email, db=db)
+    if user_roles:
+        user_data["user_roles"] = user_roles
+
+    return user_data
+
+
+
+@router.get(
+    "/get_user_info/{user_cor_id}/profile-data", 
+    response_model=UserProfileResponseForAdmin, 
+    dependencies=[Depends(admin_access)]
+)
+async def get_user_profile_info(
+    user_cor_id: str,
+    current_user: User = Depends(auth_service.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **Get a list of user's info. / Получение всей информации по пользователю**\n
+    Level of Access:
+    - Admin
+    """
+    user_data = {}
+
+    user = await person.get_user_by_corid(db=db, cor_id=user_cor_id)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+
+
+    profile = await person.get_profile_by_user_id(db=db, user_id=user.id)
+    if profile:
+        profile_response = await _create_profile_response(profile, user, router) 
+        user_data["profile"] = profile_response
+
+    return user_data
+
+
+@router.get(
+    "/get_user_info/{user_cor_id}/doctors-data", 
+    response_model=UserDoctorsDataResponseForAdmin, 
+    dependencies=[Depends(admin_access)]
+)
+async def get_user_doctors_info(
+    user_cor_id: str,
+    current_user: User = Depends(auth_service.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **Get a list of user's info. / Получение всей информации по пользователю**\n
+    Level of Access:
+    - Admin
+    """
+    user_data = {}
+
+    user = await person.get_user_by_corid(db=db, cor_id=user_cor_id)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+
+
+    doctor = await lawyer.get_all_doctor_info(doctor_id=user.cor_id, db=db)
+    if doctor:
+        doctor_response = DoctorWithRelationsResponse(
+        id=doctor.id,
+        doctor_id=doctor.doctor_id,
+        work_email=doctor.work_email,
+        phone_number=doctor.phone_number,
+        first_name=doctor.first_name,
+        middle_name=doctor.middle_name,
+        doctors_photo=f"/doctors/{doctor.doctor_id}/photo" if doctor.doctors_photo else None,
+        last_name=doctor.last_name,
+        place_of_registration=doctor.place_of_registration,
+        passport_code=doctor.passport_code,
+        taxpayer_identification_number=doctor.taxpayer_identification_number,
+        scientific_degree=doctor.scientific_degree,
+        date_of_last_attestation=doctor.date_of_last_attestation,
+        status=doctor.status,
+        diplomas=[
+            DiplomaResponse(
+                id=diploma.id,
+                date=diploma.date,
+                series=diploma.series,
+                number=diploma.number,
+                university=diploma.university,
+                file_data=f"/diplomas/{diploma.id}" if diploma.file_data else None,
+            )
+            for diploma in doctor.diplomas
+        ],
+        certificates=[
+            CertificateResponse(
+                id=certificate.id,
+                date=certificate.date,
+                series=certificate.series,
+                number=certificate.number,
+                university=certificate.university,
+                file_data=(
+                    f"/certificates/{certificate.id}" if certificate.file_data else None
+                ),
+            )
+            for certificate in doctor.certificates
+        ],
+        clinic_affiliations=[
+            ClinicAffiliationResponse(
+                id=affiliation.id,
+                clinic_name=affiliation.clinic_name,
+                department=affiliation.department,
+                position=affiliation.position,
+                specialty=affiliation.specialty,
+            )
+            for affiliation in doctor.clinic_affiliations
+        ],
+    )
+        user_data["doctor_info"] = doctor_response
+
+    return user_data
 
 
 
@@ -426,7 +615,7 @@ async def signup_user_as_doctor(
         work_email=doctor.work_email,
         phone_number=doctor.phone_number,
         first_name=doctor.first_name,
-        surname=doctor.surname,
+        middle_name=doctor.middle_name,
         last_name=doctor.last_name,
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,

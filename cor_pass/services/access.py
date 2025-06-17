@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cor_pass.database import db
-from cor_pass.database.models import Doctor, Doctor_Status, User, LabAssistant
+from cor_pass.database.models import Doctor, Doctor_Status, Lawyer, User, LabAssistant
 from cor_pass.services.auth import auth_service
 from cor_pass.config.config import settings
 
@@ -34,11 +34,17 @@ class LawyerAccess:
     def __init__(self, email):
         self.email = email
 
-    async def __call__(self, user: User = Depends(auth_service.get_current_user)):
+    async def __call__(self, user: User = Depends(auth_service.get_current_user), db: AsyncSession = Depends(db.get_db)):
         has_access = False
         if user.email in settings.admin_accounts:
             has_access = True
         if user.email in settings.lawyer_accounts:
+            has_access = True
+
+        query = select(Lawyer).where(Lawyer.lawyer_cor_id == user.cor_id)
+        result = await db.execute(query)
+        lawyer = result.scalar_one_or_none()
+        if lawyer:
             has_access = True
 
         if not has_access:

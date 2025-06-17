@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from cor_pass.database.db import get_db
-from cor_pass.database.models import Doctor, PatientStatus, User
+from cor_pass.database.models import Doctor, MaterialType, PatientClinicStatus, PatientStatus, UrgencyType, User
 from cor_pass.repository.doctor import (
     create_doctor,
     create_doctor_service,
@@ -24,6 +24,7 @@ from cor_pass.repository.doctor import (
     get_doctor_patients_with_status,
     get_doctor_signatures,
     get_doctor_single_patient_with_status,
+    get_patients_with_optional_status,
     get_signature_data,
     set_default_doctor_signature,
     upload_certificate_service,
@@ -34,7 +35,10 @@ from cor_pass.repository.doctor import (
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
+    CaseCreate,
+    CaseFinalReportPageResponse,
     FinalReportResponseSchema,
+    GetAllPatientsResponce,
     PatientFinalReportPageResponse,
     PatientTestReportPageResponse,
     ReportResponseSchema,
@@ -185,48 +189,69 @@ async def upload_certificate(
     return await upload_certificate_service(document_id, file, db)
 
 
+
 @router.get(
     "/patients",
     dependencies=[Depends(doctor_access)],
-    # response_model=PatientResponce
+    response_model=GetAllPatientsResponce
 )
 async def get_doctor_patients(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(auth_service.get_current_user),
-    patient_status: Optional[str] = Query(None),  # Принимаем статус как строку
-    sex: Optional[List[str]] = Query(None),
-    sort_by: Optional[str] = Query("change_date"),
-    sort_order: Optional[str] = Query("desc"),
-    skip: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
+    doctor_patient_status: Optional[str] = Query(
+        None, description="Фильтрация по статусу у врача (скорее всего отпадет) (варианты: registered, diagnosed, under_treatment, hospitalized, discharged, died, in_process, referred_for_additional_consultation)"
+    ),
+    clinic_patient_status: Optional[str] = Query(
+        None, description="Фильтр поо статусу в клинике (варианты: registered, diagnosed, under_treatment, hospitalized, discharged, died, in_process, referred_for_additional_consultation, awaiting_report, completed, error)"
+    ),
+    current_doctor: Optional[bool] = Query(False, description="Фильтр по текущему врачу (бул)"),
+    sex: Optional[str] = Query(None, description="Фильтр по полу (варианты:'M','F')"),
+    sort_by: Optional[str] = Query("change_date", description="Сортировка по полю (варианты: change_date, birth_date)"),
+    sort_order: Optional[str] = Query("desc", description="Сортировка (asc или desc)"),
+    skip: int = Query(1, ge=1, description="Страницы (1-based index)"),
+    limit: int = Query(10, ge=1, le=100, description="К-ство на страницу"),
 ):
-    doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
-    if not doctor:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
-        )
+    doctor = None
+    if current_doctor:
+        doctor = await get_doctor(db=db, doctor_id=current_user.cor_id)
+        if not doctor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
+            )
 
-    status_filters = None
-    if patient_status:
+    doctor_status_filters = None
+    if doctor_patient_status:
         try:
-            status_filters = [PatientStatus(patient_status)]
+            doctor_status_filters = [PatientStatus(doctor_patient_status)]
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status value: {status}. Allowed values are: {[e.value for e in PatientStatus]}",
+                detail=f"Invalid doctor patient status value: '{doctor_patient_status}'. Allowed values are: {[e.value for e in PatientStatus]}",
             )
 
-    patients_with_status, total_count = await get_doctor_patients_with_status(
+    clinic_status_filters = None
+    if clinic_patient_status:
+        try:
+            clinic_status_filters = [PatientClinicStatus(clinic_patient_status)]
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid clinic patient status value: '{clinic_patient_status}'. Allowed values are: {[e.value for e in PatientClinicStatus]}",
+            )
+
+
+    response = await get_patients_with_optional_status(
         db=db,
         doctor=doctor,
-        status_filters=status_filters,
+        doctor_status_filters=doctor_status_filters,  
+        clinic_status_filters=clinic_status_filters,  
         sex_filters=sex,
         sort_by=sort_by,
         sort_order=sort_order,
         skip=skip,
         limit=limit,
     )
-    return {"items": patients_with_status, "total": total_count}
+    return response
 
 
 @router.get(
@@ -286,6 +311,14 @@ async def add_new_patient_to_doctor(
                 status_code=status.HTTP_409_CONFLICT, detail="Account already exists"
             )
         new_patient = await register_new_patient(db, new_patient_info, doctor)
+        
+        case_body = CaseCreate(    
+            patient_cor_id = new_patient.patient_cor_id,
+            num_cases= 1,
+            urgency = UrgencyType.S,
+            material_type = MaterialType.R)
+    
+        case = await case_service.create_cases_with_initial_data(db=db, body=case_body)
         return {
             "message": f"Новый пациент {new_patient_info.first_name} {new_patient_info.surname} успешно зарегистрирован и добавлен к врачу."
         }
@@ -318,6 +351,14 @@ async def add_existing_patient_to_doctor(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
         )
+    
+    case_body = CaseCreate(    
+    patient_cor_id = existing_patient.patient_cor_id,
+    num_cases= 1,
+    urgency = UrgencyType.S,
+    material_type = MaterialType.R)
+
+    case = await case_service.create_cases_with_initial_data(db=db, body=case_body)
 
     return existing_patient
 
@@ -343,6 +384,9 @@ async def get_patient_glass_page_data(
     glass_page_data = await case_service.get_patient_case_details_for_glass_page(db=db, patient_id=patient_id)
         
     return glass_page_data
+
+
+
 
 
 @router.get(
@@ -727,7 +771,7 @@ async def get_patient_final_report_full_page_data_route(
 
 @router.get(
     "/cases/{case_id}/final-report",
-    response_model=FinalReportResponseSchema,
+    response_model=CaseFinalReportPageResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
     summary="Получить данные для финального заключения конкретного кейса",
@@ -736,8 +780,128 @@ async def get_patient_final_report_full_page_data_route(
 async def get_case_final_report_route(
     case_id: str,
     db: AsyncSession = Depends(get_db),
-) -> FinalReportResponseSchema:
+) -> CaseFinalReportPageResponse:
     """
     Этот маршрут возвращает данные для финального заключения для указанного кейса
     """
     return await case_service.get_final_report_by_case_id(db=db, case_id=case_id, router=router)
+
+
+
+
+@router.get(
+    "/current_cases/report-page-data", 
+    response_model=PatientTestReportPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить все кейсы и данные заключения",
+    tags=["Current Cases"]
+)
+async def get_current_cases_report_full_page_data_route(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+) -> PatientTestReportPageResponse:
+    """
+    Этот маршрут возвращает список всех кейсов пациента, детали последнего кейса 
+    (включая его параметры и заключения) и все стекла последнего кейса 
+    для выбора для прикрепления к заключению. Если заключение для последнего кейса 
+    отсутствует, оно будет автоматически создано с пустыми полями.
+    """
+    return await case_service.get_current_cases_report_page_data(db=db, router=router, skip=skip, limit=limit)
+
+
+
+
+@router.get(
+    "/current_cases/referral_page",
+    response_model=PatientCasesWithReferralsResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и вывод файлов направления по первому кейсу",
+    tags=["Current Cases"]
+)
+async def get_current_cases_with_directions_for_doctor(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+) -> PatientCasesWithReferralsResponse:
+    """
+    Возвращает список всех кейсов конкретного пациента, а также детали первого кейса, включая ссылку на файлы его направлений
+    """
+    patient_cases_data = await case_service.get_current_cases_with_directions(db=db, skip=skip, limit=limit)
+    if not patient_cases_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Кейси пацієнта або направлення не знайдено."
+        )
+        
+    return patient_cases_data
+
+
+
+@router.get(
+    "/current_cases/excision-details",
+    response_model=PatientExcisionPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и нужных данных для страницы 'Вырезка'",
+    tags=["Current Cases"]
+)
+async def get_patient_excision_page_data(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+) -> PatientExcisionPageResponse:
+    """
+    Возвращает все кейсы и данные вырезки по последнему кейсу
+    """
+
+    excision_page_data = await case_service.get_current_case_details_for_excision_page(db=db, skip=skip, limit=limit)
+        
+    return excision_page_data
+
+
+
+
+
+@router.get(
+    "/current_cases/glass-details",
+    response_model=PatientGlassPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получение кейсов и стёкол для страницы 'Текущие кейсы' (вкладка Стёкла)",
+    tags=["Current Cases"]
+)
+async def get_current_cases_glass_page_data(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+    
+) -> PatientGlassPageResponse:
+    """
+    Возвращает список всех текущих кейсов и все стёкла первого кейса
+    """
+    
+    glass_page_data = await case_service.get_current_cases_glass_details(db=db, skip=skip, limit=limit)
+        
+    return glass_page_data
+
+
+@router.get(
+    "/current_cases/final-report-page-data", 
+    response_model=PatientFinalReportPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    summary="Получить все кейсы и данные для финального репорта по последнему кейсу",
+    tags=["Current Cases"]
+)
+async def get_current_cases_final_report_full_page_data_route(
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, description="Количество записей для пропуска"),
+    limit: int = Query(10, description="Максимальное количество записей для возврата"),
+) -> PatientFinalReportPageResponse:
+    """
+    Этот маршрут возвращает список всех кейсов пациента и данные для формирования финального заключения по последнему кейсу
+    """
+    return await case_service.get_current_cases_final_report_page_data(db=db, router=router, skip=skip, limit=limit)

@@ -45,7 +45,9 @@ from cor_pass.routes import (
     printer,
     websocket_events,
     svs_router,
-    lab_assistants
+    lab_assistants,
+    cerbo_GX,
+    energy_managers
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
@@ -270,6 +272,7 @@ async def startup():
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
     initialize_ip2location()
+    # asyncio.create_task(cerbo_GX.read_modbus_and_cache())
 
 
 auth_attempts = defaultdict(list)
@@ -297,6 +300,8 @@ app.include_router(printing_device.router, prefix="/api")
 app.include_router(printer.router, prefix="/api")
 app.include_router(websocket_events.router, prefix="/api")
 app.include_router(lab_assistants.router, prefix="/api")
+app.include_router(cerbo_GX.router, prefix="/api")
+app.include_router(energy_managers.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(

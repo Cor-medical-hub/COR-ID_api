@@ -13,6 +13,8 @@ from cor_pass.database.models import (
     Doctor,
     DoctorPatientStatus,
     Patient,
+    PatientClinicStatus,
+    PatientClinicStatusModel,
     PatientStatus,
     User,
     Doctor_Status,
@@ -22,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.repository.person import get_user_by_corid
-from cor_pass.schemas import DoctorCreate, DoctorSignatureResponse, PatientDecryptedResponce
+from cor_pass.schemas import DoctorCreate, DoctorSignatureResponse, GetAllPatientsResponce, PatientDecryptedResponce, PatientResponseForGetPatients
 from cor_pass.services.cipher import decrypt_data
 from cor_pass.config.config import settings
 
@@ -41,7 +43,7 @@ async def create_doctor(
         work_email=doctor_data.work_email,
         phone_number=doctor_data.phone_number,
         first_name=doctor_data.first_name,
-        surname=doctor_data.surname,
+        middle_name=doctor_data.middle_name,
         last_name=doctor_data.last_name,
         scientific_degree=doctor_data.scientific_degree,
         date_of_last_attestation=doctor_data.date_of_last_attestation,
@@ -268,6 +270,142 @@ async def get_doctor_patients_with_status(
 
     return result, total_count
 
+
+
+async def get_patients_with_optional_status(
+    db: AsyncSession,
+    doctor: Optional[Doctor] = None,
+    doctor_status_filters: Optional[List[PatientStatus]] = None,
+    clinic_status_filters: Optional[List[PatientClinicStatus]] = None,
+    sex_filters: Optional[List[str]] = None,
+    sort_by: Optional[str] = "change_date",
+    sort_order: Optional[str] = "desc",
+    skip: int = 1,
+    limit: int = 30,
+) -> Tuple[List, int]:
+    """
+    Асинхронно отримує список пацієнтів разом з їх статусами (від лікаря та клініки)
+    з урахуванням опціональної фільтрації за лікарем, іншими фільтрами, сортування та пагінації.
+    """
+    query = (
+        select(DoctorPatientStatus, Patient, PatientClinicStatusModel)
+        .join(Patient, DoctorPatientStatus.patient_id == Patient.id)
+        .join(PatientClinicStatusModel, PatientClinicStatusModel.patient_id == Patient.id, isouter=True)
+    )
+
+    if doctor:
+        query = query.where(DoctorPatientStatus.doctor_id == doctor.id)
+
+
+    if doctor_status_filters:
+        query = query.where(
+            DoctorPatientStatus.status.in_([s.value for s in doctor_status_filters])
+        )
+
+    if clinic_status_filters:
+        query = query.where(
+            PatientClinicStatusModel.patient_status_for_clinic.in_([s.value for s in clinic_status_filters])
+        )
+
+    if sex_filters:
+        query = query.where(Patient.sex.in_(sex_filters))
+
+
+    order_by_clause = None
+    if sort_by == "change_date":
+        order_by_clause = (
+            desc(Patient.change_date)
+            if sort_order == "desc"
+            else asc(Patient.change_date)
+        )
+    elif sort_by == "birth_date":
+        order_by_clause = (
+            desc(Patient.birth_date)
+            if sort_order == "desc"
+            else asc(Patient.birth_date)
+        )
+
+    if order_by_clause is not None:
+        query = query.order_by(order_by_clause)
+
+
+    offset = (skip - 1) * limit
+    patients_data_result = await db.execute(query.offset(offset).limit(limit))
+
+    patients_data = patients_data_result.all()
+
+    count_query = (
+        select(func.count(Patient.id.distinct()))
+        .select_from(Patient)
+        .join(DoctorPatientStatus, DoctorPatientStatus.patient_id == Patient.id, isouter=True)
+        .join(PatientClinicStatusModel, PatientClinicStatusModel.patient_id == Patient.id, isouter=True)
+    )
+    
+
+    if doctor:
+        count_query = count_query.where(DoctorPatientStatus.doctor_id == doctor.id)
+
+
+    if doctor_status_filters:
+        count_query = count_query.where(
+            DoctorPatientStatus.status.in_([s.value for s in doctor_status_filters])
+        )
+    
+
+    if clinic_status_filters:
+        count_query = count_query.where(
+            PatientClinicStatusModel.patient_status_for_clinic.in_([s.value for s in clinic_status_filters])
+        )
+
+    if sex_filters:
+        count_query = count_query.where(Patient.sex.in_(sex_filters))
+
+    total_count_result = await db.execute(count_query)
+    total_count = total_count_result.scalar_one()
+
+    result = []
+    decoded_key = base64.b64decode(settings.aes_key)
+    
+
+    for doctor_patient_status, patient, clinic_patient_status in patients_data:
+        decrypted_surname = (
+            await decrypt_data(patient.encrypted_surname, decoded_key)
+            if patient.encrypted_surname
+            else None
+        )
+        decrypted_first_name = (
+            await decrypt_data(patient.encrypted_first_name, decoded_key)
+            if patient.encrypted_first_name
+            else None
+        )
+        decrypted_middle_name = (
+            await decrypt_data(patient.encrypted_middle_name, decoded_key)
+            if patient.encrypted_middle_name
+            else None
+        )
+        status_for_doctor = doctor_patient_status.status if doctor_patient_status else None
+        status_for_clinic = clinic_patient_status.patient_status_for_clinic if clinic_patient_status else None
+        patient_response = PatientResponseForGetPatients(   
+            id=patient.id,
+            patient_cor_id=patient.patient_cor_id,
+            surname=decrypted_surname,
+            first_name=decrypted_first_name,
+            middle_name=decrypted_middle_name,
+            birth_date=patient.birth_date if patient else None,
+            sex=patient.sex if patient else None,
+            email=patient.email if patient else None,
+            phone_number=patient.phone_number if patient else None,
+            address=patient.address if patient else None,
+            change_date=patient.change_date if patient else None,
+            doctor_status=status_for_doctor,
+            clinic_status=status_for_clinic)
+        result.append(patient_response)
+
+    response = GetAllPatientsResponce(
+        patients = result,
+        total_count = total_count
+    )
+    return response
 
 async def get_doctor_single_patient_with_status(
     patient_cor_id: str,
