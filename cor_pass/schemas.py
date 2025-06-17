@@ -1558,3 +1558,25 @@ class GetAllPatientsResponce(BaseModel):
     patients: List[PatientResponseForGetPatients]
     total_count: int
 
+
+
+class LawyerCreate(BaseModel):
+    first_name: str = Field(..., description="Имя менеджера энергии")
+    middle_name: str = Field(..., description="Отчество менеджера энергии")
+    last_name: str = Field(..., description="Фамилия менеджера энергии")
+
+    class Config:
+        from_attributes = True
+
+
+class LawyerResponse(BaseModel):
+
+    id: str
+    lawyer_cor_id: str
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+

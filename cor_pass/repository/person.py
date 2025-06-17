@@ -458,7 +458,7 @@ async def get_user_roles(email: str, db: AsyncSession) -> List[str]:
 
     if await role_check.admin_role_checker.is_admin(user=user):
         roles.append("admin")
-    if await role_check.lawyer_role_checker.is_lawyer(user=user):
+    if await role_check.lawyer_role_checker.is_lawyer(user=user, db=db):
         roles.append("lawyer")
     if await role_check.cor_int_role_checker.is_cor_int(user=user):
         roles.append("cor-int")
