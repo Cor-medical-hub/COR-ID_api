@@ -154,31 +154,31 @@
         })
     }
 
-    const caseTemplate = (currentCase, isActive) => {
+    const caseTemplate = (workCase, isActive) => {
         const caseNewNODE = document.createElement('div');
         caseNewNODE.classList.add('caseItem', 'df', 'aic', 'jcsb', ...(isActive ? ['active'] : []));
         caseNewNODE.innerHTML = `
             <div>
-                <div class="caseItemDate">27.03.2025</div>
-                <div class="caseItemLabel">S25B01251</div>
+                <div class="caseItemDate">${new Date(workCase.creation_date).toLocaleDateString()}</div>
+                <div class="caseItemLabel">${workCase.case_code}</div>
             </div>
             <div class="caseItemSample df aic jcc">
-                ${currentCase.bank_count}
+                ${workCase.bank_count}
             </div>
             <div>
                 <div class="infoPlate cassette">
-                    ${currentCase.cassette_count}
+                    ${workCase.cassette_count}
                 </div>
             </div>
             <div>
                 <div class="infoPlate glass">
-                    ${currentCase.glass_count}
+                    ${workCase.glass_count}
                 </div>
             </div>
         `;
 
         caseNewNODE.addEventListener("click", () => {
-            fetch(`${API_BASE_URL}/api/doctor/cases/${currentCase.id}/excision-details`, {
+            fetch(`${API_BASE_URL}/api/doctor/cases/${workCase.id}/excision-details`, {
                 method: "GET",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -187,6 +187,7 @@
                 .then(res => res.json())
                 .then(caseData => {
                     const {case_details_for_excision} = caseData;
+                    case_details_for_excision.patient_id = "1L3LB5EUV-2025F";
                     document.querySelector('.caseItem.active').classList.remove('active')
                     caseNewNODE.classList.add('active')
 
@@ -196,6 +197,20 @@
                     caseLabelNode.innerHTML = case_details_for_excision.case_code
                     caseMicroDescriptionTextareaNODE.value = case_details_for_excision.microdescription || ""
                     casePathohistologicalConclusionTextareaNODE.value = case_details_for_excision.pathohistological_conclusion || ""
+
+                    fetch(`${API_BASE_URL}/api/doctor/patients/${case_details_for_excision.patient_id}`, {
+                        method: "GET",
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        },
+                    })
+                        .then(res => res.json())
+                        .then(userData => {
+                            document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
+                            document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
+                            document.querySelector('#userAge').innerHTML = `${userData.age}р`;
+
+                        })
                 })
         });
         return caseNewNODE
@@ -255,47 +270,53 @@
 
 
     const setAllCases = () => {
-        fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}`, {
+        const currentRoutePart = PATIENT_COR_ID ? `patients/${PATIENT_COR_ID}` : `current_cases`
+        fetch(`${API_BASE_URL}/api/doctor/${currentRoutePart}/excision-details`, {
             method: "GET",
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
             },
         })
             .then(res => res.json())
-            .then(userData => {
-                document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
-                document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                document.querySelector('#userAge').innerHTML = `${userData.age}р`;
-                fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}/excision-details`, {
+            .then(cases => {
+                const {all_cases, last_case_details_for_excision} = cases;
+                last_case_details_for_excision.patient_id = "1L3LB5EUV-2025F";
+                all_cases.forEach((currentCase, index) => {
+                    caseContentNODE.append(caseTemplate(currentCase, !index))
+                })
+
+                if(!last_case_details_for_excision){
+                    return;
+                }
+
+                currentCase = last_case_details_for_excision;
+                setTenderloin(last_case_details_for_excision)
+
+                caseLabelNode.innerHTML = last_case_details_for_excision.case_code
+                caseMicroDescriptionTextareaNODE.value = last_case_details_for_excision.microdescription || ""
+                casePathohistologicalConclusionTextareaNODE.value = last_case_details_for_excision.pathohistological_conclusion || ""
+
+                fetch(`${API_BASE_URL}/api/doctor/patients/${last_case_details_for_excision.patient_id}`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     },
                 })
                     .then(res => res.json())
-                    .then(cases => {
-                        const {all_cases, last_case_details_for_excision} = cases;
-                        all_cases.forEach((currentCase, index) => {
-                            caseContentNODE.append(caseTemplate(currentCase, !index))
-                        })
+                    .then(userData => {
+                        document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
+                        document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
+                        document.querySelector('#userAge').innerHTML = `${userData.age}р`;
 
-                        if(!last_case_details_for_excision){
-                            return;
-                        }
-
-                        currentCase = last_case_details_for_excision;
-                        setTenderloin(last_case_details_for_excision)
-
-                        caseLabelNode.innerHTML = last_case_details_for_excision.case_code
-                        caseMicroDescriptionTextareaNODE.value = last_case_details_for_excision.microdescription || ""
-                        casePathohistologicalConclusionTextareaNODE.value = last_case_details_for_excision.pathohistological_conclusion || ""
                     })
             })
+
+
     }
 
     const switchRole = () => {
         document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
-            window.location.href = `/static/lab.html?userCorId=${PATIENT_COR_ID}`
+            window.location.href = `/static/lab.html?userCorId=${currentCase.id}`
         })
     }
     const goToTab = () => {
@@ -303,20 +324,31 @@
             elem.addEventListener('click', e => {
                 console.log(currentCase, "currentCase")
                 const element = e.currentTarget;
+                let queryString = []
+
+                if(PATIENT_COR_ID){
+                    queryString.push(`userCorId=${PATIENT_COR_ID}`)
+                }
+
+                if(currentCase?.id){
+                    queryString.push(`caseId=${currentCase?.id}`)
+                }
+
+
                 if(element.classList.contains('directionPage')){
-                    window.location.href = `/static/direction.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/direction.html?${queryString.join('&')}`
                 }
                 if(element.classList.contains('tenderloinPage')){
-                    window.location.href = `/static/tenderloin.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/tenderloin.html?${queryString.join('&')}`
                 }
                 if(element.classList.contains('glassPage')){
-                    window.location.href = `/static/glass.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/glass.html?${queryString.join('&')}`
                 }
                 if(element.classList.contains('conclusionPage')){
-                    window.location.href = `/static/conclusion.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/conclusion.html?${queryString.join('&')}`
                 }
                 if(element.classList.contains('explorationPage')){
-                    window.location.href = `/static/exploration.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/exploration.html?${queryString.join('&')}`
                 }
             })
         })

@@ -286,7 +286,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
             if(ok) {
                 const formNODE = document.querySelector('#directionForm');
                 const formData = Object.fromEntries(new FormData(formNODE).entries());
-                console.log(formData, "object")
 
                 fetch(`${API_BASE_URL}/api/cases/referrals/upsert`, {
                     method: "POST",
