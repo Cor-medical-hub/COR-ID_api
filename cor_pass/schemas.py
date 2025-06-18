@@ -1196,6 +1196,7 @@ class FirstCaseReferralDetailsSchema(BaseModel):
     microdescription: Optional[str] = None
     general_macrodescription: Optional[str] = None
     grossing_status: Optional[str] = None
+    patient_cor_id: Optional[str] = None
    
     attachments: Optional[List[ReferralFileSchema]] = None 
 
@@ -1220,6 +1221,7 @@ class FirstCaseGlassDetailsSchema(BaseModel):
     microdescription: Optional[str] = None
     general_macrodescription: Optional[str] = None
     grossing_status: Optional[str] = None
+    patient_cor_id: Optional[str] = None
 
     samples: List[SampleForGlassPage] 
 
@@ -1274,6 +1276,7 @@ class LastCaseExcisionDetailsSchema(BaseModel):
     microdescription: Optional[str] = None
     case_parameters: Optional[CaseParametersScheema] = None
     grossing_status: Optional[str] = None
+    patient_cor_id: Optional[str] = None
 
     samples: List[SampleForExcisionPage]
 
