@@ -12,6 +12,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Histogram
 from prometheus_client import generate_latest
+
+from prometheus_fastapi_instrumentator import PrometheusFastApiInstrumentator
+
 from starlette.responses import Response
 
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -150,9 +153,12 @@ app.mount("/static", StaticFiles(directory="cor_pass/static"), name="static")
 origins = settings.allowed_redirect_urls
 
 
-@app.get("/metrics")
-async def metrics():
-    return Response(generate_latest(), media_type="text/plain")
+PrometheusFastApiInstrumentator().instrument(app).expose(app, "/metrics")
+
+
+# @app.get("/metrics")
+# async def metrics():
+#     return Response(generate_latest(), media_type="text/plain")
 
 
 # Пример метрик
@@ -268,6 +274,7 @@ async def custom_identifier(request: Request) -> str:
 @app.on_event("startup")
 async def startup():
     print("------------- STARTUP --------------")
+    logger.info("------------- STARTUP --------------")
     await FastAPILimiter.init(redis_client, identifier=custom_identifier)
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
