@@ -1748,6 +1748,7 @@ async def get_patient_final_report_page_data(
 
     report_details: Optional[ReportResponseSchema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
+    last_case_details = None
 
 
     if all_cases_db:
@@ -1882,10 +1883,10 @@ async def _format_final_report_response(
                 cassette_id=g.cassette_id
             )
             glass_stainings.append(g.staining)
-            glass_stainings = set(glass_stainings)
             attached_glasses_schematized.append(g)
 
     # Прикрепление подписей
+    glass_stainings = set(glass_stainings)
     signatures_schematized: List[ReportSignatureSchema] = []
     await db.refresh(db_report, attribute_names=['signatures'])
     for signature_db in db_report.signatures:
@@ -2577,6 +2578,7 @@ async def get_current_cases_with_directions(
         )
 
     first_case_direction_details: Optional[FirstCaseReferralDetailsSchema] = None
+    case_details = None
 
     if all_current_cases_raw:
         first_case_db = all_current_cases_raw[0]
@@ -2738,6 +2740,7 @@ async def get_current_cases_final_report_page_data(
     
 
     current_cases_list: List[CaseModelScheema] = []
+    last_case_details = None
 
     for row in all_current_cases_raw:
         case_id = row.id
