@@ -1149,7 +1149,8 @@ async def get_single_case_details_for_glass_page(
             case_code=case_db.case_code,
             creation_date=case_db.creation_date,
             samples=first_case_samples_schematized,
-            grossing_status=case_db.grossing_status 
+            grossing_status=case_db.grossing_status,
+            patient_cor_id = case_db.patient_id
         )
 
     return SingleCaseGlassPageResponse(
@@ -1332,7 +1333,8 @@ async def get_single_case_details_for_excision_page(
             microdescription=last_case_with_relations.microdescription,
             case_parameters=case_parameters_schematized,
             samples=samples_for_excision_page,
-            grossing_status=last_case_with_relations.grossing_status
+            grossing_status=last_case_with_relations.grossing_status,
+            patient_cor_id = last_case_with_relations.patient_id
         )
 
     return SingleCaseExcisionPageResponse(
@@ -1343,6 +1345,7 @@ async def _format_report_response(
     db: AsyncSession, 
     db_report: db_models.Report,
     router: APIRouter,
+    case_db: Optional[db_models.Case],
     db_case_parameters: Optional[db_models.CaseParameters]
 ) -> ReportResponseSchema:
     """Вспомогательная функция для форматирования объекта Report в ReportResponseSchema."""
@@ -1398,7 +1401,9 @@ async def _format_report_response(
     return ReportResponseSchema(
         id=db_report.id,
         case_id=db_report.case_id,
+        case_details=case_db,
         macro_description_from_case_params=macro_desc_from_params,
+        microdescription_from_case=case_db.microdescription,
         immunohistochemical_profile=db_report.immunohistochemical_profile,
         molecular_genetic_profile=db_report.molecular_genetic_profile,
         pathomorphological_diagnosis=db_report.pathomorphological_diagnosis,
@@ -1437,7 +1442,7 @@ async def get_report_by_case_id(
         case_db.report = new_report 
 
 
-    return await _format_report_response(db=db, db_report=case_db.report, db_case_parameters=case_db.case_parameters, router=router)
+    return await _format_report_response(db=db, db_report=case_db.report, db_case_parameters=case_db.case_parameters, router=router, case_db=case_db)
 
 
 async def get_patient_report_page_data(
@@ -1488,7 +1493,7 @@ async def get_patient_report_page_data(
                 await db.refresh(new_report)
                 last_case_with_relations.report = new_report
 
-            report_details = await _format_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router)
+            report_details = await _format_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, case_db=last_case_db)
 
             for sample_db in last_case_with_relations.samples:
                 def sort_cassettes(cassette: db_models.Cassette):
@@ -1511,7 +1516,8 @@ async def get_patient_report_page_data(
                     for glass in sorted_glasses_db:
                         glass = GlassTestModelScheema(id=glass.id,
                                                       glass_number=glass.glass_number,
-                                                      cassette_id=glass.cassette_id
+                                                      cassette_id=glass.cassette_id,
+                                                      staining=glass.staining
                                                       )
                         glasses_for_cassette.append(glass)
                         
@@ -1591,7 +1597,7 @@ async def create_or_update_report(
 
     # patient_db = await get_patient_by_corid(db=db, cor_id=case_db.patient_id)
     # referral_db = await get_referral_by_case(db=db, case_id=case_db.id)
-    return await _format_report_response(db=db, db_report=db_report, db_case_parameters=case_db.case_parameters, router=router)
+    return await _format_report_response(db=db, db_report=db_report, db_case_parameters=case_db.case_parameters, router=router, case_db=case_db)
 
 
 async def add_report_signature(
@@ -1706,6 +1712,7 @@ async def add_report_signature(
     return ReportResponseSchema(
         id=db_report.id,
         case_id=db_report.case_id,
+        case_details=case_db,
         macro_description_from_case_params=macro_desc_from_params,
         immunohistochemical_profile=db_report.immunohistochemical_profile,
         molecular_genetic_profile=db_report.molecular_genetic_profile,
@@ -1918,7 +1925,8 @@ async def _format_final_report_response(
         arrival_date=referral_db.issued_at if referral_db else None,
 
         report_date=signature_db.doctor_signature.created_at.date() if db_report.signatures else None,
-
+        
+        patient_cor_id=patient_db.patient_cor_id,
         patient_first_name=patient_first_name,
         patient_surname=patient_surname,
         patient_middle_name=patient_middle_name,
@@ -2373,7 +2381,7 @@ async def get_current_cases_report_page_data(
                 await db.refresh(new_report)
                 last_case_with_relations.report = new_report
 
-            report_details = await _format_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router)
+            report_details = await _format_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, case_db=last_case_db)
 
             for sample_db in last_case_with_relations.samples:
                 def sort_cassettes(cassette: db_models.Cassette):
@@ -2396,7 +2404,8 @@ async def get_current_cases_report_page_data(
                     for glass in sorted_glasses_db:
                         glass = GlassTestModelScheema(id=glass.id,
                                                       glass_number=glass.glass_number,
-                                                      cassette_id=glass.cassette_id
+                                                      cassette_id=glass.cassette_id,
+                                                      staining=glass.staining
                                                       )
                         glasses_for_cassette.append(glass)
                         

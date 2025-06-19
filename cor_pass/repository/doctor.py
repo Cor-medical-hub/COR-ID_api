@@ -670,7 +670,7 @@ async def get_doctor_signatures(
     return response_signatures
 
 async def set_default_doctor_signature(
-    db: AsyncSession, doctor_id: str, signature_id: str
+    db: AsyncSession, doctor_id: str, signature_id: str, router: APIRouter
 ) -> List[DoctorSignatureResponse]:
     """
     Устанавливает указанную подпись как подпись по умолчанию для доктора.
@@ -693,7 +693,7 @@ async def set_default_doctor_signature(
     await db.commit()
     await db.refresh(signature_to_update)
 
-    return await get_doctor_signatures(db, doctor_id) 
+    return await get_doctor_signatures(db, doctor_id, router=router) 
 
 async def delete_doctor_signature(
     db: AsyncSession, doctor_id: str, signature_id: str

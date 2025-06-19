@@ -630,7 +630,7 @@ async def set_default_signature(
     user: User = Depends(auth_service.get_current_user)
 ) -> List[DoctorSignatureResponse]:
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
-    return await set_default_doctor_signature(db=db, doctor_id=doctor.id, signature_id=signature_id)
+    return await set_default_doctor_signature(db=db, doctor_id=doctor.id, signature_id=signature_id, router=router)
 
 @router.delete(
     "/signatures/{signature_id}/delete",

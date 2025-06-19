@@ -1350,8 +1350,9 @@ class ReportUpdateSchema(ReportBaseSchema):
 class ReportResponseSchema(BaseModel):
     id: str
     case_id: str
-    
-    macro_description_from_case_params: Optional[str] = None 
+    case_details: Optional[Case] = None 
+    macro_description_from_case_params: Optional[str] = None
+    microdescription_from_case: Optional[str] = None
 
     immunohistochemical_profile: Optional[str] = None
     molecular_genetic_profile: Optional[str] = None
@@ -1391,6 +1392,7 @@ class GlassTestModelScheema(BaseModel):
     id: str
     glass_number: int
     cassette_id: str
+    staining: Optional[str] = None
 
 
 class CassetteTestForGlassPage(BaseModel):
@@ -1439,6 +1441,7 @@ class FinalReportResponseSchema(BaseModel):
     report_date: Optional[date] = None
 
     # Пациент
+    patient_cor_id: Optional[str] = None
     patient_first_name: Optional[str] = None
     patient_surname: Optional[str] = None
     patient_middle_name: Optional[str] = None
