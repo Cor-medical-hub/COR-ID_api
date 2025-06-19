@@ -9,6 +9,7 @@ from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.schemas import (
     Case as CaseModelScheema,
     CaseFinalReportPageResponse,
+    CaseIDReportPageResponse,
     CaseParametersScheema,
     CassetteForGlassPage,
     CassetteTestForGlassPage,
@@ -1416,7 +1417,7 @@ async def _format_report_response(
 
 async def get_report_by_case_id(
     db: AsyncSession, case_id: str, router: APIRouter
-) -> ReportResponseSchema:
+) -> CaseIDReportPageResponse:
     """
     Получает заключение для конкретного кейса. Если заключения нет, оно будет создано.
     """
@@ -1441,8 +1442,93 @@ async def get_report_by_case_id(
         await db.refresh(new_report)
         case_db.report = new_report 
 
+    last_case_for_report: Optional[CaseModelScheema] = None
+    report_details: Optional[ReportResponseSchema] = None
+    all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
+    first_case_details_for_glass: Optional[FirstCaseTestGlassDetailsSchema] = None
 
-    return await _format_report_response(db=db, db_report=case_db.report, db_case_parameters=case_db.case_parameters, router=router, case_db=case_db)
+    report_response =  await _format_report_response(db=db, db_report=case_db.report, db_case_parameters=case_db.case_parameters, router=router, case_db=case_db)
+    last_case_db = case_db
+
+    last_case_full_info_result = await db.execute(
+            select(db_models.Case)
+            .where(db_models.Case.id == last_case_db.id)
+            .options(
+                selectinload(db_models.Case.case_parameters),
+                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
+                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature),
+                selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+            )
+        )
+    last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+
+
+    if last_case_with_relations:
+        last_case_for_report = CaseModelScheema.model_validate(last_case_with_relations)
+
+        if not last_case_with_relations.report:
+            new_report = db_models.Report(case_id=last_case_with_relations.id)
+            db.add(new_report)
+            await db.commit()
+            await db.refresh(new_report)
+            last_case_with_relations.report = new_report
+
+        # report_details = await _format_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, case_db=last_case_db)
+
+        for sample_db in last_case_with_relations.samples:
+            def sort_cassettes(cassette: db_models.Cassette):
+                match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+                if match:
+                    letter_part = match.group(1)
+                    number_part = int(match.group(2))
+                    return (letter_part, number_part)
+                return (cassette.cassette_number, 0)
+
+            sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+
+            cassettes_for_sample: List[CassetteTestForGlassPage] = []
+            for cassette_db in sorted_cassettes_db:
+                sorted_glasses_db = sorted(
+                    cassette_db.glass,
+                    key=lambda glass: glass.glass_number
+                )
+                glasses_for_cassette: List[GlassTestModelScheema] = []
+                for glass in sorted_glasses_db:
+                    glass = GlassTestModelScheema(id=glass.id,
+                                                    glass_number=glass.glass_number,
+                                                    cassette_id=glass.cassette_id,
+                                                    staining=glass.staining
+                                                    )
+                    glasses_for_cassette.append(glass)
+                    
+                cassette_schematized = CassetteTestForGlassPage(id=cassette_db.id,
+                                                                cassette_number=cassette_db.cassette_number,
+                                                                sample_id=cassette_db.sample_id
+                                                                )
+                cassette_schematized.glasses = glasses_for_cassette 
+                cassettes_for_sample.append(cassette_schematized)
+
+            sample_schematized = SampleTestForGlassPage(id=sample_db.id,
+                                                        sample_number=sample_db.sample_number,
+                                                        case_id=sample_db.case_id)
+            sample_schematized.cassettes = cassettes_for_sample
+            all_samples_for_last_case_schematized.append(sample_schematized)
+
+
+        first_case_details_for_glass = FirstCaseTestGlassDetailsSchema(
+            id=last_case_with_relations.id,
+            case_code=last_case_with_relations.case_code,
+            creation_date=last_case_with_relations.creation_date,
+            samples=all_samples_for_last_case_schematized,
+            grossing_status=last_case_with_relations.grossing_status 
+        )
+
+    general_response = CaseIDReportPageResponse(
+        last_case_for_report = case_db,
+        report_details = report_response,
+        all_glasses_for_last_case= first_case_details_for_glass
+    )
+    return general_response
 
 
 async def get_patient_report_page_data(

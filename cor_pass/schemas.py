@@ -1367,6 +1367,7 @@ class ReportResponseSchema(BaseModel):
     class Config:
         from_attributes = True
 
+
 class PatientReportPageResponse(BaseModel):
     all_cases: List[Case] 
     
@@ -1377,6 +1378,7 @@ class PatientReportPageResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 
 class SignReportRequest(BaseModel):
@@ -1424,6 +1426,14 @@ class PatientTestReportPageResponse(BaseModel):
     last_case_for_report: Optional[Case]
     report_details: Optional[ReportResponseSchema]
     all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
+    class Config:
+        from_attributes = True
+
+class CaseIDReportPageResponse(BaseModel):
+    last_case_for_report: Optional[Case] = None 
+    report_details: Optional[ReportResponseSchema] = None
+    all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
+
     class Config:
         from_attributes = True
 
