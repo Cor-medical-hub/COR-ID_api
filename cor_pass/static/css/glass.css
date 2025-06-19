@@ -54,6 +54,7 @@
 }
 .glassPageContent .bottom{
     height: calc(100% - 60px);
+    overflow: auto;
 }
 .glassPageContent .left{
     width: 255px;
