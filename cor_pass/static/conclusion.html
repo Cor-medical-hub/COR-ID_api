@@ -67,8 +67,15 @@
     </div>
     <div class="glassPageContent df jcsb">
         <div class="left">
-            <div class="top borderRadiusLeft">
-                Поточні кейси
+            <div class="top borderRadiusLeft df jcsb">
+                <div>
+                    Поточні кейси
+                </div>
+                <div class="glassPageRevert" style="display: none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="800px" height="800px" viewBox="0 0 24 24">
+                        <path fill="none" stroke="#000000" stroke-width="2" d="M8,3 L3,8 L8,13 M12,20 L15,20 C18.3137085,20 21,17.3137085 21,14 C21,10.6862915 18.3137085,8 15,8 L4,8"/>
+                    </svg>
+                </div>
             </div>
             <div class="bottom">
                 <div id="caseItems" class="caseItems">
@@ -78,7 +85,7 @@
         </div>
         <div class="middle df fdc">
             <div class="top">
-                Скельця
+                Заключення
             </div>
             <div class="bottom df ">
                 <div class="conclusionContent">
@@ -510,6 +517,16 @@
             })
         })
     }
+    const revertButtonHandler = () => {
+        const revertButtonNODE = document.querySelector('.glassPageRevert');
+        if(PATIENT_COR_ID){
+            revertButtonNODE.style.display = "block"
+        }
+
+        revertButtonNODE.addEventListener('click', () => {
+            window.location.href = `/static/conclusion.html`
+        })
+    }
 </script>
 <script>
     document.addEventListener("DOMContentLoaded", (event) => {
@@ -517,6 +534,7 @@
         switchRole()
         setAllCases()
         changeMicroDescription()
+        revertButtonHandler()
         changePathohistologicalConclusion()
         showTextareaButton('caseMicroDescription')
         showTextareaButton('casePathohistologicalConclusion')
