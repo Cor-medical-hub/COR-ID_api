@@ -104,12 +104,12 @@
     </div>
 </div>
 
-
 <script src="./js/general.js"></script>
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
 
     let currentCase = null;
+    let currentUserCorId = PATIENT_COR_ID || null;
 
     const caseContentNODE = document.querySelector("#caseItems");
     const tenderloinContentNODE = document.querySelector("#tenderloinContent");
@@ -187,18 +187,19 @@
                 .then(res => res.json())
                 .then(caseData => {
                     const {case_details_for_excision} = caseData;
-                    case_details_for_excision.patient_id = "1L3LB5EUV-2025F";
                     document.querySelector('.caseItem.active').classList.remove('active')
                     caseNewNODE.classList.add('active')
 
                     setTenderloin(case_details_for_excision)
                     currentCase = case_details_for_excision
+                    currentUserCorId = case_details_for_excision.patient_cor_id
+
 
                     caseLabelNode.innerHTML = case_details_for_excision.case_code
                     caseMicroDescriptionTextareaNODE.value = case_details_for_excision.microdescription || ""
                     casePathohistologicalConclusionTextareaNODE.value = case_details_for_excision.pathohistological_conclusion || ""
 
-                    fetch(`${API_BASE_URL}/api/doctor/patients/${case_details_for_excision.patient_id}`, {
+                    fetch(`${API_BASE_URL}/api/doctor/patients/${case_details_for_excision.patient_cor_id}`, {
                         method: "GET",
                         headers: {
                             'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -280,7 +281,6 @@
             .then(res => res.json())
             .then(cases => {
                 const {all_cases, last_case_details_for_excision} = cases;
-                last_case_details_for_excision.patient_id = "1L3LB5EUV-2025F";
                 all_cases.forEach((currentCase, index) => {
                     caseContentNODE.append(caseTemplate(currentCase, !index))
                 })
@@ -289,6 +289,7 @@
                     return;
                 }
 
+                currentUserCorId = last_case_details_for_excision.patient_cor_id
                 currentCase = last_case_details_for_excision;
                 setTenderloin(last_case_details_for_excision)
 
@@ -296,7 +297,7 @@
                 caseMicroDescriptionTextareaNODE.value = last_case_details_for_excision.microdescription || ""
                 casePathohistologicalConclusionTextareaNODE.value = last_case_details_for_excision.pathohistological_conclusion || ""
 
-                fetch(`${API_BASE_URL}/api/doctor/patients/${last_case_details_for_excision.patient_id}`, {
+                fetch(`${API_BASE_URL}/api/doctor/patients/${last_case_details_for_excision.patient_cor_id}`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -316,7 +317,7 @@
 
     const switchRole = () => {
         document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
-            window.location.href = `/static/lab.html?userCorId=${currentCase.id}`
+            window.location.href = `/static/lab.html?userCorId=${currentUserCorId}`
         })
     }
     const goToTab = () => {

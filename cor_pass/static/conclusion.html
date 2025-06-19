@@ -81,8 +81,16 @@
                 Скельця
             </div>
             <div class="bottom df ">
-                <div class="conclusionContent" id="reportWrapper">
+                <div class="conclusionContent">
+                    <div id="reportWrapper">
 
+                    </div>
+                    <div class="conclusionBottom" id="doctorSignModalBtn">
+                        Підписати
+                    </div>
+                    <div class="conclusionActionBottom" style="margin-bottom: 20px">
+                        Оновити репорт
+                    </div>
                 </div>
                 <div class="glassContent df" id="reportGlassWrapper">
 
@@ -168,6 +176,7 @@
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
 
+    let currentUserCorId = PATIENT_COR_ID || null;
     let currentCase = null;
     let currentReport = null;
     let activeSign = null;
@@ -273,12 +282,6 @@
             </div>
             <input type="text" name="comment" class="conclusionFormGroupInput" value="${currentReport.comment || ""}">
         </div>
-        <div class="conclusionBottom" id="doctorSignModalBtn">
-            Підписати
-        </div>
-        <div class="conclusionActionBottom" style="margin-bottom: 20px">
-            Оновити репорт
-        </div>
         `
 
         formNODE.innerHTML = reportHTmL
@@ -326,6 +329,7 @@
                 currentCase = last_case_for_report;
                 currentReport = report_details;
                 activeGlasses = report_details.attached_glasses
+                currentUserCorId = last_case_for_report.patient_id
 
                 setReport(report_details, last_case_for_report);
                 setReportGlasses(all_glasses_for_last_case, report_details.attached_glasses)
@@ -381,20 +385,31 @@
             })
                 .then(res => res.json())
                 .then(caseData => {
-                    const {single_case_for_glass_page} = caseData;
+                    const {single_case_for_glass_page, case_details} = caseData;
                     document.querySelector('.caseItem.active').classList.remove('active')
                     caseNewNODE.classList.add('active')
 
-                    glassContentNODE.innerHTML = '';
-                    setAllGlasses(single_case_for_glass_page)
-                    currentCase = single_case_for_glass_page
+                    currentCase = case_details
+                    currentUserCorId = case_details.patient_id
 
-                    caseLabelNode.innerHTML = single_case_for_glass_page.case_code
-                    caseMicroDescriptionTextareaNODE.value = single_case_for_glass_page.microdescription || ""
-                    casePathohistologicalConclusionTextareaNODE.value = single_case_for_glass_page.pathohistological_conclusion || ""
+                    caseLabelNode.innerHTML = case_details.case_code
+                    caseMicroDescriptionTextareaNODE.value = case_details.microdescription || ""
+                    casePathohistologicalConclusionTextareaNODE.value = case_details.pathohistological_conclusion || ""
 
                     activeGlasses = []
-                    activeGlassCountNode.style.display = "none";
+
+                    fetch(`${API_BASE_URL}/api/doctor/patients/${case_details.patient_id}`, {
+                        method: "GET",
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        },
+                    })
+                        .then(res => res.json())
+                        .then(userData => {
+                            document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
+                            document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
+                            document.querySelector('#userAge').innerHTML = `${userData.age}р`;
+                        })
                 })
         });
         return caseNewNODE
@@ -458,7 +473,7 @@
 
     const switchRole = () => {
         document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
-            window.location.href = `/static/lab.html?userCorId=${currentCase.patient_id}`
+            window.location.href = `/static/lab.html?userCorId=${currentUserCorId}`
         })
     }
     const goToTab = () => {
