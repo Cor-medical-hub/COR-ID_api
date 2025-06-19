@@ -59,7 +59,6 @@ services:
       - $CORID_GRAFANA_PORT:3000
     volumes: 
     - grafana-storage:/var/lib/grafana 
-    restart: unless-stopped 
     depends_on:
       - loki
 
