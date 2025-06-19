@@ -1488,8 +1488,8 @@ class FinalReportResponseSchema(BaseModel):
 
 
 class PatientFinalReportPageResponse(BaseModel):
-    all_cases: List[Case]
-    last_case_details: Case
+    all_cases: Optional[List[Case]] = None
+    last_case_details: Optional[Case] = None
     report_details: Optional[FinalReportResponseSchema]
     class Config:
         from_attributes = True
