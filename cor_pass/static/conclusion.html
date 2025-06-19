@@ -189,9 +189,9 @@
     let activeSign = null;
     let activeGlasses = []
 
+    const reportGlassWrapperNODE = document.querySelector('#reportGlassWrapper')
+    const reportWrapperNODE = document.querySelector('#reportWrapper')
     const caseContentNODE = document.querySelector("#caseItems");
-    const glassContentNODE = document.querySelector("#glassItems");
-    const activeGlassCountNode = document.querySelector('#activeGlassCount');
     const caseLabelNode = document.querySelector('#searchCaseId');
     const caseMicroDescriptionTextareaNODE = document.querySelector('#caseMicroDescription');
     const casePathohistologicalConclusionTextareaNODE = document.querySelector('#casePathohistologicalConclusion');
@@ -237,7 +237,6 @@
         const formNODE = document.createElement('form')
         formNODE.setAttribute("id", "reportForm")
 
-        const reportWrapperNODE = document.querySelector('#reportWrapper')
         const reportHTmL = `
         <div class="conclusionTop df aic jcsb">
             <div class="conclusionTopLabel">
@@ -297,7 +296,6 @@
         sendReportHandler()
     }
     const setReportGlasses = (currentGlassReport, activeGlassReport) => {
-        const reportGlassWrapperNODE = document.querySelector('#reportGlassWrapper')
         const allGlasses = currentGlassReport.samples.reduce((allGlasses, sample) => {
             const allCassetteGlasses = sample.cassettes.reduce((allCassetteGlasses, cassette) => {
                 return [
@@ -392,20 +390,27 @@
             })
                 .then(res => res.json())
                 .then(caseData => {
-                    const {single_case_for_glass_page, case_details} = caseData;
+                    const {report_details, all_glasses_for_last_case, last_case_for_report} = caseData;
+
                     document.querySelector('.caseItem.active').classList.remove('active')
                     caseNewNODE.classList.add('active')
 
-                    currentCase = case_details
-                    currentUserCorId = case_details.patient_id
+                    reportWrapperNODE.innerHTML = ""
+                    reportGlassWrapperNODE.innerHTML = ""
 
-                    caseLabelNode.innerHTML = case_details.case_code
-                    caseMicroDescriptionTextareaNODE.value = case_details.microdescription || ""
-                    casePathohistologicalConclusionTextareaNODE.value = case_details.pathohistological_conclusion || ""
+                    currentCase = last_case_for_report;
+                    currentReport = report_details;
+                    activeGlasses = report_details.attached_glasses
+                    currentUserCorId = last_case_for_report.patient_id
 
-                    activeGlasses = []
+                    setReport(report_details, last_case_for_report);
+                    setReportGlasses(all_glasses_for_last_case, report_details.attached_glasses)
 
-                    fetch(`${API_BASE_URL}/api/doctor/patients/${case_details.patient_id}`, {
+                    caseLabelNode.innerHTML = last_case_for_report.case_code
+                    caseMicroDescriptionTextareaNODE.value = last_case_for_report.microdescription || ""
+                    casePathohistologicalConclusionTextareaNODE.value = last_case_for_report.pathohistological_conclusion || ""
+
+                    fetch(`${API_BASE_URL}/api/doctor/patients/${last_case_for_report.patient_id}`, {
                         method: "GET",
                         headers: {
                             'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
