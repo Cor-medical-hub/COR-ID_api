@@ -1085,12 +1085,14 @@ class ReferralResponse(BaseModel):
         from_attributes = True
 
 class ReferralResponseForDoctor(BaseModel):
-    id: str = Field(..., description="Referral ID")
-    case_id: str = Field(..., description="Сase ID")
-    case_number: str = Field(..., description="Сase Code")
-    pathohistological_conclusion: Optional[str] = None
-    microdescription: Optional[str] = None
-    attachments: List[ReferralAttachmentResponse] = [] # Список прикрепленных файлов
+    case_details: Optional[Case]
+    referral_id: Optional[str] = Field(..., description="Referral ID")
+    # case_id: str = Field(..., description="Сase ID")
+    # case_number: str = Field(..., description="Сase Code")
+    # pathohistological_conclusion: Optional[str] = None
+    # microdescription: Optional[str] = None
+    attachments: Optional[List[ReferralAttachmentResponse]] = [] # Список прикрепленных файлов
+    
 
     class Config:
         from_attributes = True
@@ -1206,6 +1208,7 @@ class FirstCaseReferralDetailsSchema(BaseModel):
 
 class PatientCasesWithReferralsResponse(BaseModel):
     all_cases: List[Case]
+    case_details: Optional[Case]
     first_case_direction: Optional[FirstCaseReferralDetailsSchema] = None
 
     class Config:
@@ -1347,8 +1350,9 @@ class ReportUpdateSchema(ReportBaseSchema):
 class ReportResponseSchema(BaseModel):
     id: str
     case_id: str
-    
-    macro_description_from_case_params: Optional[str] = None 
+    case_details: Optional[Case] = None 
+    macro_description_from_case_params: Optional[str] = None
+    microdescription_from_case: Optional[str] = None
 
     immunohistochemical_profile: Optional[str] = None
     molecular_genetic_profile: Optional[str] = None
@@ -1388,6 +1392,7 @@ class GlassTestModelScheema(BaseModel):
     id: str
     glass_number: int
     cassette_id: str
+    staining: Optional[str] = None
 
 
 class CassetteTestForGlassPage(BaseModel):
@@ -1436,6 +1441,7 @@ class FinalReportResponseSchema(BaseModel):
     report_date: Optional[date] = None
 
     # Пациент
+    patient_cor_id: Optional[str] = None
     patient_first_name: Optional[str] = None
     patient_surname: Optional[str] = None
     patient_middle_name: Optional[str] = None
