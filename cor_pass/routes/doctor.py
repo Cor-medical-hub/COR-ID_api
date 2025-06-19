@@ -453,26 +453,28 @@ async def get_single_referral(
     """
     referral = await case_service.get_referral_by_case(db=db, case_id=case_id)
     if not referral:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Referral not found")
+        referral = None
+
 
     # Генерируем URL для каждого прикрепленного файла
-    attachments_response = [
-        ReferralAttachmentResponse(
-            id=att.id,
-            filename=att.filename,
-            content_type=att.content_type,
-            file_url=cases_router.url_path_for("get_referral_attachment", attachment_id=att.id)
-        ) for att in referral.attachments
-    ]
+    if referral:
+        attachments_response = [
+            ReferralAttachmentResponse(
+                id=att.id,
+                filename=att.filename,
+                content_type=att.content_type,
+                file_url=cases_router.url_path_for("get_referral_attachment", attachment_id=att.id)
+            ) for att in referral.attachments
+        ]
 
     case_db = await case_service.get_single_case(db=db, case_id=case_id)
-    referral_response_obj = ReferralResponseForDoctor.model_validate(referral)
 
-    referral_response_obj.attachments = attachments_response
-    referral_response_obj.pathohistological_conclusion = case_db.pathohistological_conclusion
-    referral_response_obj.microdescription = case_db.microdescription
-
-    return referral_response_obj
+    response = ReferralResponseForDoctor(
+        case_details=case_db,
+        referral_id=referral.id if referral else None,
+        attachments=attachments_response if referral else None
+        )
+    return response
 
 
 
@@ -709,6 +711,10 @@ async def upsert_case_report(
 
 
 
+
+
+
+
 @router.post(
     "/cases/{case_id}/report/sign",
     response_model=ReportResponseSchema,
@@ -789,7 +795,7 @@ async def get_case_final_report_route(
 
 
 
-
+# Текущие кейсы 
 @router.get(
     "/current_cases/report-page-data", 
     response_model=PatientTestReportPageResponse,
@@ -810,8 +816,6 @@ async def get_current_cases_report_full_page_data_route(
     отсутствует, оно будет автоматически создано с пустыми полями.
     """
     return await case_service.get_current_cases_report_page_data(db=db, router=router, skip=skip, limit=limit)
-
-
 
 
 @router.get(
@@ -840,7 +844,6 @@ async def get_current_cases_with_directions_for_doctor(
     return patient_cases_data
 
 
-
 @router.get(
     "/current_cases/excision-details",
     response_model=PatientExcisionPageResponse,
@@ -861,9 +864,6 @@ async def get_patient_excision_page_data(
     excision_page_data = await case_service.get_current_case_details_for_excision_page(db=db, skip=skip, limit=limit)
         
     return excision_page_data
-
-
-
 
 
 @router.get(

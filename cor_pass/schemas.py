@@ -1085,12 +1085,14 @@ class ReferralResponse(BaseModel):
         from_attributes = True
 
 class ReferralResponseForDoctor(BaseModel):
-    id: str = Field(..., description="Referral ID")
-    case_id: str = Field(..., description="Сase ID")
-    case_number: str = Field(..., description="Сase Code")
-    pathohistological_conclusion: Optional[str] = None
-    microdescription: Optional[str] = None
-    attachments: List[ReferralAttachmentResponse] = [] # Список прикрепленных файлов
+    case_details: Optional[Case]
+    referral_id: Optional[str] = Field(..., description="Referral ID")
+    # case_id: str = Field(..., description="Сase ID")
+    # case_number: str = Field(..., description="Сase Code")
+    # pathohistological_conclusion: Optional[str] = None
+    # microdescription: Optional[str] = None
+    attachments: Optional[List[ReferralAttachmentResponse]] = [] # Список прикрепленных файлов
+    
 
     class Config:
         from_attributes = True
@@ -1206,6 +1208,7 @@ class FirstCaseReferralDetailsSchema(BaseModel):
 
 class PatientCasesWithReferralsResponse(BaseModel):
     all_cases: List[Case]
+    case_details: Optional[Case]
     first_case_direction: Optional[FirstCaseReferralDetailsSchema] = None
 
     class Config:

@@ -775,11 +775,10 @@ async def get_patient_cases_with_directions(
             )
 
     return PatientCasesWithReferralsResponse(
-        all_cases=all_cases, 
+        all_cases=all_cases,
+        case_details=first_case_db,
         first_case_direction=first_case_direction_details
     )
-
-
 
 
 
@@ -2609,7 +2608,8 @@ async def get_current_cases_with_directions(
             )
 
     return PatientCasesWithReferralsResponse(
-        all_cases=current_cases_list, 
+        all_cases=current_cases_list,
+        case_details=first_case_db,
         first_case_direction=first_case_direction_details
     )
 
