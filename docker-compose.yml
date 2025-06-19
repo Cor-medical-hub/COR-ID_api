@@ -57,8 +57,9 @@ services:
     container_name: grafana
     ports:
       - $CORID_GRAFANA_PORT:3000
-    volumes: 
-    - grafana-storage:/var/lib/grafana 
+    volumes:
+      - ${PWD}/grafana.ini.$CORID_ENV:/etc/grafana/grafana.ini
+      - grafana-storage:/var/lib/grafana 
     depends_on:
       - loki
 
