@@ -38,6 +38,7 @@ from cor_pass.repository.patient import add_existing_patient, register_new_patie
 from cor_pass.schemas import (
     CaseCreate,
     CaseFinalReportPageResponse,
+    CaseIDReportPageResponse,
     FinalReportResponseSchema,
     GetAllPatientsResponce,
     PatientFinalReportPageResponse,
@@ -672,9 +673,10 @@ async def get_patient_report_full_page_data_route(
     return await case_service.get_patient_report_page_data(db=db, patient_id=patient_id, router=router)
 
 
+
 @router.get(
     "/cases/{case_id}/report",
-    response_model=ReportResponseSchema,
+    response_model=CaseIDReportPageResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
     summary="Получить заключение конкретного кейса",
@@ -683,7 +685,7 @@ async def get_patient_report_full_page_data_route(
 async def get_case_report_route(
     case_id: str,
     db: AsyncSession = Depends(get_db),
-) -> ReportResponseSchema:
+) -> CaseIDReportPageResponse:
     """
     Этот маршрут возвращает подробности заключения для указанного кейса. 
     Если заключение для этого кейса отсутствует, оно будет автоматически создано с пустыми полями.
