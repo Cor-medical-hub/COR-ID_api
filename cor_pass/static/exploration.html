@@ -107,6 +107,7 @@
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
 
+    let currentUserCorId = PATIENT_COR_ID || null;
     let currentCase = null;
 
     const caseContentNODE = document.querySelector("#caseItems");
@@ -202,6 +203,7 @@
 
                     setReport(report_details)
                     currentCase = case_details
+                    currentUserCorId = case_details.patient_id
 
                     caseLabelNode.innerHTML = case_details.case_code
                     caseMicroDescriptionTextareaNODE.value = case_details.microdescription || ""
@@ -225,38 +227,11 @@
 
     const setReport = (currentCase) => {
         explorationContentNODE.innerHTML = ``;
-        const signatures = [
-            {
-                doctor: {
-                    first_name: "1",
-                    surname: "1",
-                    middle_name: "1",
-                },
-                signed_at: "2022-11-12",
-                doctor_signature: {
-                    signature_scan_data: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
-                }
-            },
-            {
-                doctor: {
-                    first_name: "2",
-                    surname: "2",
-                    middle_name: "2",
-                },
-                signed_at: "2022-11-12",
-                doctor_signature: {
-                    signature_scan_data: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
-                }
-            },
-        ]
-        const attached_glasses = [
-            {
-                file_url: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
-            },
-            {
-                file_url: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
-            },
-        ]
+        const signatures = currentCase.signatures;
+        currentCase.attached_glasses = currentCase.attached_glasses.map(data => ({
+            ...data,
+            file_url: "/cases/attachments/315163fc-db4b-41ca-9980-2054c1761af1"
+        }))
 
         explorationContentNODE.innerHTML = `
             <div class="report-container">
@@ -407,14 +382,14 @@
         `
 
         const allFiles = [
-            ...attached_glasses.map(({file_url}) => file_url),
+            ...currentCase.attached_glasses.map(({file_url}) => file_url),
             ...signatures.map(({doctor_signature}) => doctor_signature.signature_scan_data)
         ]
 
         Promise.all(allFiles.map(getImages))
             .then(filesBlob => {
-                const glassFiles = filesBlob.slice(0, attached_glasses.length)
-                const doctorFiles = filesBlob.slice(attached_glasses.length)
+                const glassFiles = filesBlob.slice(0, currentCase.attached_glasses.length)
+                const doctorFiles = filesBlob.slice(currentCase.attached_glasses.length)
 
                 glassFiles.forEach((blob) => {
                     const attachedGlassesReportNODE = document.querySelector('#attachedGlassesReport')
@@ -430,7 +405,7 @@
                     signaturesDoctorReportNODE.innerHTML += `
                     <div class="signoff-section">
                         <div class="signoff-left">
-                            <strong>Лікар-патологоанатом:</strong> ${currentDoctor.doctor.surname} ${currentDoctor.doctor.first_name} ${currentDoctor.doctor.middle_name}
+                            <strong>Лікар-патологоанатом:</strong> ${currentDoctor.doctor.last_name} ${currentDoctor.doctor.first_name} ${currentDoctor.doctor.middle_name}
                             <img src="${URL.createObjectURL(blob)}" alt="signature">
                         </div>
                         <div class="signoff-right"><strong>Дата:</strong> ${new Date(currentDoctor.signed_at).toLocaleDateString()}</div>
@@ -460,6 +435,7 @@
                     return;
                 }
 
+                currentUserCorId = last_case_details.patient_id
                 currentCase = last_case_details;
                 setReport(report_details)
 
@@ -484,7 +460,7 @@
 
     const switchRole = () => {
         document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
-            window.location.href = `/static/lab.html?userCorId=${currentCase.patient_id}`
+            window.location.href = `/static/lab.html?userCorId=${currentUserCorId}`
         })
     }
     const goToTab = () => {

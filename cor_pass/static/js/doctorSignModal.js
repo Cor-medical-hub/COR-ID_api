@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         drawDestroy();
         signsNODE.innerHTML = ""
         doctorSignCreateNODE.classList.remove('open')
+        doctorSignImgListNODE.classList.add('open')
 
         getAllDoctorSign()
     }
@@ -234,6 +235,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 method: "POST",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
                     doctor_signature_id: activeSign.id
@@ -254,8 +256,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     closeDoctorSignHandler();
     signFileChange();
     signReport();
+    openDirectionModal();
 
-    setTimeout(() => {
-        openDirectionModal();
-    }, 1000)
 })

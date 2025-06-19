@@ -122,6 +122,7 @@
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
 
+    let currentUserCorId = PATIENT_COR_ID || null;
     let currentCase = null;
     let currentGlasses = null;
     let activeGlasses = []
@@ -170,31 +171,31 @@
         })
     }
 
-    const caseTemplate = (currentCase, isActive) => {
+    const caseTemplate = (workCase, isActive) => {
         const caseNewNODE = document.createElement('div');
         caseNewNODE.classList.add('caseItem', 'df', 'aic', 'jcsb', ...(isActive ? ['active'] : []));
         caseNewNODE.innerHTML = `
             <div>
-                <div class="caseItemDate">27.03.2025</div>
-                <div class="caseItemLabel">S25B01251</div>
+                <div class="caseItemDate">${new Date(workCase.creation_date).toLocaleDateString()}</div>
+                <div class="caseItemLabel">${workCase.case_code}</div>
             </div>
             <div class="caseItemSample df aic jcc">
-                ${currentCase.bank_count}
+                ${workCase.bank_count}
             </div>
             <div>
                 <div class="infoPlate cassette">
-                    ${currentCase.cassette_count}
+                    ${workCase.cassette_count}
                 </div>
             </div>
             <div>
                 <div class="infoPlate glass">
-                    ${currentCase.glass_count}
+                    ${workCase.glass_count}
                 </div>
             </div>
         `;
 
         caseNewNODE.addEventListener("click", () => {
-            fetch(`${API_BASE_URL}/api/doctor/cases/${currentCase.id}/glass-details`, {
+            fetch(`${API_BASE_URL}/api/doctor/cases/${workCase.id}/glass-details`, {
                 method: "GET",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -209,6 +210,7 @@
                     glassContentNODE.innerHTML = '';
                     setAllGlasses(single_case_for_glass_page)
                     currentCase = single_case_for_glass_page
+                    currentUserCorId = single_case_for_glass_page.patient_cor_id
 
                     caseLabelNode.innerHTML = single_case_for_glass_page.case_code
                     caseMicroDescriptionTextareaNODE.value = single_case_for_glass_page.microdescription || ""
@@ -216,6 +218,21 @@
 
                     activeGlasses = []
                     activeGlassCountNode.style.display = "none";
+
+
+                    fetch(`${API_BASE_URL}/api/doctor/patients/${single_case_for_glass_page.patient_cor_id}`, {
+                        method: "GET",
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        },
+                    })
+                        .then(res => res.json())
+                        .then(userData => {
+                            document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
+                            document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
+                            document.querySelector('#userAge').innerHTML = `${userData.age}р`;
+
+                        })
                 })
         });
         return caseNewNODE
@@ -276,69 +293,85 @@
         currentGlasses = allGlasses;
     }
     const setAllCases = () => {
-        fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}`, {
+        const currentRoutePart = PATIENT_COR_ID ? `patients/${PATIENT_COR_ID}` : `current_cases`
+
+        fetch(`${API_BASE_URL}/api/doctor/${currentRoutePart}/glass-details`, {
             method: "GET",
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
             },
         })
             .then(res => res.json())
-            .then(userData => {
-                document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
-                document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                document.querySelector('#userAge').innerHTML = `${userData.age}р`;
-                fetch(`${API_BASE_URL}/api/doctor/patients/${PATIENT_COR_ID}/glass-details`, {
+            .then(cases => {
+                const {all_cases, first_case_details_for_glass} = cases;
+                all_cases.forEach((currentCase, index) => {
+                    caseContentNODE.append(caseTemplate(currentCase, !index))
+                })
+
+                if(!first_case_details_for_glass){
+                    return;
+                }
+
+                currentCase = first_case_details_for_glass;
+                currentUserCorId = first_case_details_for_glass.patient_cor_id
+                setAllGlasses(first_case_details_for_glass)
+
+                caseLabelNode.innerHTML = first_case_details_for_glass.case_code
+                caseMicroDescriptionTextareaNODE.value = first_case_details_for_glass.microdescription || ""
+                casePathohistologicalConclusionTextareaNODE.value = first_case_details_for_glass.pathohistological_conclusion || ""
+
+                fetch(`${API_BASE_URL}/api/doctor/patients/${first_case_details_for_glass.patient_cor_id}`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     },
                 })
                     .then(res => res.json())
-                    .then(cases => {
-                        const {all_cases, first_case_details_for_glass} = cases;
-                        all_cases.forEach((currentCase, index) => {
-                            caseContentNODE.append(caseTemplate(currentCase, !index))
-                        })
+                    .then(userData => {
+                        document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
+                        document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
+                        document.querySelector('#userAge').innerHTML = `${userData.age}р`;
 
-                        if(!first_case_details_for_glass){
-                            return;
-                        }
-
-                        currentCase = first_case_details_for_glass;
-                        setAllGlasses(first_case_details_for_glass)
-
-                        caseLabelNode.innerHTML = first_case_details_for_glass.case_code
-                        caseMicroDescriptionTextareaNODE.value = first_case_details_for_glass.microdescription || ""
-                        casePathohistologicalConclusionTextareaNODE.value = first_case_details_for_glass.pathohistological_conclusion || ""
                     })
             })
+
     }
 
     const switchRole = () => {
         document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
-            window.location.href = `/static/lab.html?userCorId=${PATIENT_COR_ID}`
+            window.location.href = `/static/lab.html?userCorId=${currentUserCorId}`
         })
     }
-
     const goToTab = () => {
         document.querySelectorAll(".tabs .tab:not(.active)").forEach(elem => {
             elem.addEventListener('click', e => {
                 console.log(currentCase, "currentCase")
                 const element = e.currentTarget;
+                let queryString = []
+
+                if(PATIENT_COR_ID){
+                    queryString.push(`userCorId=${PATIENT_COR_ID}`)
+                }
+
+                if(currentCase?.id){
+                    queryString.push(`caseId=${currentCase?.id}`)
+                }
+
+
                 if(element.classList.contains('directionPage')){
-                    window.location.href = `/static/direction.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/direction.html?${queryString.join('&')}`
                 }
                 if(element.classList.contains('tenderloinPage')){
-                    window.location.href = `/static/tenderloin.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/tenderloin.html?${queryString.join('&')}`
                 }
                 if(element.classList.contains('glassPage')){
-                    window.location.href = `/static/glass.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/glass.html?${queryString.join('&')}`
                 }
                 if(element.classList.contains('conclusionPage')){
-                    window.location.href = `/static/conclusion.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/conclusion.html?${queryString.join('&')}`
                 }
                 if(element.classList.contains('explorationPage')){
-                    window.location.href = `/static/exploration.html?userCorId=${PATIENT_COR_ID}&caseId=${currentCase?.id}`
+                    window.location.href = `/static/exploration.html?${queryString.join('&')}`
                 }
             })
         })
