@@ -61,7 +61,7 @@ from fastapi.responses import JSONResponse
 from collections import defaultdict
 from jose import JWTError, jwt
 
-from cor_pass.routes.cerbo_gx import create_modbus_client, close_modbus_client
+# from cor_pass.routes.cerbo_gx import create_modbus_client, close_modbus_client
 import logging
 
 from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
@@ -280,12 +280,12 @@ async def startup():
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
     initialize_ip2location()
-    await create_modbus_client(app)
+    await cerbo_gx.create_modbus_client(app)
     # asyncio.create_task(cerbo_GX.read_modbus_and_cache())
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    await close_modbus_client(app)
+    await cerbo_gx.close_modbus_client(app)
 
 auth_attempts = defaultdict(list)
 blocked_ips = {}
