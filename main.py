@@ -50,7 +50,7 @@ from cor_pass.routes import (
     svs_router,
     lab_assistants,
     energy_managers,
-    cerbo_gx
+    cerbo_routes
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
@@ -280,12 +280,12 @@ async def startup():
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
     initialize_ip2location()
-    await cerbo_gx.create_modbus_client(app)
+    await cerbo_routes.create_modbus_client(app)
     # asyncio.create_task(cerbo_GX.read_modbus_and_cache())
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    await cerbo_gx.close_modbus_client(app)
+    await cerbo_routes.close_modbus_client(app)
 
 auth_attempts = defaultdict(list)
 blocked_ips = {}
@@ -312,7 +312,7 @@ app.include_router(printing_device.router, prefix="/api")
 app.include_router(printer.router, prefix="/api")
 app.include_router(websocket_events.router, prefix="/api")
 app.include_router(lab_assistants.router, prefix="/api")
-app.include_router(cerbo_gx.router, prefix="/api")
+app.include_router(cerbo_routes.router, prefix="/api")
 app.include_router(energy_managers.router, prefix="/api")
 # app.include_router(cerbo_router, prefix="/api") # Change router
 if __name__ == "__main__":
