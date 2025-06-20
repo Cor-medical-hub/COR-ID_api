@@ -49,7 +49,7 @@ from cor_pass.routes import (
     websocket_events,
     svs_router,
     lab_assistants,
-    cerbo_GX,
+    # cerbo_gx,
     energy_managers
 )
 from cor_pass.config.config import settings
@@ -61,6 +61,7 @@ from fastapi.responses import JSONResponse
 from collections import defaultdict
 from jose import JWTError, jwt
 
+from cor_pass.routes.cerbo_gx import router as cerbo_router, create_modbus_client, close_modbus_client
 import logging
 
 from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
@@ -279,8 +280,12 @@ async def startup():
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
     initialize_ip2location()
+    await create_modbus_client(app)
     # asyncio.create_task(cerbo_GX.read_modbus_and_cache())
 
+@app.on_event("shutdown")
+async def shutdown_event():
+    await close_modbus_client(app)
 
 auth_attempts = defaultdict(list)
 blocked_ips = {}
@@ -307,9 +312,9 @@ app.include_router(printing_device.router, prefix="/api")
 app.include_router(printer.router, prefix="/api")
 app.include_router(websocket_events.router, prefix="/api")
 app.include_router(lab_assistants.router, prefix="/api")
-app.include_router(cerbo_GX.router, prefix="/api")
+# app.include_router(cerbo_gx.router, prefix="/api")
 app.include_router(energy_managers.router, prefix="/api")
-
+app.include_router(cerbo_router, prefix="/api")
 if __name__ == "__main__":
     uvicorn.run(
         app="main:app",
