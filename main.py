@@ -314,7 +314,7 @@ app.include_router(websocket_events.router, prefix="/api")
 app.include_router(lab_assistants.router, prefix="/api")
 app.include_router(cerbo_gx.router, prefix="/api")
 app.include_router(energy_managers.router, prefix="/api")
-# app.include_router(cerbo_router, prefix="/api")
+# app.include_router(cerbo_router, prefix="/api") # Change router
 if __name__ == "__main__":
     uvicorn.run(
         app="main:app",
