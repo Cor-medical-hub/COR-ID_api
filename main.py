@@ -49,7 +49,6 @@ from cor_pass.routes import (
     websocket_events,
     svs_router,
     lab_assistants,
-    # cerbo_gx,
     energy_managers
 )
 from cor_pass.config.config import settings
