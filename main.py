@@ -49,7 +49,8 @@ from cor_pass.routes import (
     websocket_events,
     svs_router,
     lab_assistants,
-    energy_managers
+    energy_managers,
+    cerbo_gx
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
@@ -60,7 +61,7 @@ from fastapi.responses import JSONResponse
 from collections import defaultdict
 from jose import JWTError, jwt
 
-from cor_pass.routes.cerbo_gx import router as cerbo_router, create_modbus_client, close_modbus_client
+from cor_pass.routes.cerbo_gx import create_modbus_client, close_modbus_client
 import logging
 
 from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
@@ -311,9 +312,9 @@ app.include_router(printing_device.router, prefix="/api")
 app.include_router(printer.router, prefix="/api")
 app.include_router(websocket_events.router, prefix="/api")
 app.include_router(lab_assistants.router, prefix="/api")
-# app.include_router(cerbo_gx.router, prefix="/api")
+app.include_router(cerbo_gx.router, prefix="/api")
 app.include_router(energy_managers.router, prefix="/api")
-app.include_router(cerbo_router, prefix="/api")
+# app.include_router(cerbo_router, prefix="/api")
 if __name__ == "__main__":
     uvicorn.run(
         app="main:app",
