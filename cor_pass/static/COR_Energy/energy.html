@@ -19,11 +19,11 @@
     
         <div class="connection-status">
             <span id="connectionIndicator" class="status-indicator"></span>
-            Соединение с сервером  <p>Сигнал, dBm.: <span id="Signal">0</span></p>
+            Соединение с сервером 
         </div>
              
     
-        <h2>Control Panel</h2>
+        <h2>COR-Energy Трасса E-95</h2>
 
 
         <!-- Вкладки -->
@@ -35,44 +35,48 @@
 
 		 <!-- Вкладка Управление -->
 <div id="control" class="tabcontent active">
-   
+
              <!-- Иконка батареи -->
              <div class="icon battery-icon" id="batteryIcon">
                 <div id="batteryFlowLabel" style="text-align: center; margin-bottom: -20px; font-size: 14px; font-weight: bold;">
                     Заряд/Разряд батареи
                 </div>
-                <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
-                     width="260" height="260" viewBox="0 0 3600 1560" style="border: 0px solid red" preserveAspectRatio="xMidYMid meet">
-                     <rect id="batteryFlowFrame" x="0" y="-500" width="3050" height="360" fill="none" stroke="#333333" stroke-width="20"></rect>
-                     <line x1="1525" y1="-180" x2="1525" y2="-500" stroke="#333333" stroke-width="20" stroke-dasharray="40"></line>
-                     <rect id="batteryFlowIndicator" x="1650" y="-500" width="0" height="350" fill="green" />
-                    <!-- Заливка, изменяющаяся по уровню заряда -->
-                    
-                    <rect id="batteryFill" x="330" y="110" width="2600" height="1400" fill="green" />
-                    <!-- Контур батарейки -->
-                    <g fill="none" stroke="black" stroke-width="100">
-                        <path d="M415 1500 c-63 -31 -116 -93 -132 -153 -7 -28 -13 -100 -13 -159 l0
-                            -108 -108 0 c-71 0 -112 -4 -120 -12 -17 -17 -17 -569 0 -586 8 -8 49 -12 120
-                            -12 l108 0 0 -104 c0 -154 11 -200 62 -253 24 -24 61 -52 84 -63 39 -20 66
-                            -20 1255 -20 1377 0 1275 -6 1353 81 24 26 46 62 50 80 11 56 7 1131 -5 1173
-                            -6 21 -28 58 -50 81 -74 80 18 75 -1348 75 -1197 0 -1217 0 -1256 -20z m2511
-                            -93 c23 -15 46 -39 53 -53 17 -38 15 -1141 -2 -1172 -7 -12 -31 -32 -52 -45
-                            l-40 -22 -1205 0 -1205 0 -39 24 c-67 42 -66 29 -66 631 0 580 0 581 51 629
-                            13 12 37 26 54 30 17 5 549 9 1220 8 l1190 -2 41 -28z"/>
-                    </g>
-                </svg>     
+                <svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="260" height="260" viewBox="0 0 3600 1560" style="border: 0px solid red" preserveAspectRatio="xMidYMid meet">
+                    <rect id="batteryFlowFrame" x="0" y="-500" width="3050" height="360" fill="none" stroke="#333333" stroke-width="20"></rect>
+                    <line x1="1525" y1="-180" x2="1525" y2="-500" stroke="#333333" stroke-width="20" stroke-dasharray="40"></line>
+                    <rect id="batteryFlowIndicator" x="1525" y="-500" width="14.201174" height="350" fill="rgb(6, 255, 0)"></rect>
+                   <!-- Заливка, изменяющаяся по уровню заряда -->
+                   
+                   <rect id="batteryFill" x="1032" y="720" width="1938" height="1400" fill="rgb(122.4, 255, 0)"></rect>
+                   <!-- Лимит разряда -->
+                   <line id="batteryLimitLine" x1="1950" y1="720" x2="1950" y2="2200" stroke="red" stroke-width="15" opacity="1"></line>
+                   <text id="batteryLimitText" x="2130" y="1570" fill="red" font-size="200" text-anchor="middle" opacity="1">min</text>
+                   <!-- Контур батарейки -->
+                   <g transform="translate(0.000000,650.000000) scale(1.00000,1.00000)" fill="none" stroke="black" stroke-width="100">
+                       <path d="M415 1500 c-63 -31 -116 -93 -132 -153 -7 -28 -13 -100 -13 -159 l0
+                           -108 -108 0 c-71 0 -112 -4 -120 -12 -17 -17 -17 -569 0 -586 8 -8 49 -12 120
+                           -12 l108 0 0 -104 c0 -154 11 -200 62 -253 24 -24 61 -52 84 -63 39 -20 66
+                           -20 1255 -20 1377 0 1275 -6 1353 81 24 26 46 62 50 80 11 56 7 1131 -5 1173
+                           -6 21 -28 58 -50 81 -74 80 18 75 -1348 75 -1197 0 -1217 0 -1256 -20z m2511
+                           -93 c23 -15 46 -39 53 -53 17 -38 15 -1141 -2 -1172 -7 -12 -31 -32 -52 -45
+                           l-40 -22 -1205 0 -1205 0 -39 24 c-67 42 -66 29 -66 631 0 580 0 581 51 629
+                           13 12 37 26 54 30 17 5 549 9 1220 8 l1190 -2 41 -28z"></path>
+                   </g>
+               </svg>
             </div>
 
 
 
                <!-- Иконка солнечной батареи -->
                <div class="icon solar-battery-icon" id="SolarBatteryIcon">
+                <div id="solarPowerLabel" style="text-align: center; margin-bottom: 4px; font-size: 14px; font-weight: bold;">Мощность: 0 Вт</div>
                 <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
-                width="240.000000pt" height="240.000000pt" viewBox="0 0 512.000000 512.000000" style="border: 1px solid red"
+                width="240.000000pt" height="190.000000pt" viewBox="0 0 512.000000 512.000000" style="border: 0px solid red"
                 preserveAspectRatio="xMidYMid meet">
-                
-                <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
-                fill="#000000" stroke="none">
+                <rect x="0" y="20" width="550" height="50" rx="0" ry="0" stroke="#333333" stroke-width="2" fill="#fff"></rect>
+                <rect id="solarPowerIndicator" x="0" y="20" width="0" height="50" rx="0" ry="0" fill="green"></rect>
+           
+                <g transform="translate(-80.000000,512.000000) scale(0.1300000,-0.100000)" fill="#000000" stroke="none">
                 <path d="M2465 4098 c-11 -6 -23 -16 -27 -22 -4 -6 -8 -75 -8 -153 0 -130 2
                 -145 20 -163 25 -25 61 -26 91 -1 22 18 24 27 27 137 4 138 -7 190 -44 204
                 -31 12 -34 12 -59 -2z"/>
@@ -118,7 +122,7 @@
                         <div class="icon inverter-icon" id="inverterIcon">
                         
                     <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
-                        width="160.000000pt" height="160.000000pt" viewBox="0 0 172.000000 85.000000" style="border: 1px solid red"
+                        width="160.000000pt" height="160.000000pt" viewBox="0 0 172.000000 85.000000" style="border: 0px solid red"
                         preserveAspectRatio="xMidYMid meet">
                        
                         <g transform="translate(-120.000000,110.000000) scale(0.1600000,-0.1600000)" fill="#000000" stroke="none">
@@ -243,7 +247,7 @@
                     Состояние сети
                   </div>
                 <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
-                width="220.000000pt" height="220.000000pt" viewBox="0 0 2000.000000 2000.000000" style="border: 1px solid red"
+                width="220.000000pt" height="220.000000pt" viewBox="0 0 2000.000000 2000.000000" style="border: 0px solid red"
                 preserveAspectRatio="xMidYMid meet">
                 <rect x="0" y="180" width="1900" height="180" rx="0" ry="0" fill="none" stroke="#333333" stroke-width="10"></rect>
                 <rect id="loadIndicator" x="0" y="180" width="0" height="180" rx="0" ry="0" fill="green" />
@@ -287,13 +291,58 @@
             634 -223 808 -66 43 -197 90 -253 92 -21 0 1 9 61 24 125 32 210 81 302 174
             224 226 241 570 42 824 -46 59 -137 134 -202 167 -49 25 -166 60 -204 61 -21
             1 -4 7 49 20 129 32 218 81 310 174 118 118 171 235 182 401 16 253 -120 487
-            -350 598 -145 71 51 66 -2779 65 -1404 -1 -2566 -4 -2583 -6z"/>
-            <!-- Индикатор нагрузки (прямоугольник с заливкой) -->
-           
+            -350 598 -145 71 51 66 -2779 65 -1404 -1 -2566 -4 -2583 -6z"/> 
             </g>
-            </svg>
-            
+            </svg>  
         </div>
+
+       
+        <svg width="540" height="600" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="flowLoad" patternUnits="userSpaceOnUse" width="20" height="20">
+                    <rect id="loadFlowRect" width="10" height="20" fill="#00ff00"></rect>
+                    <animateTransform id="loadFlowAnim" attributeName="patternTransform" type="translate" from="0,0" to="40,0" dur="1s" repeatCount="indefinite"></animateTransform>
+              </pattern>
+              <pattern id="flowGrid" patternUnits="userSpaceOnUse" width="20" height="20">
+                <rect id="gridFlowRect" width="10" height="20" fill="#00ff00"></rect>
+                <animateTransform id="gridFlowAnim" attributeName="patternTransform" type="translate" from="40,0" to="0,0" dur="1s" repeatCount="indefinite"></animateTransform>
+              </pattern>
+              <pattern id="flowSolarV" patternUnits="userSpaceOnUse" width="20" height="20">
+                    <rect id="solarFlowRectV" width="20" height="10" fill="#00ff00"></rect>
+                    <animateTransform id="solarFlowAnimV" attributeName="patternTransform" type="translate" from="0,40" to="0,0" dur="1s" repeatCount="indefinite"></animateTransform>
+              </pattern>
+              <pattern id="flowSolarH" patternUnits="userSpaceOnUse" width="20" height="20">
+                    <rect id="solarFlowRectH" width="10" height="20" fill="#00ff00"></rect>
+                    <animateTransform id="solarFlowAnimH" attributeName="patternTransform" type="translate" from="40,0" to="0,0" dur="1s" repeatCount="indefinite"></animateTransform>
+              </pattern>
+              <pattern id="flowBatteryH" patternUnits="userSpaceOnUse" width="20" height="20">
+                <rect id="batteryFlowRectH" width="10" height="20" fill="#00ff00"></rect>
+                <animateTransform id="batteryFlowAnimH" attributeName="patternTransform" type="translate" from="40,0" to="0,0" dur="1s" repeatCount="indefinite"></animateTransform>
+              </pattern>
+              <pattern id="flowBatteryV" patternUnits="userSpaceOnUse" width="20" height="20">
+                    <rect id="batteryFlowRectV" width="20" height="10" fill="#00ff00"></rect>
+                    <animateTransform id="batteryFlowAnimV" attributeName="patternTransform" type="translate" from="0,00" to="0,40" dur="1s" repeatCount="indefinite"></animateTransform>
+              </pattern>
+            </defs>
+
+            <!--Линия нагрузки-->
+            <polyline points="320,200 530,200" fill="none" stroke="black" stroke-width="10" stroke-linejoin="round"></polyline>
+            <polyline id="loadFlowLine" points="320,200 530,200" fill="none" stroke="url(#flowLoad)" stroke-width="6" stroke-linejoin="round"></polyline>
+            <!--Линия сети-->
+            <polyline points="20,200 165,200" fill="none" stroke="black" stroke-width="10" stroke-linejoin="round"></polyline>
+            <polyline id="networkFlowLine" points="20,200 165,200" fill="none" stroke="url(#flowGrid)" stroke-width="6" stroke-linejoin="round"></polyline>
+            <!--Линия солнечных панелей-->
+            <polyline points="280,340 280,523" fill="none" stroke="black" stroke-width="10" stroke-linejoin="round"></polyline>
+            <polyline points="280,518 460,518" fill="none" stroke="black" stroke-width="10" stroke-linejoin="round"></polyline>
+            <polyline id="solarLineV" points="280,340 280,521" fill="none" stroke="url(#flowSolarV)" stroke-width="6" stroke-linejoin="round"></polyline>
+            <polyline id="solarLineH" points="277,518 460,518" fill="none" stroke="url(#flowSolarH)" stroke-width="6" stroke-linejoin="round"></polyline>
+            <!--Линия батарей-->
+            <polyline points="200,340, 200,523" fill="none" stroke="black" stroke-width="10" stroke-linejoin="round"></polyline>
+            <polyline points="200,518 50,518" fill="none" stroke="black" stroke-width="10" stroke-linejoin="round"></polyline>
+            <polyline id="batteryLineV" points="200,340, 200,521" fill="none" stroke="url(#flowBatteryV)" stroke-width="6" stroke-linejoin="round"></polyline>
+            <polyline id="batteryLineH" points="200,518 50,518" fill="none" stroke="url(#flowBatteryH)" stroke-width="6" stroke-linejoin="round"></polyline>       
+          </svg>
+        
 </div>
 
         <!-- Контент вкладки Мониторинг -->
@@ -352,30 +401,30 @@
 
        <!-- Модальные окна -->
 
-                  <!-- Модальное окно настроек батареи -->
-
-                  <div id="batteryModal" class="modal" style="display:none;">
-                    <div class="modal-header">
-                      <div class="modal-buttons">
-                        <button class="modal-button close" data-action="close" id="closeBattery">✖</button>
-                      </div>
-                      <h3 style="margin-top:30; color:#291161;font-size: 17px;">Информация о батарее</h3>
-                    </div>   
-                        <p>Текущее напряжение, В: <span id="batt_voltage">0</span></p>
-                        <p>Ток заряда/разряда, A: <span id="batt_curr">0</span></p>
-                        <p>Уровень заряда, %: <span id="chargeLevel">0</span></p>
-                        <p>Мощность,Вт : <span id="PowerLevel">0</span></p>
-                        <p>Температура, : <span id="Bat_Temp">0</span></p>
-                        <p>Порог разряда: <span id="vebusSOC">--</span> %</p>
-                       
-                        <!-- Ползунок для установки нижнего предела разряда батареи -->
-                      <!-- <label for="maxCurrentRange">Порог разряда, %: <span id="Bus_State_Of_Сharge">1</span></label>--> 
-                        <input type="range" id="State_Of_Сharge" min="0" max="80" step="1" value="40"  style="width: 300px;">
-                        <!-- Кнопка Сохранить -->
-                        <button onclick="saveBatterySettings()">Сохранить</button>
-                        <div id="confirmationMessage" style="margin-top: 10px; color: rgb(11, 226, 11); display: none;"></div>
-                    
+        <!-- Модальное окно настроек батареи -->
+        <div id="batteryModal" class="modal" style="display:none;">
+            <div class="modal-header">
+                <div class="modal-buttons">
+                    <button class="modal-button close" data-action="close" id="closeBattery">✖</button>
                 </div>
+                <h3 style="margin-top:30; color:#291161;font-size: 17px;">Информация о батарее</h3>
+            </div>   
+            <p>Текущее напряжение, В: <span id="batt_voltage">0</span></p>
+            <p>Ток заряда/разряда, A: <span id="batt_curr">0</span></p>
+            <p>Уровень заряда, %: <span id="chargeLevel">0</span></p>
+            <p>Мощность,Вт : <span id="PowerLevel">0</span></p>
+            <p>Температура,: <span id="Bat_Temp">0</span>°C</p>
+            <p>Порог разряда: <span id="vebusSOC">--</span> %</p>
+ 
+              <!-- Ползунок для установки нижнего предела разряда батареи -->
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="range" id="State_Of_Сharge" min="0" max="99" step="1" value="40" style="width: 250px;">
+                <span id="socSliderValue">40</span>%
+            </div>
+            <!-- Кнопка Сохранить -->
+            <button id="saveBatteryButton" onclick="saveBatterySettings()" disabled>Сохранить</button>
+            <div id="confirmationMessage" style="margin-bottom: 10px; color: rgb(11, 226, 11); display: none;"></div>             
+        </div>
 
             <!-- Модальное окно параметров нагрузки -->
         <div id="loadSettingsModal" class="modal" style="display:none;">
@@ -502,9 +551,60 @@
             </div>
         </div>
 
-       
-        <script>
+        <!-- Модальное окно Солнечных панелей -->
+            <div id="SolarModal" class="modal" style="display:none; position: fixed; top: 10vh; left: 50%; transform: translateX(-50%); height: 40vh;  box-shadow: 0 0 15px rgba(0,0,0,0.2);  flex-direction: column;">
 
+                <!-- Фиксированный заголовок -->
+                <div class="modal-header" style=" padding: 1px;  position: sticky; top: 0; z-index: 10;">
+                    <div class="modal-buttons" style="float: right;">
+                        <button class="modal-button close" data-action="close" id="closeSolarModal">✖</button>
+                    </div>
+                    <h3 style="margin: 0; color:#291161; font-size: 17px;">Параметры панелей</h3>
+                </div>
+                <div class="cards-scroll-area" style="max-height:240px ;">
+                <!-- Прокручиваемая часть -->
+                <div id="solarTableContainer" style="overflow-y: auto; flex: 1 1 auto; padding: 10px;">
+                    <!-- Таблицы добавляются динамически -->
+                </div>
+               </div>
+                <!-- Фиксированная нижняя часть -->
+                <div style="flex: 0 0 auto; padding: 30px;  position: sticky; bottom: 0;">
+                    <p style="font-weight: bold;font-size: 16px; margin: 0;">🔆 Общая мощность MPPT: <span id="totalAllPower">0</span> Вт</p>
+                </div>
+
+                <!-- Шаблон таблицы -->
+                <template id="solarTableTemplate">
+                    <table class="phase-table" style="margin-bottom: 20px; width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th colspan="4" class="charger-title">MPPT</th>
+                            </tr>
+                            <tr>
+                                <th>Панель</th>
+                                <th>Напряжение (В)</th>
+                                <th>Ток (А)</th>
+                                <th>Мощность (Вт)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="table-body">
+                            <!-- Строки панелей будут добавлены JS -->
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3"><strong>Итого по устройству</strong></td>
+                                <td><strong class="device-total">0</strong> Вт</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </template>
+            </div>
+
+
+        <script>
+// Глобальные переменные
+            let initialSocValue = 40;
+            let socChangeTimeout = null;
+            let isSliderChanged = false; // Флаг изменения ползунка
         const modeNames = {
             1: "Charger Only",
             2: "Inverter Only",
@@ -527,8 +627,32 @@
 
                     document.addEventListener('DOMContentLoaded', fetchGridLimitingStatus);
                     document.getElementById("ac_setpoint_fine_slider").addEventListener("input", function() {
-                        document.getElementById("ac_setpoint_fine_value").textContent = this.value;
-                    });        
+                    document.getElementById("ac_setpoint_fine_value").textContent = this.value;
+                    });       
+                    
+                    
+// Обработчик изменения ползунка батареи
+document.getElementById('State_Of_Сharge').addEventListener('input', function() {
+    const newValue = this.value;
+    const saveButton = document.getElementById('saveBatteryButton');
+    document.getElementById('socSliderValue').textContent = newValue;
+    
+    isSliderChanged = true;
+    
+    // Сбрасываем предыдущий таймер, если он есть
+    if (socChangeTimeout) {
+        clearTimeout(socChangeTimeout);
+    }
+    saveButton.disabled = false; 
+    // Устанавливаем новый таймер на 3 секунды
+    socChangeTimeout = setTimeout(() => {
+        resetSocSlider();
+        showConfirmationMessage("Изменения не сохранены!!!", false);
+    }, 4000);
+});
+
+                    
+
         </script>
 
 
@@ -692,14 +816,16 @@ function toggleVisibility() {
      setInterval(() => {
         tick++;
         
-        if (tick % 2 === 0) fetchStatus();
+        if (tick % 13 === 0) fetchSolarChargerStatus();
         if (tick % 3 === 0) fetchInverterPowerStatus();
         if (tick % 4 === 0) fetchEssAcStatus();
         if (tick % 5 === 0) fetchVebusStatus();
         if (tick % 6 === 0) fetchEss();
         if (tick % 7 === 0) fetchEssAdvancedSettings();
+        if (tick % 9 === 0) fetchStatus();
+
         if (tick >= 60) tick = 0;
-      }, 200);
+      }, 100);
     
         // Первая загрузка
         fetchEss();
@@ -708,6 +834,7 @@ function toggleVisibility() {
         fetchEssAcStatus();
         fetchVebusStatus(); 
         fetchEssAdvancedSettings();
+        fetchSolarChargerStatus();
      
     </script>
     
