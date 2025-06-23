@@ -144,13 +144,13 @@ footer {
     left: 20px; /* Горизонтальная позиция */
 }
 .solar-battery-icon {
-    top: 270px;
+    top: 360px;
     left: 570px;
 }
 
 .inverter-icon {
     top: 160px;
-    left: 300px;
+    left: 315px;
 }
 
 .power-grid-icon {
@@ -243,28 +243,6 @@ footer {
     text-align:left; /* Выравниваем текст */
 }
 
-/* Ползунок (input[type="range"]) оставляем как есть */
-.input-row input[type="range"] {
-    flex: 0; /* Ползунок растягивается по ширине */
-}
-
-/* Кнопка Сохранить */
-button {
-    margin-top: 20px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    padding: 8px 12px; /* Уменьшаем высоту и ширину кнопок */
-    margin-right: 5px; /* Разделяем кнопки отступом */
-}
- 
-button:hover {
-    background-color: #337e37;
-}
-
 .switches-container {
     display: flex;
     flex-wrap: wrap;
@@ -290,4 +268,15 @@ button:hover {
 /* Если соединение активное — цвет зелёный */
 .status-indicator.active {
     background-color: rgb(7, 206, 7);
+}
+
+
+#gridInverterLine {
+    pointer-events: none;
+    z-index: 5;
+}
+
+#gridInverterLine1Anim, 
+#gridInverterLine2Anim {
+    transition: stroke 0.3s ease;
 }

@@ -1,148 +1,5 @@
 
-function updateBatteryFlow(power) {
-    const indicator = document.getElementById('batteryFlowIndicator');
-    const label = document.getElementById('batteryFlowLabel');
 
-    const maxPower = 100000;  // Вт
-    const maxWidth = 1300;   // Половина общей ширины (2600 / 2)
-    const centerX = 1525;    // Центр батареи
-
-    const clampedPower = Math.max(-maxPower, Math.min(maxPower, power));
-    const absPower = Math.abs(clampedPower);
-    const fillWidth = (absPower / maxPower) * maxWidth;
-
-    const xPosition = clampedPower >= 0
-        ? centerX
-        : centerX - fillWidth;
-
-    // Цвет: зелёный (заряд) → красный (разряд)
-    const level = absPower / maxPower;
-    let fillColor;
-    if (level <= 0.5) {
-        const r = Math.round(510 * level);
-        fillColor = `rgb(${r}, 255, 0)`;  // зелёный → жёлтый
-    } else {
-        const g = Math.round(255 - (level - 0.5) * 510);
-        fillColor = `rgb(255, ${g}, 0)`;  // жёлтый → красный
-    }
-
-    indicator.setAttribute('x', xPosition);
-    indicator.setAttribute('width', fillWidth);
-    indicator.setAttribute('fill', fillColor);
-
-    const kilowatts = (clampedPower / 1000).toFixed(1).replace('-0.0', '0.0');
-    if (clampedPower < 0) {
-        label.textContent = `Разряд: ${Math.abs(kilowatts)} кВт`;
-    } else if (clampedPower > 0) {
-        label.textContent = `Заряд: ${kilowatts} кВт`;
-    } else {
-        label.textContent = `Нет потока`;
-    }
-}
-
-
-
-  // Функция для обновления индикатора нагрузки
-  function updateLoadIndicator(powerKw) {
-    const maxWidth = 2000;  // Максимальная ширина индикатора (в SVG)
-    const maxPower = 110;   // Максимальная мощность (кВт)
-
-    // Ограничиваем мощность
-    powerKw = Math.min(Math.max(powerKw, 0), maxPower);
-
-    // Вычисляем ширину в пикселях
-    const width = (powerKw / maxPower) * maxWidth;
-
-    // Цвет от зелёного к красному
-    const hue = (1 - (powerKw / maxPower)) * 120;
-    const color = `hsl(${hue}, 100%, 50%)`;
-
-    // Обновляем атрибуты SVG
-    const indicator = document.getElementById('loadIndicator');
-    if (indicator) {
-        indicator.setAttribute('width', width);
-        indicator.setAttribute('fill', color);
-    }
-
-
-    const label = document.getElementById('loadIndicatorLabel');
-    if (label) {
-        const text = `Нагрузка:${powerKw.toFixed(1)} кВт`;
-        label.textContent = text;
-    }
-}
-
-
-function updateNetworkFlow(power) {
-    const indicator = document.getElementById('networkFlowIndicator');
-    const label = document.getElementById('networkFlowLabel'); 
-    const maxPower = 14000;   // Максимальная мощность, Вт
-    const maxWidth = 80;      // Максимальная ширина заливки, px
-    const baseX = 83;         // Центр индикатора
-
-    // Ограничим мощность
-    const clampedPower = Math.max(-maxPower, Math.min(maxPower, power));
-    const absPower = Math.abs(clampedPower);
-
-    // Ширина индикатора
-    const fillWidth = (absPower / maxPower) * maxWidth;
-
-    // Положение по X
-    const xPosition = clampedPower >= 0 ? baseX - fillWidth : baseX;
-
-    // Цвет: зелёный → жёлтый → красный
-    const level = absPower / maxPower; // 0.0 – 1.0
-    let fillColor;
-
-    if (level <= 0.5) {
-        // от зелёного (0,255,0) к жёлтому (255,255,0)
-        const r = Math.round(510 * level); // 0 → 255
-        fillColor = `rgb(${r}, 255, 0)`;
-    } else {
-        // от жёлтого (255,255,0) к красному (255,0,0)
-        const g = Math.round(255 - (level - 0.5) * 510); // 255 → 0
-        fillColor = `rgb(255, ${g}, 0)`;
-    }
-
-    // Применяем атрибуты
-    indicator.setAttribute('x', xPosition);
-    indicator.setAttribute('width', fillWidth);
-    indicator.setAttribute('fill', fillColor);
-
-    const kilowatts = (clampedPower / 100).toFixed(1).replace('-0.0', '0.0');
-    if (clampedPower < 0) {
-        label.textContent = `Отдача: ${Math.abs(kilowatts)} кВт`;
-    } else if (clampedPower > 0) {
-        label.textContent = `Потребление: ${kilowatts} кВт`;
-    } else {
-        label.textContent = `Нет потока`;
-    }
-
-}
-
-
-// Обновляем ширину и цвет заливки в зависимости от уровня заряда
-function updateBatteryFill(level) {
-    const batteryFill = document.getElementById('batteryFill');
-    
-    // Рассчитываем сдвиг по оси X относительно уровня заряда
-    const maxFillWidth = 2550; // максимальная ширина батареи
-    const fillWidth = (level / 100) * maxFillWidth;
-    const xPosition = 420 + (maxFillWidth - fillWidth); // сдвиг вправо по мере разряда
-
-    // Меняем x-координату и ширину заливки
-    batteryFill.setAttribute('x', xPosition);
-    batteryFill.setAttribute('width', fillWidth);
-
-    // Меняем цвет заливки в зависимости от уровня заряда
-    if (level > 50) {
-        // От зеленого к желтому
-        batteryFill.setAttribute('fill', `rgb(${255 - (level - 50) * 5.1}, 255, 0)`);
-    } else {
-        // От желтого к красному
-        batteryFill.setAttribute('fill', `rgb(255, ${level * 5.1}, 0)`);
-    }
- }
 
  function updateBatteryModal(data) {
     document.getElementById('batt_voltage').textContent = data.voltage.toFixed(2);
@@ -252,7 +109,6 @@ async function fetchVebusStatus() {
 
         const data = await res.json();
         updateVebusDisplay(data);
-       
         return {
             success: true,
             data: data
@@ -336,9 +192,10 @@ function updateVebusDisplay(data) {
 }
 
 
-
+// Модифицированная функция сохранения
 async function saveBatterySettings() {
-    const sliderValue = parseInt(document.getElementById("State_Of_Сharge").value, 10);
+    const slider = document.getElementById('State_Of_Сharge');
+    const sliderValue = parseInt(slider.value, 10);
 
     try {
         const res = await fetch('/api/modbus/vebus/soc', {
@@ -352,58 +209,66 @@ async function saveBatterySettings() {
             throw new Error(error.detail || "Ошибка записи SOC");
         }
 
-        document.getElementById('confirmationMessage').textContent = "✅ Настройки сохранены";
-        document.getElementById('confirmationMessage').style.display = "block";
+        // Обновляем исходное значение после успешного сохранения
+        initialSocValue = sliderValue;
+        document.getElementById('vebusSOC').textContent = sliderValue;
+        isSliderChanged = false;
+
+        // Очищаем таймер
+        if (socChangeTimeout) {
+            clearTimeout(socChangeTimeout);
+            socChangeTimeout = null;
+        }
+
+        showConfirmationMessage("✅ Настройки сохранены", true);
+        return true;
     } catch (err) {
         console.error("❗ Ошибка установки порога SOC:", err);
-        document.getElementById('confirmationMessage').textContent = "❌ Ошибка сохранения";
-        document.getElementById('confirmationMessage').style.color = "red";
-        document.getElementById('confirmationMessage').style.display = "block";
+        showConfirmationMessage("❌ Ошибка сохранения", false);
+        resetSocSlider();
+        return false;
     }
 }
 
 
 async function fetchEss() {
     try {
-      const response = await fetch('/api/modbus/ess_settings', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-  
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Ошибка чтения ESS настроек');
-      }
-  
-      const data = await response.json();
-      const essMode = data.ess_mode;
-        document.getElementById('mode_display').innerText = modeNames[essMode] || "Неизвестно";
+        const response = await fetch('/api/modbus/ess_settings', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
 
-        const radios = document.getElementsByName('mode');
-        for (const radio of radios) {
-        radio.checked = parseInt(radio.value) === essMode;
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка чтения ESS настроек');
         }
-     // updateEssSettingsDisplay(data);
+
+        const data = await response.json();
         const socValue = data.minimum_soc_limit || 40;
-     //   document.getElementById('State_Of_Сharge').value = socValue;
+        updateBatteryLimitLine(socValue);
+        // Обновляем исходное значение только если ползунок не был изменен пользователем
+        if (!isSliderChanged) {
+            initialSocValue = socValue;
+            document.getElementById('State_Of_Сharge').value = socValue;
+            document.getElementById('socSliderValue').textContent = socValue;
+        }
+        
         document.getElementById('vebusSOC').textContent = socValue;
-      return {
-        success: true,
-        data: data
-      };
+
+        return {
+            success: true,
+            data: data
+        };
     } catch (err) {
-      console.error("❗ Ошибка получения ESS настроек:", err);
-      return {
-        success: false,
-        error: err.message || 'Modbus ошибка'
-      };
+        console.error("❗ Ошибка получения ESS настроек:", err);
+        return {
+            success: false,
+            error: err.message || 'Modbus ошибка'
+        };
     }
-  }
-
-
-
+}
 
 
 
@@ -437,6 +302,7 @@ function updateEssAdvancedDisplay(data) {
     document.getElementById("charge_voltage").textContent = data.max_charge_voltage + " В";
     document.getElementById("input1_src").textContent = formatInputSource(data.ac_input_1_source);
     document.getElementById("input2_src").textContent = formatInputSource(data.ac_input_2_source);
+
 }
 
 function formatInputSource(code) {
@@ -492,7 +358,7 @@ async function saveAcSetpointFine() {
 
 async function toggleGridLimitingStatus(enabled) {
     try {
-        const res = await fetch('/api/ess/grid_limiting_status', {
+        const res = await fetch('/api/modbus/ess/grid_limiting_status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -515,7 +381,7 @@ async function toggleGridLimitingStatus(enabled) {
 
 async function fetchGridLimitingStatus() {
     try {
-        const res = await fetch('/api/ess_advanced_settings');
+        const res = await fetch('/api/modbus/ess_advanced_settings');
         const data = await res.json();
 
         const switchElement = document.getElementById('gridLimitingSwitch');
@@ -527,4 +393,71 @@ async function fetchGridLimitingStatus() {
 
 async function handleGridLimitingToggle(enabled) {
     await toggleGridLimitingStatus(enabled);
+}
+
+
+async function fetchSolarChargerStatus() {
+    try {
+        const response = await fetch('/api/modbus/solarchargers_status');
+        if (!response.ok) {
+            throw new Error('Ошибка запроса данных солнечных контроллеров');
+        }
+
+        const data = await response.json();
+      //  console.log('✅ Принятые данные (сырье):', data);
+
+        let totalAllPower = 0;
+        const container = document.getElementById('solarTableContainer');
+        container.innerHTML = ''; // Очистка
+
+        const template = document.getElementById('solarTableTemplate');
+
+        for (const [chargerId, values] of Object.entries(data)) {
+            if (chargerId === "total_power_all_devices") continue;
+
+            let chargerTotalPower = 0;
+            const clone = template.content.cloneNode(true);
+
+            // Заголовок устройства
+            clone.querySelector('.charger-title').innerText = chargerId.toUpperCase();
+
+            const tbody = clone.querySelector('.table-body');
+
+            for (let i = 0; i < 4; i++) {
+                const voltage = values[`pv_voltage_${i}`];
+                const power = values[`pv_power_${i}`];
+
+                let current = null;
+                if (voltage !== null && voltage > 0 && power !== null) {
+                    current = parseFloat((power / voltage).toFixed(2));
+                }
+
+                if (power !== null) {
+                    chargerTotalPower += power;
+                }
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>PV ${i + 1}</td>
+                    <td>${voltage ?? '—'}</td>
+                    <td>${current ?? '—'}</td>
+                    <td>${power ?? '—'}</td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            // Установка итогов по устройству
+            clone.querySelector('.device-total').innerText = chargerTotalPower.toFixed(2);
+            totalAllPower += chargerTotalPower;
+
+            container.appendChild(clone);
+        }
+
+        // Установка общей суммы
+        document.getElementById('totalAllPower').innerText = totalAllPower.toFixed(2);
+        updateSolarPowerIndicator(totalAllPower);
+
+    } catch (error) {
+        console.error('❗ Ошибка при получении данных:', error);
+    }
 }
