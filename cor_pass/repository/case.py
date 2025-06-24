@@ -8,17 +8,20 @@ from sqlalchemy.orm import selectinload
 from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.schemas import (
     Case as CaseModelScheema,
+    CaseDetailsResponse,
     CaseFinalReportPageResponse,
     CaseIDReportPageResponse,
     CaseParametersScheema,
     CassetteForGlassPage,
     CassetteTestForGlassPage,
+    DoctorDiagnosisSchema,
     DoctorResponseForSignature,
     FinalReportResponseSchema,
     FirstCaseTestGlassDetailsSchema,
     GlassTestModelScheema,
     PatientFinalReportPageResponse,
     PatientTestReportPageResponse,
+    ReportAndDiagnosisUpdateSchema,
     ReportCreateSchema,
     ReportResponseSchema,
     ReportSignatureSchema,
@@ -1343,15 +1346,27 @@ async def get_single_case_details_for_excision_page(
     )
 
 async def _format_report_response(
-    db: AsyncSession, 
-    db_report: db_models.Report,
-    router: APIRouter,
-    case_db: Optional[db_models.Case],
-    db_case_parameters: Optional[db_models.CaseParameters]
+    db: AsyncSession, db_report: db_models.Report, router: APIRouter, case_db: db_models.Case
 ) -> ReportResponseSchema:
-    """Вспомогательная функция для форматирования объекта Report в ReportResponseSchema."""
+    """
+    Форматирует объект Report из базы данных в ReportResponseSchema.
+    Теперь включает агрегированные диагнозы и их подписи,
+    а также корректно обрабатывает перенос полей диагнозов в DoctorDiagnosis.
+    """
 
-    macro_desc_from_params = db_case_parameters.macro_description if db_case_parameters else None
+    await db.refresh(db_report, attribute_names=['doctor_diagnoses', 'attached_glass_ids'])
+
+    await db.execute(
+        select(db_models.DoctorDiagnosis)
+        .where(db_models.DoctorDiagnosis.report_id == db_report.id)
+        .options(
+            selectinload(db_models.DoctorDiagnosis.doctor),
+            selectinload(db_models.DoctorDiagnosis.signature).selectinload(db_models.ReportSignature.doctor),
+            selectinload(db_models.DoctorDiagnosis.signature).selectinload(db_models.ReportSignature.doctor_signature)
+        )
+    )
+
+    macro_desc_from_params = case_db.case_parameters.macro_description if case_db.case_parameters else None
 
     attached_glasses_schematized: List[GlassModelScheema] = []
     if db_report.attached_glass_ids:
@@ -1359,123 +1374,110 @@ async def _format_report_response(
             select(db_models.Glass).where(db_models.Glass.id.in_(db_report.attached_glass_ids))
         )
         attached_glasses_db = attached_glasses_db_result.scalars().all()
-        attached_glasses_schematized = []
-        for g in attached_glasses_db:
-            g = GlassModelScheema(
-                glass_number=g.glass_number,
-                staining=g.staining,
-                id=g.id,
-                cassette_id=g.cassette_id
-            )
-            attached_glasses_schematized.append(g)
 
-    signatures_schematized: List[ReportSignatureSchema] = []
-    await db.refresh(db_report, attribute_names=['signatures'])
-    for signature_db in db_report.signatures:
-        await db.refresh(signature_db, attribute_names=['doctor', 'doctor_signature']) 
-        doctor_sig_type = None
-        doctor_sig_response = None
-        if signature_db.doctor_signature:
-            if signature_db.doctor_signature.signature_scan_data:
-                signature_data=router.url_path_for("get_signature_attachment", signature_id=signature_db.doctor_signature_id)
-            doctor_sig_type = signature_db.doctor_signature.signature_scan_type
-            doctor_sig_response = DoctorSignatureResponse(
-                id=signature_db.doctor_signature.id,
-                doctor_id=signature_db.doctor_signature.doctor_id,
-                signature_name=signature_db.doctor_signature.signature_name,
-                signature_scan_data=signature_data,
-                signature_scan_type=doctor_sig_type,
-                is_default=signature_db.doctor_signature.is_default,
-                created_at=signature_db.doctor_signature.created_at
-            )
+        attached_glasses_schematized = [GlassModelScheema.model_validate(g) for g in attached_glasses_db]
 
-        signatures_schematized.append(
-            ReportSignatureSchema(
-                id=signature_db.id,
-                doctor=DoctorResponseForSignature.model_validate(signature_db.doctor),
-                signed_at=signature_db.signed_at,
+
+    doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
+
+    for dd_db in sorted(db_report.doctor_diagnoses, key=lambda x: x.created_at):
+        doctor_data = DoctorResponseForSignature.model_validate(dd_db.doctor) if dd_db.doctor else None
+        
+        signature_data: Optional[ReportSignatureSchema] = None
+        if dd_db.signature:
+            signer_doctor_data = DoctorResponseForSignature.model_validate(dd_db.signature.doctor) if dd_db.signature.doctor else None
+            
+            doctor_sig_response: Optional[DoctorSignatureResponse] = None
+            if dd_db.signature.doctor_signature:
+                signature_url = None
+                if dd_db.signature.doctor_signature.signature_scan_data:
+                    signature_url = router.url_path_for("get_signature_attachment", signature_id=dd_db.signature.doctor_signature.id)
+                
+                doctor_sig_response = DoctorSignatureResponse(
+                    id=dd_db.signature.doctor_signature.id,
+                    doctor_id=dd_db.signature.doctor_signature.doctor_id,
+                    signature_name=dd_db.signature.doctor_signature.signature_name,
+                    signature_scan_data=signature_url,
+                    signature_scan_type=dd_db.signature.doctor_signature.signature_scan_type,
+                    is_default=dd_db.signature.doctor_signature.is_default,
+                    created_at=dd_db.signature.doctor_signature.created_at
+                )
+            signature_data = ReportSignatureSchema(
+                id=dd_db.signature.id,
+                doctor=signer_doctor_data,
+                signed_at=dd_db.signature.signed_at,
                 doctor_signature=doctor_sig_response
             )
+
+        doctor_diagnoses_schematized.append(
+            DoctorDiagnosisSchema(
+                id=dd_db.id,
+                report_id=dd_db.report_id,
+                doctor=doctor_data,
+                created_at=dd_db.created_at,
+                immunohistochemical_profile=dd_db.immunohistochemical_profile,
+                molecular_genetic_profile=dd_db.molecular_genetic_profile,
+                pathomorphological_diagnosis=dd_db.pathomorphological_diagnosis,
+                icd_code=dd_db.icd_code,
+                comment=dd_db.comment,
+                report_macrodescription=dd_db.report_macrodescription,
+                report_microdescription=dd_db.report_microdescription, 
+                signature=signature_data
+            )
         )
-    signatures_schematized.sort(key=lambda s: s.signed_at)
 
     return ReportResponseSchema(
         id=db_report.id,
         case_id=db_report.case_id,
         case_details=case_db,
         macro_description_from_case_params=macro_desc_from_params,
-        microdescription_from_case=case_db.microdescription,
-        immunohistochemical_profile=db_report.immunohistochemical_profile,
-        molecular_genetic_profile=db_report.molecular_genetic_profile,
-        pathomorphological_diagnosis=db_report.pathomorphological_diagnosis,
-        icd_code=db_report.icd_code,
-        comment=db_report.comment,
-        signatures=signatures_schematized,
+        doctor_diagnoses=doctor_diagnoses_schematized, 
         attached_glasses=attached_glasses_schematized
     )
-
 
 async def get_report_by_case_id(
     db: AsyncSession, case_id: str, router: APIRouter
 ) -> CaseIDReportPageResponse:
     """
     Получает заключение для конкретного кейса. Если заключения нет, оно будет создано.
+    Обновлено для работы с подписями, привязанными к DoctorDiagnosis.
     """
-    case_db = await db.scalar(
-        select(db_models.Case)
-        .where(db_models.Case.id == case_id)
-        .options(
-            selectinload(db_models.Case.case_parameters),
-            selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
-            selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature)
-        )
-    )
-    if not case_db:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
-
-    if not case_db.report:
-        new_report = db_models.Report(
-            case_id=case_db.id,
-        )
-        db.add(new_report)
-        await db.commit()
-        await db.refresh(new_report)
-        case_db.report = new_report 
-
-    last_case_for_report: Optional[CaseModelScheema] = None
-    report_details: Optional[ReportResponseSchema] = None
-    all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
-    first_case_details_for_glass: Optional[FirstCaseTestGlassDetailsSchema] = None
-
-    report_response =  await _format_report_response(db=db, db_report=case_db.report, db_case_parameters=case_db.case_parameters, router=router, case_db=case_db)
-    last_case_db = case_db
-
-    last_case_full_info_result = await db.execute(
+    case_db = await db.execute(
             select(db_models.Case)
-            .where(db_models.Case.id == last_case_db.id)
+            .where(db_models.Case.id == case_id)
             .options(
                 selectinload(db_models.Case.case_parameters),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature),
+                selectinload(db_models.Case.report).selectinload(db_models.Report.doctor_diagnoses).options(
+                    selectinload(db_models.DoctorDiagnosis.doctor), 
+                    selectinload(db_models.DoctorDiagnosis.signature).options( 
+                        selectinload(db_models.ReportSignature.doctor),
+                        selectinload(db_models.ReportSignature.doctor_signature) 
+                    )
+                ),
                 selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
             )
         )
-    last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+    case_db = case_db.scalar_one_or_none()
+    all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
+    report_details = None
+    if case_db:
+        last_case_for_report = CaseModelScheema.model_validate(case_db)
 
-
-    if last_case_with_relations:
-        last_case_for_report = CaseModelScheema.model_validate(last_case_with_relations)
-
-        if not last_case_with_relations.report:
-            new_report = db_models.Report(case_id=last_case_with_relations.id)
+        if not case_db.report:
+            new_report = db_models.Report(case_id=case_db.id)
             db.add(new_report)
             await db.commit()
             await db.refresh(new_report)
-            last_case_with_relations.report = new_report
+            case_db.report = new_report
 
-        # report_details = await _format_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, case_db=last_case_db)
+        report_details = await _format_report_response(
+            db=db, 
+            db_report=case_db.report, 
+            router=router, 
+            case_db=case_db
+        )
 
-        for sample_db in last_case_with_relations.samples:
+        for sample_db in case_db.samples:
             def sort_cassettes(cassette: db_models.Cassette):
                 match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
                 if match:
@@ -1516,17 +1518,17 @@ async def get_report_by_case_id(
 
 
         first_case_details_for_glass = FirstCaseTestGlassDetailsSchema(
-            id=last_case_with_relations.id,
-            case_code=last_case_with_relations.case_code,
-            creation_date=last_case_with_relations.creation_date,
+            id=case_db.id,
+            case_code=case_db.case_code,
+            creation_date=case_db.creation_date,
             samples=all_samples_for_last_case_schematized,
-            grossing_status=last_case_with_relations.grossing_status 
+            grossing_status=case_db.grossing_status 
         )
 
     general_response = CaseIDReportPageResponse(
-        last_case_for_report = case_db,
-        report_details = report_response,
-        all_glasses_for_last_case= first_case_details_for_glass
+        last_case_for_report=case_db, 
+        report_details=report_details,
+        all_glasses_for_last_case=first_case_details_for_glass
     )
     return general_response
 
@@ -1562,8 +1564,13 @@ async def get_patient_report_page_data(
             .where(db_models.Case.id == last_case_db.id)
             .options(
                 selectinload(db_models.Case.case_parameters),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature),
+                selectinload(db_models.Case.report).selectinload(db_models.Report.doctor_diagnoses).options(
+                    selectinload(db_models.DoctorDiagnosis.doctor), 
+                    selectinload(db_models.DoctorDiagnosis.signature).options( 
+                        selectinload(db_models.ReportSignature.doctor),
+                        selectinload(db_models.ReportSignature.doctor_signature) 
+                    )
+                ),
                 selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
             )
         )
@@ -1579,7 +1586,12 @@ async def get_patient_report_page_data(
                 await db.refresh(new_report)
                 last_case_with_relations.report = new_report
 
-            report_details = await _format_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, case_db=last_case_db)
+            report_details = await _format_report_response(
+                db=db, 
+                db_report=last_case_with_relations.report, 
+                router=router, 
+                case_db=last_case_with_relations
+            )
 
             for sample_db in last_case_with_relations.samples:
                 def sort_cassettes(cassette: db_models.Cassette):
@@ -1608,9 +1620,9 @@ async def get_patient_report_page_data(
                         glasses_for_cassette.append(glass)
                         
                     cassette_schematized = CassetteTestForGlassPage(id=cassette_db.id,
-                                                                    cassette_number=cassette_db.cassette_number,
-                                                                    sample_id=cassette_db.sample_id
-                                                                    )
+                                                                  cassette_number=cassette_db.cassette_number,
+                                                                  sample_id=cassette_db.sample_id
+                                                                  )
                     cassette_schematized.glasses = glasses_for_cassette 
                     cassettes_for_sample.append(cassette_schematized)
 
@@ -1636,108 +1648,160 @@ async def get_patient_report_page_data(
         all_glasses_for_last_case=first_case_details_for_glass 
     )
 
-
-async def create_or_update_report(
-    db: AsyncSession, case_id: str, router: APIRouter, report_data: Union[ReportCreateSchema, ReportUpdateSchema]
+async def create_or_update_report_and_diagnosis(
+    db: AsyncSession, 
+    case_id: str, 
+    router: APIRouter, 
+    update_data: ReportAndDiagnosisUpdateSchema,
+    current_doctor_id: str, 
 ) -> ReportResponseSchema:
     """
-    Создает новое заключение для кейса или обновляет существующее.
+    Создает или обновляет отчет и/или запись диагноза доктора.
+    - Владелец кейса может прикреплять/откреплять стекла и создавать/обновлять записи диагнозов.
+    - Доктора, не являющиеся владельцами кейса, могут только создавать/обновлять свои записи диагнозов.
     """
+
     case_db = await db.scalar(
         select(db_models.Case)
         .where(db_models.Case.id == case_id)
-        .options(selectinload(db_models.Case.case_parameters)),
+        .options(selectinload(db_models.Case.case_parameters))
     )
     if not case_db:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс з ID '{case_id}' не знайдено.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
 
-    result = await db.execute(
-        select(db_models.Report)
-        .where(db_models.Report.case_id == case_id)
-        .options(
-            selectinload(db_models.Report.signatures)
-            .selectinload(db_models.ReportSignature.doctor),
-            selectinload(db_models.Report.signatures)
-            .selectinload(db_models.ReportSignature.doctor_signature)
-        )
-    )
-    db_report = result.scalar_one_or_none()
-
-    if db_report:
-        for field, value in report_data.model_dump(exclude_unset=True).items():
-            if field == "attached_glass_ids":
-                db_report.attached_glass_ids = value if value is not None else []
-            else:
-                setattr(db_report, field, value)
-    else:
-        report_dict = report_data.model_dump()
-        report_dict['case_id'] = case_id
-        if 'attached_glass_ids' not in report_dict or report_dict['attached_glass_ids'] is None:
-            report_dict['attached_glass_ids'] = []
-            
-        db_report = db_models.Report(**report_dict)
-        db.add(db_report)
-
-    await db.commit()
-    await db.refresh(db_report)
-
-    # patient_db = await get_patient_by_corid(db=db, cor_id=case_db.patient_id)
-    # referral_db = await get_referral_by_case(db=db, case_id=case_db.id)
-    return await _format_report_response(db=db, db_report=db_report, db_case_parameters=case_db.case_parameters, router=router, case_db=case_db)
-
-
-async def add_report_signature(
-    db: AsyncSession, case_id: str, doctor_id: str, router: APIRouter, doctor_signature_id: Optional[str] = None
-) -> ReportResponseSchema:
-    """
-    Добавляет подпись доктора к заключению кейса, используя существующую подпись доктора.
-    Если doctor_signature_id не предоставлен, попытается использовать подпись доктора по умолчанию.
-    """
     report_result = await db.execute(
         select(db_models.Report)
         .where(db_models.Report.case_id == case_id)
         .options(
-            selectinload(db_models.Report.signatures)
-            .selectinload(db_models.ReportSignature.doctor),
-            selectinload(db_models.Report.signatures)
-            .selectinload(db_models.ReportSignature.doctor_signature) 
+            selectinload(db_models.Report.doctor_diagnoses).options(
+                selectinload(db_models.DoctorDiagnosis.doctor),
+                selectinload(db_models.DoctorDiagnosis.signature).options(
+                    selectinload(db_models.ReportSignature.doctor),
+                    selectinload(db_models.ReportSignature.doctor_signature)
+                )
+            )
         )
     )
     db_report = report_result.scalar_one_or_none()
 
     if not db_report:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Заключение для кейса '{case_id}' не найдено.")
+
+        db_report = db_models.Report(case_id=case_id, attached_glass_ids=[])
+        db.add(db_report)
+        await db.flush() 
+
+
+    is_case_owner = False
+    if case_db.case_owner == current_doctor_id:
+        is_case_owner = True
+    if is_case_owner:
+        if update_data.attached_glass_ids is not None:
+
+            db_report.attached_glass_ids = update_data.attached_glass_ids
+    else:
+        if update_data.attached_glass_ids is not None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="У вас нет прав для изменения прикрепленных стекол."
+            )
+
+    if update_data.doctor_diagnosis_data:
+        existing_diagnosis = await db.scalar(
+            select(db_models.DoctorDiagnosis)
+            .where(
+                db_models.DoctorDiagnosis.report_id == db_report.id,
+                db_models.DoctorDiagnosis.doctor_id == current_doctor_id
+            )
+        )
+
+        diagnosis_data = update_data.doctor_diagnosis_data.model_dump(exclude_unset=True)
+
+        if not any(diagnosis_data.values()): 
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Должно быть предоставлено хотя бы одно поле диагноза (иммунопрофиль, молекулярно-генетический профиль, патоморфологический диагноз, микроописание, макроописание, icd_code или комментарий)."
+            )
+
+        if existing_diagnosis:
+
+            for field, value in diagnosis_data.items():
+                if value is not None: 
+                    setattr(existing_diagnosis, field, value)
+            existing_diagnosis.updated_at = func.now() 
+        else:
+
+            new_diagnosis_entry = db_models.DoctorDiagnosis(
+                report_id=db_report.id,
+                doctor_id=current_doctor_id,
+                created_at=func.now(),
+                **diagnosis_data
+            )
+            db.add(new_diagnosis_entry)
+
+    await db.commit()
+    await db.refresh(db_report) 
+
+    return await _format_report_response(db=db, db_report=db_report, router=router, case_db=case_db)
+
+
+
+
+async def add_diagnosis_signature( 
+    db: AsyncSession, 
+    diagnosis_entry_id: str, 
+    doctor_id: str, 
+    router: APIRouter,
+    doctor_signature_id: Optional[str] = None
+) -> ReportResponseSchema:
+    """
+    Добавляет подпись доктора к конкретной записи диагноза.
+    """
+
+    diagnosis_entry_result = await db.execute(
+        select(db_models.DoctorDiagnosis)
+        .where(db_models.DoctorDiagnosis.id == diagnosis_entry_id)
+        .options(
+            selectinload(db_models.DoctorDiagnosis.doctor), 
+            selectinload(db_models.DoctorDiagnosis.report), 
+            selectinload(db_models.DoctorDiagnosis.signature) 
+        )
+    )
+    diagnosis_entry = diagnosis_entry_result.scalar_one_or_none()
+
+    if not diagnosis_entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Запись диагноза с ID '{diagnosis_entry_id}' не найдена.")
+
+
+    if diagnosis_entry.doctor_id != doctor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Вы можете подписать только собственный диагноз.")
+
+
+    if diagnosis_entry.signature:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Эта запись диагноза уже была подписана.")
+
+
+    doctor = await db.scalar(select(db_models.Doctor).where(db_models.Doctor.doctor_id == doctor_id))
+    if not doctor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Доктор с ID '{doctor_id}' не найден.")
 
     target_doctor_signature: Optional[db_models.DoctorSignature] = None
     if doctor_signature_id:
         target_doctor_signature = await db.scalar(
             select(db_models.DoctorSignature)
-            .where(db_models.DoctorSignature.id == doctor_signature_id, db_models.DoctorSignature.doctor_id == doctor_id)
+            .where(db_models.DoctorSignature.id == doctor_signature_id, db_models.DoctorSignature.doctor_id == doctor.id)
         )
         if not target_doctor_signature:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Указанная подпись врача не найдена или принадлежит другому врачу.")
     else:
         target_doctor_signature = await db.scalar(
             select(db_models.DoctorSignature)
-            .where(db_models.DoctorSignature.doctor_id == doctor_id, db_models.DoctorSignature.is_default == True)
+            .where(db_models.DoctorSignature.doctor_id == doctor.id, db_models.DoctorSignature.is_default == True)
         )
         if not target_doctor_signature:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Не найдена подпись по умолчанию для этого врача. Укажите ID подписи или загрузите подпись по умолчанию.")
-
-    existing_signature_by_doctor = await db.scalar(
-        select(db_models.ReportSignature)
-        .where(
-            db_models.ReportSignature.report_id == db_report.id,
-            db_models.ReportSignature.doctor_id == doctor_id,
-            db_models.ReportSignature.doctor_signature_id == target_doctor_signature.id
-        )
-    )
-    if existing_signature_by_doctor:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Этот врач уже подписал данное заключение с использованием этой подписи.")
-
     new_signature = db_models.ReportSignature(
-        report_id=db_report.id,
-        doctor_id=doctor_id,
+        diagnosis_entry_id=diagnosis_entry.id, 
+        doctor_id=doctor.id,
         doctor_signature_id=target_doctor_signature.id, 
         signed_at=func.now()
     )
@@ -1745,69 +1809,14 @@ async def add_report_signature(
     
     await db.commit()
     await db.refresh(new_signature)
-    await db.refresh(db_report) 
+    await db.refresh(diagnosis_entry) 
 
     case_db = await db.scalar(
         select(db_models.Case)
-        .where(db_models.Case.id == case_id)
+        .where(db_models.Case.id == diagnosis_entry.report.case_id)
         .options(selectinload(db_models.Case.case_parameters))
     )
-    case_db.grossing_status = db_models.Grossing_status.COMPLETED
-    await db.commit()
-    await db.refresh(case_db)
-    macro_desc_from_params = case_db.case_parameters.macro_description if case_db.case_parameters else None
-
-    attached_glasses_schematized: List[GlassModelScheema] = []
-    if db_report.attached_glass_ids:
-        attached_glasses_db_result = await db.execute(
-            select(db_models.Glass).where(db_models.Glass.id.in_(db_report.attached_glass_ids))
-        )
-        attached_glasses_db = attached_glasses_db_result.scalars().all()
-        attached_glasses_schematized = [GlassModelScheema.model_validate(g).model_dump() for g in attached_glasses_db]
-
-    signatures_schematized: List[ReportSignatureSchema] = []
-    await db.refresh(db_report, attribute_names=['signatures']) 
-    for signature_db in db_report.signatures: 
-        await db.refresh(signature_db, attribute_names=['doctor', 'doctor_signature'])
-        doctor_sig_type = None
-        doctor_sig_response = None
-        if signature_db.doctor_signature:
-            if signature_db.doctor_signature.signature_scan_data:
-                signature_data=router.url_path_for("get_signature_attachment", signature_id=new_signature.doctor_signature_id)
-            doctor_sig_type = signature_db.doctor_signature.signature_scan_type
-            doctor_sig_response = DoctorSignatureResponse(
-                id=signature_db.doctor_signature.id,
-                doctor_id=signature_db.doctor_signature.doctor_id,
-                signature_name=signature_db.doctor_signature.signature_name,
-                signature_scan_data=signature_data,
-                signature_scan_type=doctor_sig_type,
-                is_default=signature_db.doctor_signature.is_default,
-                created_at=signature_db.doctor_signature.created_at
-            )
-
-        signatures_schematized.append(
-            ReportSignatureSchema(
-                id=signature_db.id,
-                doctor=DoctorResponseForSignature.model_validate(signature_db.doctor).model_dump(),
-                signed_at=signature_db.signed_at,
-                doctor_signature=doctor_sig_response
-            )
-        )
-    signatures_schematized.sort(key=lambda s: s.signed_at)
-
-    return ReportResponseSchema(
-        id=db_report.id,
-        case_id=db_report.case_id,
-        case_details=case_db,
-        macro_description_from_case_params=macro_desc_from_params,
-        immunohistochemical_profile=db_report.immunohistochemical_profile,
-        molecular_genetic_profile=db_report.molecular_genetic_profile,
-        pathomorphological_diagnosis=db_report.pathomorphological_diagnosis,
-        icd_code=db_report.icd_code,
-        comment=db_report.comment,
-        signatures=signatures_schematized,
-        attached_glasses=attached_glasses_schematized
-    )
+    return await _format_report_response(db=db, db_report=diagnosis_entry.report, router=router, case_db=case_db)
 
 
 
@@ -1833,77 +1842,51 @@ async def get_patient_final_report_page_data(
     all_cases_schematized = [CaseModelScheema.model_validate(case) for case in all_cases_db]
 
     report_details: Optional[ReportResponseSchema] = None
-    all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
-    last_case_details = None
-
+    last_case_details: Optional[CaseModelScheema] = None 
 
     if all_cases_db:
-        last_case_db = all_cases_db[0]
-        last_case_details = CaseModelScheema.model_validate(last_case_db)
+        last_case_db_summary = all_cases_db[0] 
 
         last_case_full_info_result = await db.execute(
             select(db_models.Case)
-            .where(db_models.Case.id == last_case_db.id)
+            .where(db_models.Case.id == last_case_db_summary.id)
             .options(
                 selectinload(db_models.Case.case_parameters),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature),
+                selectinload(db_models.Case.report).options( 
+                    selectinload(db_models.Report.doctor_diagnoses).options(
+                        selectinload(db_models.DoctorDiagnosis.doctor),
+                        selectinload(db_models.DoctorDiagnosis.signature).options(
+                            selectinload(db_models.ReportSignature.doctor),
+                            selectinload(db_models.ReportSignature.doctor_signature)
+                        )
+                    )
+                ),
                 selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
             )
         )
         last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
         if last_case_with_relations:
+            last_case_details = CaseModelScheema.model_validate(last_case_with_relations)
             if not last_case_with_relations.report:
                 new_report = db_models.Report(case_id=last_case_with_relations.id)
                 db.add(new_report)
                 await db.commit()
                 await db.refresh(new_report)
-                last_case_with_relations.report = new_report
+                last_case_with_relations.report = new_report 
 
-            patient_db = await get_patient_by_corid(db=db, cor_id=last_case_db.patient_id)
-            referral_db = await get_referral_by_case(db=db, case_id=last_case_db.id)
-            report_details = await _format_final_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, patient_db=patient_db, referral_db=referral_db, case_db=last_case_with_relations)
+            patient_db = await get_patient_by_corid(db=db, cor_id=last_case_with_relations.patient_id)
+            referral_db = await get_referral_by_case(db=db, case_id=last_case_with_relations.id)
 
-            for sample_db in last_case_with_relations.samples:
-                def sort_cassettes(cassette: db_models.Cassette):
-                    match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
-                    if match:
-                        letter_part = match.group(1)
-                        number_part = int(match.group(2))
-                        return (letter_part, number_part)
-                    return (cassette.cassette_number, 0)
-
-                sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
-
-                cassettes_for_sample: List[CassetteTestForGlassPage] = []
-                for cassette_db in sorted_cassettes_db:
-                    sorted_glasses_db = sorted(
-                        cassette_db.glass,
-                        key=lambda glass: glass.glass_number
-                    )
-                    glasses_for_cassette: List[GlassTestModelScheema] = []
-                    for glass in sorted_glasses_db:
-                        glass = GlassTestModelScheema(id=glass.id,
-                                                      glass_number=glass.glass_number,
-                                                      cassette_id=glass.cassette_id
-                                                      )
-                        glasses_for_cassette.append(glass)
-                        
-                    cassette_schematized = CassetteTestForGlassPage(id=cassette_db.id,
-                                                                    cassette_number=cassette_db.cassette_number,
-                                                                    sample_id=cassette_db.sample_id
-                                                                    )
-                    cassette_schematized.glasses = glasses_for_cassette 
-                    cassettes_for_sample.append(cassette_schematized)
-
-                sample_schematized = SampleTestForGlassPage(id=sample_db.id,
-                                                            sample_number=sample_db.sample_number,
-                                                            case_id=sample_db.case_id)
-                sample_schematized.cassettes = cassettes_for_sample
-                all_samples_for_last_case_schematized.append(sample_schematized)
-
-
+            report_details = await _format_final_report_response(
+                db=db,
+                db_report=last_case_with_relations.report,
+                db_case_parameters=last_case_with_relations.case_parameters, 
+                router=router,
+                patient_db=patient_db,
+                referral_db=referral_db,
+                case_db=last_case_with_relations
+            )
     return PatientFinalReportPageResponse(
         all_cases=all_cases_schematized,
         last_case_details=last_case_details,
@@ -1914,16 +1897,18 @@ async def get_patient_final_report_page_data(
 
 
 async def _format_final_report_response(
-    db: AsyncSession, 
+    db: AsyncSession,
     db_report: db_models.Report,
-    case_db: db_models.Case,
+    router: APIRouter,
     patient_db: db_models.Patient,
     referral_db: db_models.Referral,
-    router: APIRouter,
+    case_db: db_models.Case,
     db_case_parameters: Optional[db_models.CaseParameters]
-) -> FinalReportResponseSchema:
-    """Вспомогательная функция для форматирования объекта Report в ReportResponseSchema."""
-
+) -> ReportResponseSchema:
+    """
+    Форматирует объект db_models.Report в ReportResponseSchema для финального отчета.
+    Эта функция должна быть обновлена для обработки doctor_diagnoses.
+    """
     try:
         decoded_key = base64.b64decode(settings.aes_key)
         patient_surname = await decrypt_data(patient_db.encrypted_surname, decoded_key)if patient_db.encrypted_surname else None
@@ -1949,70 +1934,78 @@ async def _format_final_report_response(
         patient_age = today.year - patient_db.birth_date.year - \
                         ((today.month, today.day) < (patient_db.birth_date.month, patient_db.birth_date.day))
 
+    case_details_schema = None
+    if case_db:
+        case_details_schema = CaseModelScheema.model_validate(case_db)
 
+    await db.refresh(db_report, attribute_names=['doctor_diagnoses'])
 
-
-    # Прикрепление стёкол
-    attached_glasses_schematized: List[GlassModelScheema] = []
-    glass_stainings = []
-    if db_report.attached_glass_ids:
-        attached_glasses_db_result = await db.execute(
-            select(db_models.Glass).where(db_models.Glass.id.in_(db_report.attached_glass_ids))
-        )
-        attached_glasses_db = attached_glasses_db_result.scalars().all()
-        attached_glasses_schematized = []
-        for g in attached_glasses_db:
-            g = GlassModelScheema(
-                glass_number=g.glass_number,
-                staining=g.staining,
-                id=g.id,
-                cassette_id=g.cassette_id
-            )
-            glass_stainings.append(g.staining)
-            attached_glasses_schematized.append(g)
-
-    # Прикрепление подписей
-    glass_stainings = set(glass_stainings)
-    signatures_schematized: List[ReportSignatureSchema] = []
-    await db.refresh(db_report, attribute_names=['signatures'])
-    for signature_db in db_report.signatures:
-        await db.refresh(signature_db, attribute_names=['doctor', 'doctor_signature']) 
-        doctor_sig_type = None
-        doctor_sig_response = None
-        if signature_db.doctor_signature:
-            if signature_db.doctor_signature.signature_scan_data:
-                signature_data=router.url_path_for("get_signature_attachment", signature_id=signature_db.doctor_signature_id)
-            doctor_sig_type = signature_db.doctor_signature.signature_scan_type
-            doctor_sig_response = DoctorSignatureResponse(
-                id=signature_db.doctor_signature.id,
-                doctor_id=signature_db.doctor_signature.doctor_id,
-                signature_name=signature_db.doctor_signature.signature_name,
-                signature_scan_data=signature_data,
-                signature_scan_type=doctor_sig_type,
-                is_default=signature_db.doctor_signature.is_default,
-                created_at=signature_db.doctor_signature.created_at
-            )
-
-        signatures_schematized.append(
-            ReportSignatureSchema(
-                id=signature_db.id,
-                doctor=DoctorResponseForSignature.model_validate(signature_db.doctor),
-                signed_at=signature_db.signed_at,
+    doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
+    for dd_db in sorted(db_report.doctor_diagnoses, key=lambda x: x.created_at):
+        doctor_data = DoctorResponseForSignature.model_validate(dd_db.doctor) if dd_db.doctor else None
+        
+        signature_data: Optional[ReportSignatureSchema] = None
+        if dd_db.signature:
+            signer_doctor_data = DoctorResponseForSignature.model_validate(dd_db.signature.doctor) if dd_db.signature.doctor else None
+            
+            doctor_sig_response: Optional[DoctorSignatureResponse] = None
+            if dd_db.signature.doctor_signature:
+                signature_url = None
+                if dd_db.signature.doctor_signature.signature_scan_data:
+                    signature_url = router.url_path_for("get_signature_attachment", signature_id=dd_db.signature.doctor_signature.id)
+                
+                doctor_sig_response = DoctorSignatureResponse(
+                    id=dd_db.signature.doctor_signature.id,
+                    doctor_id=dd_db.signature.doctor_signature.doctor_id,
+                    signature_name=dd_db.signature.doctor_signature.signature_name,
+                    signature_scan_data=signature_url,
+                    signature_scan_type=dd_db.signature.doctor_signature.signature_scan_type,
+                    is_default=dd_db.signature.doctor_signature.is_default,
+                    created_at=dd_db.signature.doctor_signature.created_at
+                )
+            signature_data = ReportSignatureSchema(
+                id=dd_db.signature.id,
+                doctor=signer_doctor_data,
+                signed_at=dd_db.signature.signed_at,
                 doctor_signature=doctor_sig_response
             )
-        )
-    signatures_schematized.sort(key=lambda s: s.signed_at)
 
+        doctor_diagnoses_schematized.append(
+            DoctorDiagnosisSchema(
+                id=dd_db.id,
+                report_id=dd_db.report_id,
+                doctor=doctor_data,
+                created_at=dd_db.created_at,
+                immunohistochemical_profile=dd_db.immunohistochemical_profile,
+                molecular_genetic_profile=dd_db.molecular_genetic_profile,
+                pathomorphological_diagnosis=dd_db.pathomorphological_diagnosis,
+                icd_code=dd_db.icd_code,
+                comment=dd_db.comment,
+                report_macrodescription=dd_db.report_macrodescription,
+                report_microdescription=dd_db.report_microdescription, 
+                signature=signature_data
+            ))
+
+    attached_glass_ids = db_report.attached_glass_ids if db_report.attached_glass_ids is not None else []
+    attached_glasses_schemas: List[GlassModelScheema] = []
+    glass_stainings = []
+    if attached_glass_ids:
+        glasses_db = await db.scalars(
+            select(db_models.Glass).where(db_models.Glass.id.in_(attached_glass_ids))
+        )
+        for glass in glasses_db.all():
+            attached_glasses_schemas.append(GlassModelScheema.model_validate(glass))
+            glass_stainings.append(glass.staining)
+    glass_stainings = set(glass_stainings)
     return FinalReportResponseSchema(
         id=db_report.id,
         case_id=case_db.id,
         case_code=case_db.case_code,
-
+        
         biopsy_date=case_db.creation_date.date(),
         arrival_date=referral_db.issued_at if referral_db else None,
+        report_date=doctor_diagnoses_schematized[0].created_at.date() if db_report.doctor_diagnoses else None,
 
-        report_date=signature_db.doctor_signature.created_at.date() if db_report.signatures else None,
-        
         patient_cor_id=patient_db.patient_cor_id,
         patient_first_name=patient_first_name,
         patient_surname=patient_surname,
@@ -2031,27 +2024,16 @@ async def _format_final_report_response(
         clinical_diagnosis=referral_db.clinical_diagnosis if referral_db else None,
 
         painting=glass_stainings,
-
-
+        
         macroarchive=db_case_parameters.macro_archive,
         decalcification=db_case_parameters.decalcification,
         fixation=db_case_parameters.fixation,
         num_blocks=case_db.cassette_count,
-
         containers_recieved=case_db.bank_count,
-
         containers_actual=db_case_parameters.container_count_actual,
-        macrodescription=db_case_parameters.macro_description,
 
-        microdescription=case_db.microdescription,
-
-        pathomorphological_diagnosis=db_report.pathomorphological_diagnosis,
-        immunohistochemical_profile=db_report.immunohistochemical_profile,
-        molecular_genetic_profile=db_report.molecular_genetic_profile,
-        comment=db_report.comment,
-        icd_code=db_report.icd_code,
-        signatures=signatures_schematized,
-        attached_glasses=attached_glasses_schematized
+        doctor_diagnoses=doctor_diagnoses_schematized,
+        attached_glasses=attached_glasses_schemas
     )
 
 
@@ -2061,38 +2043,52 @@ async def get_final_report_by_case_id(
     """
     Получает заключение для конкретного кейса. Если заключения нет, оно будет создано.
     """
-    case_db = await db.scalar(
+    report_details: Optional[ReportResponseSchema] = None
+    last_case_details: Optional[CaseModelScheema] = None 
+    all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
+    last_case_full_info_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.id == case_id)
         .options(
             selectinload(db_models.Case.case_parameters),
-            selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
-            selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature)
+            selectinload(db_models.Case.report).options( 
+                selectinload(db_models.Report.doctor_diagnoses).options(
+                    selectinload(db_models.DoctorDiagnosis.doctor),
+                    selectinload(db_models.DoctorDiagnosis.signature).options(
+                        selectinload(db_models.ReportSignature.doctor),
+                        selectinload(db_models.ReportSignature.doctor_signature)
+                    )
+                )
+            ),
+            selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
         )
     )
-    if not case_db:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
-    
-    
-    case_schematized = CaseModelScheema.model_validate(case_db)
+    last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
-    if not case_db.report:
-        new_report = db_models.Report(
-            case_id=case_db.id,
+    if last_case_with_relations:
+        last_case_details = CaseModelScheema.model_validate(last_case_with_relations)
+        if not last_case_with_relations.report:
+            new_report = db_models.Report(case_id=last_case_with_relations.id)
+            db.add(new_report)
+            await db.commit()
+            await db.refresh(new_report)
+            last_case_with_relations.report = new_report 
+
+        patient_db = await get_patient_by_corid(db=db, cor_id=last_case_with_relations.patient_id)
+        referral_db = await get_referral_by_case(db=db, case_id=last_case_with_relations.id)
+
+        report_details = await _format_final_report_response(
+            db=db,
+            db_report=last_case_with_relations.report,
+            db_case_parameters=last_case_with_relations.case_parameters, 
+            router=router,
+            patient_db=patient_db,
+            referral_db=referral_db,
+            case_db=last_case_with_relations
         )
-        db.add(new_report)
-        await db.commit()
-        await db.refresh(new_report)
-        case_db.report = new_report 
 
-
-    patient_db = await get_patient_by_corid(db=db, cor_id=case_db.patient_id)
-
-    referral_db = await get_referral_by_case(db=db, case_id=case_db.id)
-
-    report_details =  await _format_final_report_response(db=db, db_report=case_db.report, db_case_parameters=case_db.case_parameters, router=router, patient_db=patient_db, referral_db=referral_db, case_db=case_db)
     return CaseFinalReportPageResponse(
-        case_details=case_schematized,
+        case_details=last_case_details,
         report_details=report_details,
     )
 
@@ -2100,7 +2096,7 @@ async def get_current_case_details_for_excision_page(
     db: AsyncSession,
     skip: int = 0,
     limit: int = 10,
-) -> PatientExcisionPageResponse: #
+) -> PatientExcisionPageResponse: 
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию
     по последнему кейсу (параметры, макроописание, инфо по семплам).
@@ -2296,13 +2292,11 @@ async def get_current_case_details_for_excision_page(
     )
 
 
-
 async def get_current_cases_report_page_data(
     db: AsyncSession,
-    router: APIRouter, 
+    router: APIRouter,
     skip: int = 0,
-    limit: int = 10, 
-    
+    limit: int = 10,
 ) -> PatientTestReportPageResponse:
     """
     Получает данные для вкладки "Заключение" на странице врача:
@@ -2318,14 +2312,14 @@ async def get_current_cases_report_page_data(
             db_models.Case.creation_date,
             db_models.Case.patient_id,
             db_models.Case.grossing_status,
-            db_models.Case.bank_count,     
-            db_models.Case.cassette_count, 
+            db_models.Case.bank_count,
+            db_models.Case.cassette_count,
             db_models.Case.glass_count,
             db_models.Case.pathohistological_conclusion,
             db_models.Case.microdescription,
             literal_column("1").label("sort_priority")
         )
-        .where( 
+        .where(
             and_(
                 func.substr(db_models.Case.case_code, 1, 1).in_(['F', 'U']),
                 db_models.Case.grossing_status != db_models.Grossing_status.COMPLETED.value
@@ -2351,19 +2345,18 @@ async def get_current_cases_report_page_data(
             db_models.Case.creation_date,
             db_models.Case.patient_id,
             db_models.Case.grossing_status,
-            db_models.Case.bank_count,    
+            db_models.Case.bank_count,
             db_models.Case.cassette_count,
             db_models.Case.glass_count,
             db_models.Case.pathohistological_conclusion,
             db_models.Case.microdescription,
             literal_column("2").label("sort_priority")
         )
-        .where( 
+        .where(
             and_(
                 func.substr(db_models.Case.case_code, 1, 1) == 'S',
-
                 db_models.Case.grossing_status != db_models.Grossing_status.COMPLETED.value,
-                scanned_glass_exists_clause 
+                scanned_glass_exists_clause
             )
         )
     ).subquery("cases_s")
@@ -2375,8 +2368,8 @@ async def get_current_cases_report_page_data(
             cases_fu_subquery.c.creation_date,
             cases_fu_subquery.c.patient_id,
             cases_fu_subquery.c.grossing_status,
-            cases_fu_subquery.c.bank_count,    
-            cases_fu_subquery.c.cassette_count, 
+            cases_fu_subquery.c.bank_count,
+            cases_fu_subquery.c.cassette_count,
             cases_fu_subquery.c.glass_count,
             cases_fu_subquery.c.pathohistological_conclusion,
             cases_fu_subquery.c.microdescription,
@@ -2389,8 +2382,8 @@ async def get_current_cases_report_page_data(
                 cases_s_subquery.c.creation_date,
                 cases_s_subquery.c.patient_id,
                 cases_s_subquery.c.grossing_status,
-                cases_s_subquery.c.bank_count,     
-                cases_s_subquery.c.cassette_count, 
+                cases_s_subquery.c.bank_count,
+                cases_s_subquery.c.cassette_count,
                 cases_s_subquery.c.glass_count,
                 cases_s_subquery.c.pathohistological_conclusion,
                 cases_s_subquery.c.microdescription,
@@ -2408,7 +2401,6 @@ async def get_current_cases_report_page_data(
         final_ordered_query.offset(skip).limit(limit)
     )
     all_current_cases_raw = paginated_results.all()
-    
 
     current_cases_list: List[CaseModelScheema] = []
 
@@ -2444,15 +2436,22 @@ async def get_current_cases_report_page_data(
     first_case_details_for_glass: Optional[FirstCaseTestGlassDetailsSchema] = None
 
     if all_current_cases_raw:
-        last_case_db = all_current_cases_raw[0]
+        last_case_db_summary = all_current_cases_raw[0] 
 
         last_case_full_info_result = await db.execute(
             select(db_models.Case)
-            .where(db_models.Case.id == last_case_db.id)
+            .where(db_models.Case.id == last_case_db_summary.id)
             .options(
                 selectinload(db_models.Case.case_parameters),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature),
+                selectinload(db_models.Case.report).options(
+                    selectinload(db_models.Report.doctor_diagnoses).options( 
+                        selectinload(db_models.DoctorDiagnosis.doctor),
+                        selectinload(db_models.DoctorDiagnosis.signature).options(
+                            selectinload(db_models.ReportSignature.doctor),
+                            selectinload(db_models.ReportSignature.doctor_signature)
+                        )
+                    )
+                ),
                 selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
             )
         )
@@ -2466,9 +2465,14 @@ async def get_current_cases_report_page_data(
                 db.add(new_report)
                 await db.commit()
                 await db.refresh(new_report)
-                last_case_with_relations.report = new_report
+                last_case_with_relations.report = new_report 
 
-            report_details = await _format_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, case_db=last_case_db)
+            report_details = await _format_report_response(
+                db=db,
+                db_report=last_case_with_relations.report,
+                router=router,
+                case_db=last_case_with_relations 
+            )
 
             for sample_db in last_case_with_relations.samples:
                 def sort_cassettes(cassette: db_models.Cassette):
@@ -2489,40 +2493,39 @@ async def get_current_cases_report_page_data(
                     )
                     glasses_for_cassette: List[GlassTestModelScheema] = []
                     for glass in sorted_glasses_db:
-                        glass = GlassTestModelScheema(id=glass.id,
-                                                      glass_number=glass.glass_number,
-                                                      cassette_id=glass.cassette_id,
-                                                      staining=glass.staining
-                                                      )
-                        glasses_for_cassette.append(glass)
-                        
+                        glass_schematized = GlassTestModelScheema(id=glass.id,
+                                                             glass_number=glass.glass_number,
+                                                             cassette_id=glass.cassette_id,
+                                                             staining=glass.staining
+                                                             )
+                        glasses_for_cassette.append(glass_schematized)
+
                     cassette_schematized = CassetteTestForGlassPage(id=cassette_db.id,
-                                                                    cassette_number=cassette_db.cassette_number,
-                                                                    sample_id=cassette_db.sample_id
-                                                                    )
-                    cassette_schematized.glasses = glasses_for_cassette 
+                                                                  cassette_number=cassette_db.cassette_number,
+                                                                  sample_id=cassette_db.sample_id
+                                                                  )
+                    cassette_schematized.glasses = glasses_for_cassette
                     cassettes_for_sample.append(cassette_schematized)
 
                 sample_schematized = SampleTestForGlassPage(id=sample_db.id,
-                                                            sample_number=sample_db.sample_number,
-                                                            case_id=sample_db.case_id)
+                                                             sample_number=sample_db.sample_number,
+                                                             case_id=sample_db.case_id)
                 sample_schematized.cassettes = cassettes_for_sample
                 all_samples_for_last_case_schematized.append(sample_schematized)
-
 
             first_case_details_for_glass = FirstCaseTestGlassDetailsSchema(
                 id=last_case_with_relations.id,
                 case_code=last_case_with_relations.case_code,
                 creation_date=last_case_with_relations.creation_date,
                 samples=all_samples_for_last_case_schematized,
-                grossing_status=last_case_with_relations.grossing_status 
+                grossing_status=last_case_with_relations.grossing_status
             )
 
     return PatientTestReportPageResponse(
         all_cases=current_cases_list,
         last_case_for_report=last_case_for_report,
         report_details=report_details,
-        all_glasses_for_last_case=first_case_details_for_glass 
+        all_glasses_for_last_case=first_case_details_for_glass
     )
 
 
@@ -2712,17 +2715,235 @@ async def get_current_cases_with_directions(
 
 
 
+# async def get_current_cases_final_report_page_data(
+#     db: AsyncSession, 
+#     router: APIRouter,
+#     skip: int = 0,
+#     limit: int = 10 
+
+# ) -> PatientFinalReportPageResponse:
+#     """
+#     Получает данные для вкладки "Заключение" на странице врача:
+#     - Все кейсы пациента.
+#     - Детали последнего кейса: сам кейс (включая micro_description), его параметры (для macro_description),
+#       и его заключение (если есть). Если заключения нет, оно будет создано.
+#     - Все стёкла последнего кейса (для выбора, какие прикрепить).
+#     """
+#     cases_fu_subquery = (
+#         select(
+#             db_models.Case.id,
+#             db_models.Case.case_code,
+#             db_models.Case.creation_date,
+#             db_models.Case.patient_id,
+#             db_models.Case.grossing_status,
+#             db_models.Case.bank_count,     
+#             db_models.Case.cassette_count, 
+#             db_models.Case.glass_count,
+#             db_models.Case.pathohistological_conclusion,
+#             db_models.Case.microdescription,
+#             literal_column("1").label("sort_priority")
+#         )
+#         .where( 
+#             and_(
+#                 func.substr(db_models.Case.case_code, 1, 1).in_(['F', 'U']),
+#                 db_models.Case.grossing_status != db_models.Grossing_status.COMPLETED.value
+#             )
+#         )
+#     ).subquery("cases_fu")
+
+#     scanned_glass_exists_clause = (
+#         select(1)
+#         .select_from(db_models.Sample)
+#         .join(db_models.Cassette, db_models.Sample.id == db_models.Cassette.sample_id)
+#         .join(db_models.Glass, db_models.Cassette.id == db_models.Glass.cassette_id)
+#         .where(
+#             db_models.Sample.case_id == db_models.Case.id
+#         )
+#         .exists()
+#     )
+
+#     cases_s_subquery = (
+#         select(
+#             db_models.Case.id,
+#             db_models.Case.case_code,
+#             db_models.Case.creation_date,
+#             db_models.Case.patient_id,
+#             db_models.Case.grossing_status,
+#             db_models.Case.bank_count,    
+#             db_models.Case.cassette_count,
+#             db_models.Case.glass_count,
+#             db_models.Case.pathohistological_conclusion,
+#             db_models.Case.microdescription,
+#             literal_column("2").label("sort_priority")
+#         )
+#         .where( 
+#             and_(
+#                 func.substr(db_models.Case.case_code, 1, 1) == 'S',
+
+#                 db_models.Case.grossing_status != db_models.Grossing_status.COMPLETED.value,
+#                 scanned_glass_exists_clause 
+#             )
+#         )
+#     ).subquery("cases_s")
+
+#     combined_query_for_data = (
+#         select(
+#             cases_fu_subquery.c.id,
+#             cases_fu_subquery.c.case_code,
+#             cases_fu_subquery.c.creation_date,
+#             cases_fu_subquery.c.patient_id,
+#             cases_fu_subquery.c.grossing_status,
+#             cases_fu_subquery.c.bank_count,    
+#             cases_fu_subquery.c.cassette_count, 
+#             cases_fu_subquery.c.glass_count,
+#             cases_fu_subquery.c.pathohistological_conclusion,
+#             cases_fu_subquery.c.microdescription,
+#             cases_fu_subquery.c.sort_priority
+#         )
+#         .union_all(
+#             select(
+#                 cases_s_subquery.c.id,
+#                 cases_s_subquery.c.case_code,
+#                 cases_s_subquery.c.creation_date,
+#                 cases_s_subquery.c.patient_id,
+#                 cases_s_subquery.c.grossing_status,
+#                 cases_s_subquery.c.bank_count,     
+#                 cases_s_subquery.c.cassette_count, 
+#                 cases_s_subquery.c.glass_count,
+#                 cases_s_subquery.c.pathohistological_conclusion,
+#                 cases_s_subquery.c.microdescription,
+#                 cases_s_subquery.c.sort_priority
+#             )
+#         )
+#     )
+
+#     final_ordered_query = combined_query_for_data.order_by(
+#         combined_query_for_data.c.sort_priority.asc(),
+#         combined_query_for_data.c.creation_date.desc()
+#     )
+
+#     paginated_results = await db.execute(
+#         final_ordered_query.offset(skip).limit(limit)
+#     )
+#     all_current_cases_raw = paginated_results.all()
+    
+
+#     current_cases_list: List[CaseModelScheema] = []
+#     last_case_details = None
+
+#     for row in all_current_cases_raw:
+#         case_id = row.id
+#         case_code = row.case_code
+#         creation_date = row.creation_date
+#         patient_id = row.patient_id
+#         bank_count = row.bank_count
+#         cassette_count = row.cassette_count
+#         glass_count = row.glass_count
+#         grossing_status = db_models.Grossing_status(row.grossing_status)
+#         pathohistological_conclusion = row.pathohistological_conclusion
+#         microdescription = row.microdescription
+#         current_cases_list.append(
+#             CaseModelScheema(
+#                 id=case_id,
+#                 case_code=case_code,
+#                 creation_date=creation_date,
+#                 patient_id=patient_id,
+#                 grossing_status=grossing_status,
+#                 bank_count=bank_count,
+#                 cassette_count=cassette_count,
+#                 glass_count=glass_count,
+#                 pathohistological_conclusion = pathohistological_conclusion,
+#                 microdescription = microdescription
+#             )
+#         )
+#     report_details: Optional[ReportResponseSchema] = None
+#     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
+
+
+#     if all_current_cases_raw:
+#         last_case_db = all_current_cases_raw[0]
+#         last_case_details = CaseModelScheema.model_validate(last_case_db)
+
+#         last_case_full_info_result = await db.execute(
+#             select(db_models.Case)
+#             .where(db_models.Case.id == last_case_db.id)
+#             .options(
+#                 selectinload(db_models.Case.case_parameters),
+#                 selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
+#                 selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature),
+#                 selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+#             )
+#         )
+#         last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+
+#         if last_case_with_relations:
+#             if not last_case_with_relations.report:
+#                 new_report = db_models.Report(case_id=last_case_with_relations.id)
+#                 db.add(new_report)
+#                 await db.commit()
+#                 await db.refresh(new_report)
+#                 last_case_with_relations.report = new_report
+
+#             patient_db = await get_patient_by_corid(db=db, cor_id=last_case_db.patient_id)
+#             referral_db = await get_referral_by_case(db=db, case_id=last_case_db.id)
+#             report_details = await _format_final_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, patient_db=patient_db, referral_db=referral_db, case_db=last_case_with_relations)
+
+#             for sample_db in last_case_with_relations.samples:
+#                 def sort_cassettes(cassette: db_models.Cassette):
+#                     match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+#                     if match:
+#                         letter_part = match.group(1)
+#                         number_part = int(match.group(2))
+#                         return (letter_part, number_part)
+#                     return (cassette.cassette_number, 0)
+
+#                 sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+
+#                 cassettes_for_sample: List[CassetteTestForGlassPage] = []
+#                 for cassette_db in sorted_cassettes_db:
+#                     sorted_glasses_db = sorted(
+#                         cassette_db.glass,
+#                         key=lambda glass: glass.glass_number
+#                     )
+#                     glasses_for_cassette: List[GlassTestModelScheema] = []
+#                     for glass in sorted_glasses_db:
+#                         glass = GlassTestModelScheema(id=glass.id,
+#                                                       glass_number=glass.glass_number,
+#                                                       cassette_id=glass.cassette_id
+#                                                       )
+#                         glasses_for_cassette.append(glass)
+                        
+#                     cassette_schematized = CassetteTestForGlassPage(id=cassette_db.id,
+#                                                                     cassette_number=cassette_db.cassette_number,
+#                                                                     sample_id=cassette_db.sample_id
+#                                                                     )
+#                     cassette_schematized.glasses = glasses_for_cassette 
+#                     cassettes_for_sample.append(cassette_schematized)
+
+#                 sample_schematized = SampleTestForGlassPage(id=sample_db.id,
+#                                                             sample_number=sample_db.sample_number,
+#                                                             case_id=sample_db.case_id)
+#                 sample_schematized.cassettes = cassettes_for_sample
+#                 all_samples_for_last_case_schematized.append(sample_schematized)
+
+
+#     return PatientFinalReportPageResponse(
+#         all_cases=current_cases_list,
+#         last_case_details=last_case_details,
+#         report_details=report_details
+#     )
+
+
 async def get_current_cases_final_report_page_data(
-    db: AsyncSession, 
+    db: AsyncSession,
     router: APIRouter,
     skip: int = 0,
-    limit: int = 10 
-
+    limit: int = 10
 ) -> PatientFinalReportPageResponse:
     """
     Получает данные для вкладки "Заключение" на странице врача:
-    - Все кейсы пациента.
-    - Детали последнего кейса: сам кейс (включая micro_description), его параметры (для macro_description),
+    - Все текущие (незавершенные) кейсы, отсортированные по приоритету.
+    - Детали последнего (по приоритету и дате) кейса: сам кейс, его параметры,
       и его заключение (если есть). Если заключения нет, оно будет создано.
     - Все стёкла последнего кейса (для выбора, какие прикрепить).
     """
@@ -2733,14 +2954,14 @@ async def get_current_cases_final_report_page_data(
             db_models.Case.creation_date,
             db_models.Case.patient_id,
             db_models.Case.grossing_status,
-            db_models.Case.bank_count,     
-            db_models.Case.cassette_count, 
+            db_models.Case.bank_count,
+            db_models.Case.cassette_count,
             db_models.Case.glass_count,
             db_models.Case.pathohistological_conclusion,
             db_models.Case.microdescription,
             literal_column("1").label("sort_priority")
         )
-        .where( 
+        .where(
             and_(
                 func.substr(db_models.Case.case_code, 1, 1).in_(['F', 'U']),
                 db_models.Case.grossing_status != db_models.Grossing_status.COMPLETED.value
@@ -2766,19 +2987,18 @@ async def get_current_cases_final_report_page_data(
             db_models.Case.creation_date,
             db_models.Case.patient_id,
             db_models.Case.grossing_status,
-            db_models.Case.bank_count,    
+            db_models.Case.bank_count,
             db_models.Case.cassette_count,
             db_models.Case.glass_count,
             db_models.Case.pathohistological_conclusion,
             db_models.Case.microdescription,
             literal_column("2").label("sort_priority")
         )
-        .where( 
+        .where(
             and_(
                 func.substr(db_models.Case.case_code, 1, 1) == 'S',
-
                 db_models.Case.grossing_status != db_models.Grossing_status.COMPLETED.value,
-                scanned_glass_exists_clause 
+                scanned_glass_exists_clause
             )
         )
     ).subquery("cases_s")
@@ -2790,8 +3010,8 @@ async def get_current_cases_final_report_page_data(
             cases_fu_subquery.c.creation_date,
             cases_fu_subquery.c.patient_id,
             cases_fu_subquery.c.grossing_status,
-            cases_fu_subquery.c.bank_count,    
-            cases_fu_subquery.c.cassette_count, 
+            cases_fu_subquery.c.bank_count,
+            cases_fu_subquery.c.cassette_count,
             cases_fu_subquery.c.glass_count,
             cases_fu_subquery.c.pathohistological_conclusion,
             cases_fu_subquery.c.microdescription,
@@ -2804,8 +3024,8 @@ async def get_current_cases_final_report_page_data(
                 cases_s_subquery.c.creation_date,
                 cases_s_subquery.c.patient_id,
                 cases_s_subquery.c.grossing_status,
-                cases_s_subquery.c.bank_count,     
-                cases_s_subquery.c.cassette_count, 
+                cases_s_subquery.c.bank_count,
+                cases_s_subquery.c.cassette_count,
                 cases_s_subquery.c.glass_count,
                 cases_s_subquery.c.pathohistological_conclusion,
                 cases_s_subquery.c.microdescription,
@@ -2823,109 +3043,233 @@ async def get_current_cases_final_report_page_data(
         final_ordered_query.offset(skip).limit(limit)
     )
     all_current_cases_raw = paginated_results.all()
-    
 
     current_cases_list: List[CaseModelScheema] = []
-    last_case_details = None
-
-    for row in all_current_cases_raw:
-        case_id = row.id
-        case_code = row.case_code
-        creation_date = row.creation_date
-        patient_id = row.patient_id
-        bank_count = row.bank_count
-        cassette_count = row.cassette_count
-        glass_count = row.glass_count
-        grossing_status = db_models.Grossing_status(row.grossing_status)
-        pathohistological_conclusion = row.pathohistological_conclusion
-        microdescription = row.microdescription
-        current_cases_list.append(
-            CaseModelScheema(
-                id=case_id,
-                case_code=case_code,
-                creation_date=creation_date,
-                patient_id=patient_id,
-                grossing_status=grossing_status,
-                bank_count=bank_count,
-                cassette_count=cassette_count,
-                glass_count=glass_count,
-                pathohistological_conclusion = pathohistological_conclusion,
-                microdescription = microdescription
-            )
-        )
-    report_details: Optional[ReportResponseSchema] = None
+    last_case_details: Optional[CaseModelScheema] = None
+    report_details: Optional[FinalReportResponseSchema] = None 
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
 
+    for row in all_current_cases_raw:
+        current_cases_list.append(
+            CaseModelScheema(
+                id=str(row.id), 
+                case_code=row.case_code,
+                creation_date=row.creation_date,
+                patient_id=str(row.patient_id),
+                grossing_status=db_models.Grossing_status(row.grossing_status),
+                bank_count=row.bank_count,
+                cassette_count=row.cassette_count,
+                glass_count=row.glass_count,
+                pathohistological_conclusion = row.pathohistological_conclusion,
+                microdescription = row.microdescription
+            )
+        )
 
     if all_current_cases_raw:
-        last_case_db = all_current_cases_raw[0]
-        last_case_details = CaseModelScheema.model_validate(last_case_db)
+        first_case_id = all_current_cases_raw[0].id
 
         last_case_full_info_result = await db.execute(
             select(db_models.Case)
-            .where(db_models.Case.id == last_case_db.id)
+            .where(db_models.Case.id == first_case_id) 
             .options(
                 selectinload(db_models.Case.case_parameters),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor),
-                selectinload(db_models.Case.report).selectinload(db_models.Report.signatures).selectinload(db_models.ReportSignature.doctor_signature),
+                selectinload(db_models.Case.report).options( 
+                    selectinload(db_models.Report.doctor_diagnoses).options(
+                        selectinload(db_models.DoctorDiagnosis.doctor),
+                        selectinload(db_models.DoctorDiagnosis.signature).options(
+                            selectinload(db_models.ReportSignature.doctor),
+                            selectinload(db_models.ReportSignature.doctor_signature)
+                        )
+                    )
+                ),
                 selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
             )
         )
         last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
         if last_case_with_relations:
+            last_case_details = CaseModelScheema.model_validate(last_case_with_relations)
+
             if not last_case_with_relations.report:
                 new_report = db_models.Report(case_id=last_case_with_relations.id)
                 db.add(new_report)
                 await db.commit()
                 await db.refresh(new_report)
-                last_case_with_relations.report = new_report
+                last_case_with_relations.report = new_report 
 
-            patient_db = await get_patient_by_corid(db=db, cor_id=last_case_db.patient_id)
-            referral_db = await get_referral_by_case(db=db, case_id=last_case_db.id)
-            report_details = await _format_final_report_response(db=db, db_report=last_case_with_relations.report, db_case_parameters=last_case_with_relations.case_parameters, router=router, patient_db=patient_db, referral_db=referral_db, case_db=last_case_with_relations)
+            patient_db = await get_patient_by_corid(db=db, cor_id=last_case_with_relations.patient_id)
+            referral_db = await get_referral_by_case(db=db, case_id=last_case_with_relations.id)
 
-            for sample_db in last_case_with_relations.samples:
-                def sort_cassettes(cassette: db_models.Cassette):
-                    match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
-                    if match:
-                        letter_part = match.group(1)
-                        number_part = int(match.group(2))
-                        return (letter_part, number_part)
-                    return (cassette.cassette_number, 0)
-
-                sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
-
-                cassettes_for_sample: List[CassetteTestForGlassPage] = []
-                for cassette_db in sorted_cassettes_db:
-                    sorted_glasses_db = sorted(
-                        cassette_db.glass,
-                        key=lambda glass: glass.glass_number
-                    )
-                    glasses_for_cassette: List[GlassTestModelScheema] = []
-                    for glass in sorted_glasses_db:
-                        glass = GlassTestModelScheema(id=glass.id,
-                                                      glass_number=glass.glass_number,
-                                                      cassette_id=glass.cassette_id
-                                                      )
-                        glasses_for_cassette.append(glass)
-                        
-                    cassette_schematized = CassetteTestForGlassPage(id=cassette_db.id,
-                                                                    cassette_number=cassette_db.cassette_number,
-                                                                    sample_id=cassette_db.sample_id
-                                                                    )
-                    cassette_schematized.glasses = glasses_for_cassette 
-                    cassettes_for_sample.append(cassette_schematized)
-
-                sample_schematized = SampleTestForGlassPage(id=sample_db.id,
-                                                            sample_number=sample_db.sample_number,
-                                                            case_id=sample_db.case_id)
-                sample_schematized.cassettes = cassettes_for_sample
-                all_samples_for_last_case_schematized.append(sample_schematized)
-
+            report_details = await _format_final_report_response(
+                db=db,
+                db_report=last_case_with_relations.report,
+                db_case_parameters=last_case_with_relations.case_parameters,
+                router=router,
+                patient_db=patient_db,
+                referral_db=referral_db,
+                case_db=last_case_with_relations
+            )
 
     return PatientFinalReportPageResponse(
         all_cases=current_cases_list,
         last_case_details=last_case_details,
         report_details=report_details
     )
+
+
+async def take_case_ownership(db: AsyncSession, case_id: str, doctor_id: str) -> db_models.Case:
+    """
+    Позволяет доктору взять на себя владение кейсом.
+    """
+    case_db = await db.scalar(select(db_models.Case).where(db_models.Case.id == case_id))
+    if not case_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
+
+    doctor_db = await db.scalar(select(db_models.Doctor).where(db_models.Doctor.doctor_id == doctor_id))
+    if not doctor_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Доктор с ID '{doctor_id}' не найден.")
+
+    if case_db.case_owner == doctor_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Вы уже являетесь владельцем этого кейса.")
+    
+    if case_db.case_owner is not None and case_db.case_owner != doctor_id:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Кейс уже занят другим доктором.")
+
+
+    case_db.case_owner = doctor_id
+    await db.commit()
+    await db.refresh(case_db)
+
+
+    samples_result = await db.execute(
+        select(db_models.Sample)
+        .where(db_models.Sample.case_id == case_db.id)
+        .options(
+            selectinload(db_models.Sample.cassette)
+        )  
+        .order_by(db_models.Sample.sample_number)
+    )
+    first_case_samples_db = samples_result.scalars().all()
+    first_case_samples: List[Dict[str, Any]] = []
+
+    for i, sample_db in enumerate(first_case_samples_db):
+        sample = SampleModelScheema.model_validate(sample_db).model_dump()
+        sample["cassettes"] = []
+
+        if i == 0 and sample_db:
+            await db.refresh(sample_db, attribute_names=["cassette"])
+
+            def sort_cassettes(cassette: db_models.Cassette):
+                match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+                if match:
+                    letter_part = match.group(1)
+                    number_part = int(match.group(2))
+                    return (letter_part, number_part)
+                return (
+                    cassette.cassette_number,
+                    0,
+                ) 
+
+            sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+
+            for cassette_db in sorted_cassettes_db:
+                await db.refresh(cassette_db, attribute_names=["glass"])
+                cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
+                cassette["glasses"] = sorted(
+                    [
+                        GlassModelScheema.model_validate(glass).model_dump()
+                        for glass in cassette_db.glass
+                    ],
+                    key=lambda glass: glass["glass_number"],
+                )
+                sample["cassettes"].append(cassette)
+        first_case_samples.append(sample)
+    response = CaseDetailsResponse(
+            id=case_db.id,
+            case_code=case_db.case_code,
+            creation_date=case_db.creation_date,
+            bank_count=case_db.bank_count,
+            cassette_count=case_db.cassette_count,
+            glass_count=case_db.glass_count,
+            pathohistological_conclusion=case_db.pathohistological_conclusion,
+            microdescription=case_db.microdescription,
+            samples=first_case_samples,
+            case_owner=case_db.case_owner
+        )
+    return response
+
+async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str) -> db_models.Case:
+    """
+    Позволяет доктору отказаться от владения кейсом.
+    """
+    case_db = await db.scalar(select(db_models.Case).where(db_models.Case.id == case_id))
+    if not case_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
+
+    if case_db.case_owner != doctor_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Вы не являетесь владельцем этого кейса и не можете его освободить.")
+    
+    
+    case_db.case_owner = None 
+
+    await db.commit()
+    await db.refresh(case_db)
+
+
+    samples_result = await db.execute(
+        select(db_models.Sample)
+        .where(db_models.Sample.case_id == case_db.id)
+        .options(
+            selectinload(db_models.Sample.cassette)
+        )  
+        .order_by(db_models.Sample.sample_number)
+    )
+    first_case_samples_db = samples_result.scalars().all()
+    first_case_samples: List[Dict[str, Any]] = []
+
+    for i, sample_db in enumerate(first_case_samples_db):
+        sample = SampleModelScheema.model_validate(sample_db).model_dump()
+        sample["cassettes"] = []
+
+        
+        if i == 0 and sample_db:
+            await db.refresh(sample_db, attribute_names=["cassette"])
+
+            def sort_cassettes(cassette: db_models.Cassette):
+                match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+                if match:
+                    letter_part = match.group(1)
+                    number_part = int(match.group(2))
+                    return (letter_part, number_part)
+                return (
+                    cassette.cassette_number,
+                    0,
+                )  
+
+            sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+
+            for cassette_db in sorted_cassettes_db:
+                await db.refresh(cassette_db, attribute_names=["glass"])
+                cassette = CassetteModelScheema.model_validate(cassette_db).model_dump()
+                cassette["glasses"] = sorted(
+                    [
+                        GlassModelScheema.model_validate(glass).model_dump()
+                        for glass in cassette_db.glass
+                    ],
+                    key=lambda glass: glass["glass_number"],
+                )
+                sample["cassettes"].append(cassette)
+        first_case_samples.append(sample)
+    response = CaseDetailsResponse(
+            id=case_db.id,
+            case_code=case_db.case_code,
+            creation_date=case_db.creation_date,
+            bank_count=case_db.bank_count,
+            cassette_count=case_db.cassette_count,
+            glass_count=case_db.glass_count,
+            pathohistological_conclusion=case_db.pathohistological_conclusion,
+            microdescription=case_db.microdescription,
+            samples=first_case_samples,
+            case_owner=case_db.case_owner
+        )
+    return response
