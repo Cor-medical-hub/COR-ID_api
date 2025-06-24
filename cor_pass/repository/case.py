@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, status
 from sqlalchemy import and_, distinct, func, literal_column, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.schemas import (
     Case as CaseModelScheema,
@@ -3205,7 +3206,7 @@ async def take_case_ownership(db: AsyncSession, case_id: str, doctor_id: str) ->
             pathohistological_conclusion=case_db.pathohistological_conclusion,
             microdescription=case_db.microdescription,
             samples=first_case_samples,
-            case_owner=case_db.case_owner
+            case_owner=doctor_db
         )
     return response
 
@@ -3225,6 +3226,7 @@ async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str)
 
     await db.commit()
     await db.refresh(case_db)
+    doctor = await get_doctor(db=db, doctor_id=case_db.case_owner)
 
 
     samples_result = await db.execute(
@@ -3281,7 +3283,7 @@ async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str)
             pathohistological_conclusion=case_db.pathohistological_conclusion,
             microdescription=case_db.microdescription,
             samples=first_case_samples,
-            case_owner=case_db.case_owner
+            case_owner=doctor
         )
     return response
 
