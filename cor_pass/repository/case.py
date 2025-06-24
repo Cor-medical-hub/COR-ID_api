@@ -1,4 +1,5 @@
 import base64
+from enum import Enum
 import re
 from typing import Any, Dict, List, Optional, Union
 from fastapi import APIRouter, HTTPException, UploadFile, status
@@ -8,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.schemas import (
     Case as CaseModelScheema,
+    CaseCloseResponse,
     CaseDetailsResponse,
     CaseFinalReportPageResponse,
     CaseIDReportPageResponse,
@@ -57,6 +59,15 @@ from cor_pass.services.cipher import decrypt_data
 from cor_pass.services.logger import logger
 from cor_pass.config.config import settings
 
+
+class ErrorCode(str, Enum):
+    CASE_NOT_FOUND = "CASE_NOT_FOUND"
+    NOT_CASE_OWNER = "NOT_CASE_OWNER"
+    CASE_ALREADY_COMPLETED = "CASE_ALREADY_COMPLETED"
+    REPORT_NOT_FOUND_FOR_CASE = "REPORT_NOT_FOUND_FOR_CASE"
+    NO_DIAGNOSES_FOR_REPORT = "NO_DIAGNOSES_FOR_REPORT"
+    DIAGNOSIS_NOT_SIGNED_BY_DOCTOR_NAME = "DIAGNOSIS_NOT_SIGNED_BY_DOCTOR_NAME: {doctor_full_name}"
+    SIGNATURE_MISMATCH = "SIGNATURE_MISMATCH: Diagnosis by {diagnosis_doctor}, signed by {signature_doctor}" 
 
 async def generate_case_code(
     urgency_char: str, year_short: str, sample_type_char: str, next_number: int
@@ -3273,3 +3284,94 @@ async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str)
             case_owner=case_db.case_owner
         )
     return response
+
+
+
+async def close_case_service(
+    db: AsyncSession,
+    case_id: str,
+    current_doctor: db_models.Doctor # Объект текущего аутентифицированного врача
+) -> CaseCloseResponse:
+    """
+    Закрывает кейс, меняя его grossing_status на COMPLETED.
+    Требует, чтобы текущий врач был владельцем кейса и чтобы
+    все DoctorDiagnosis имели соответствующие подписи.
+    """
+    case_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.id == case_id)
+        .options(
+            selectinload(db_models.Case.owner_obj), # <-- ИЗМЕНЕНО: теперь используем owner_obj
+            selectinload(db_models.Case.report).options(
+                selectinload(db_models.Report.doctor_diagnoses).options(
+                    selectinload(db_models.DoctorDiagnosis.doctor),
+                    selectinload(db_models.DoctorDiagnosis.signature)
+                )
+            )
+        )
+    )
+    case_to_close = case_result.scalar_one_or_none()
+
+    if not case_to_close:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ErrorCode.CASE_NOT_FOUND
+        )
+
+    # Для проверки ID владельца используем столбец case_owner
+    if str(case_to_close.case_owner) != str(current_doctor.doctor_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ErrorCode.NOT_CASE_OWNER
+        )
+
+    # 3. Проверка текущего статуса кейса
+    if case_to_close.grossing_status == db_models.Grossing_status.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorCode.CASE_ALREADY_COMPLETED
+        )
+    
+    # 4. Проверка наличия отчета
+    if not case_to_close.report:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorCode.REPORT_NOT_FOUND_FOR_CASE
+        )
+
+    # 5. Проверка наличия подписей для всех DoctorDiagnosis
+    if not case_to_close.report.doctor_diagnoses:
+        # Если нет ни одного диагноза, то кейс не может быть закрыт
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorCode.NO_DIAGNOSES_FOR_REPORT
+        )
+
+    for diagnosis in case_to_close.report.doctor_diagnoses:
+        if not diagnosis.signature:
+            # Если хотя бы один диагноз не подписан
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=ErrorCode.DIAGNOSIS_NOT_SIGNED_BY_DOCTOR_NAME.format(doctor_full_name=f"{diagnosis.doctor.first_name} {diagnosis.doctor.last_name}" if diagnosis.doctor else "N/A")
+            )
+        # Опционально: можно добавить проверку, что подпись актуальна, или что подписал именно тот врач, который поставил диагноз
+        # if str(current_doctor.doctor_id) != str(diagnosis.doctor_id):
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail=ErrorCode.SIGNATURE_MISMATCH.format(diagnosis_doctor=f"{diagnosis.doctor.first_name} {diagnosis.doctor.last_name}", signature_doctor=f"{diagnosis.signature.doctor.first_name} {diagnosis.signature.doctor.last_name}")
+        #     )
+
+
+    # 6. Обновление статуса кейса
+    case_to_close.grossing_status = db_models.Grossing_status.COMPLETED
+    # case_to_close.closed_at = datetime.now() # Добавляем время закрытия
+    
+    db.add(case_to_close)
+    await db.commit()
+    await db.refresh(case_to_close)
+
+    return CaseCloseResponse(
+        message="Case closed successfully.",
+        case_id=str(case_to_close.id),
+        new_status=case_to_close.grossing_status.value
+    )

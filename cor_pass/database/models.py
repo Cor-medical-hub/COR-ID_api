@@ -268,7 +268,7 @@ class Doctor(Base):
     signatures = relationship("DoctorSignature", back_populates="doctor", cascade="all, delete-orphan")
     doctor_diagnoses = relationship("DoctorDiagnosis", back_populates="doctor")
     signed_diagnoses = relationship("ReportSignature", back_populates="doctor")
-    owned_cases = relationship("Case", back_populates="owner")
+    owned_cases = relationship("Case", back_populates="owner_obj")
 
 
 class LabAssistant(Base):
@@ -564,7 +564,11 @@ class Case(Base):
         cascade="all, delete-orphan",
     )
     report = relationship("Report", back_populates="case", uselist=False, cascade="all, delete-orphan")
-    owner = relationship("Doctor", back_populates="owned_cases") 
+    owner_obj = relationship(
+        "Doctor", 
+        back_populates="owned_cases", 
+        foreign_keys=[case_owner] 
+    ) 
 
 
 # Банка

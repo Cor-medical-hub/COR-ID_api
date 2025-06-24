@@ -1566,62 +1566,6 @@ class ReportAndDiagnosisUpdateSchema(BaseModel):
     doctor_diagnosis_data: Optional[DoctorDiagnosisInputSchema] = None
 
 
-# class FinalReportResponseSchema(BaseModel):
-#     id: str
-#     case_id: str
-#     case_code: str
-    
-
-#     biopsy_date: Optional[date] = None
-#     arrival_date: Optional[date] = None
-#     report_date: Optional[date] = None
-
-#     # Пациент
-#     patient_cor_id: Optional[str] = None
-#     patient_first_name: Optional[str] = None
-#     patient_surname: Optional[str] = None
-#     patient_middle_name: Optional[str] = None
-#     patient_sex: Optional[str] = None
-#     patient_birth_date: Optional[date] = None
-#     patient_full_age: Optional[int] = None
-#     patient_phone_number: Optional[str] = None
-#     patient_email: Optional[str] = None
-
-
-#     # направление 
-#     medical_card_number: Optional[str] = None
-#     medical_institution: Optional[str] = None
-#     medical_department: Optional[str] = None
-#     attending_doctor: Optional[str] = None
-#     clinical_data: Optional[str] = None
-#     clinical_diagnosis: Optional[str] = None
-
-#     painting: Optional[List[StainingType]] = None
-
-#     # Параметры кейса
-#     macroarchive: Optional[MacroArchive] = None
-#     decalcification: Optional[DecalcificationType] = None
-#     fixation: Optional[FixationType] = None
-#     num_blocks: Optional[int] = None
-#     containers_recieved: Optional[int] = None
-#     containers_actual: Optional[int] = None
-
-#     # заключение (репорт)
-#     macrodescription: Optional[str] = None
-#     microdescription: Optional[str] = None
-#     pathomorphological_diagnosis: Optional[str] = None
-#     immunohistochemical_profile: Optional[str] = None
-#     molecular_genetic_profile: Optional[str] = None
-#     comment: Optional[str] = None
-#     icd_code: Optional[str] = None
-
-
-#     signatures: List[ReportSignatureSchema] = [] 
-#     attached_glasses: List[Glass] = []
-
-#     class Config:
-#         from_attributes = True
-
 class FinalReportResponseSchema(BaseModel):
     id: str 
     case_id: str
@@ -1677,3 +1621,8 @@ class CaseFinalReportPageResponse(BaseModel):
     report_details: Optional[FinalReportResponseSchema]
     class Config:
         from_attributes = True
+
+class CaseCloseResponse(BaseModel):
+    message: str
+    case_id: str
+    new_status: str

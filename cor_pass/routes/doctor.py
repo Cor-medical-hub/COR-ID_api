@@ -36,6 +36,7 @@ from cor_pass.repository.doctor import (
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
+    CaseCloseResponse,
     CaseCreate,
     CaseFinalReportPageResponse,
     CaseIDReportPageResponse,
@@ -907,3 +908,23 @@ async def get_current_cases_final_report_full_page_data_route(
     Этот маршрут возвращает список всех кейсов пациента и данные для формирования финального заключения по последнему кейсу
     """
     return await case_service.get_current_cases_final_report_page_data(db=db, router=router, skip=skip, limit=limit)
+
+
+
+@router.put(
+    "/cases/{case_id}/close",
+    response_model=CaseCloseResponse,
+    summary="Закрыть кейс",
+    description="Закрывает кейс, устанавливая grossing_status в COMPLETED. Доступно только владельцу кейса при наличии всех необходимых подписей под диагнозами.",
+    status_code=status.HTTP_200_OK
+)
+async def close_case_endpoint(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user), 
+) -> CaseCloseResponse:
+    """
+    Эндпоинт для закрытия кейса.
+    """
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await case_service.close_case_service(db=db, case_id=case_id, current_doctor=doctor)
