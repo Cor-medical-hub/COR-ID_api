@@ -266,6 +266,9 @@ class Doctor(Base):
         "DoctorPatientStatus", back_populates="doctor", cascade="all, delete-orphan"
     )
     signatures = relationship("DoctorSignature", back_populates="doctor", cascade="all, delete-orphan")
+    doctor_diagnoses = relationship("DoctorDiagnosis", back_populates="doctor")
+    signed_diagnoses = relationship("ReportSignature", back_populates="doctor")
+    owned_cases = relationship("Case", back_populates="owner_obj")
 
 
 class LabAssistant(Base):
@@ -548,6 +551,7 @@ class Case(Base):
     pathohistological_conclusion = Column(Text, nullable=True)
     microdescription = Column(Text, nullable=True)
     general_macrodescription = Column(Text, nullable=True)
+    case_owner = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=True)
 
     samples = relationship(
         "Sample", back_populates="case", cascade="all, delete-orphan"
@@ -559,7 +563,12 @@ class Case(Base):
         back_populates="case",
         cascade="all, delete-orphan",
     )
-    report = relationship("Report", back_populates="case", uselist=False, cascade="all, delete-orphan") 
+    report = relationship("Report", back_populates="case", uselist=False, cascade="all, delete-orphan")
+    owner_obj = relationship(
+        "Doctor", 
+        back_populates="owned_cases", 
+        foreign_keys=[case_owner] 
+    ) 
 
 
 # Банка
@@ -796,42 +805,52 @@ class DoctorSignature(Base):
     # Связи
     doctor = relationship("Doctor", back_populates="signatures")
 
-
-
 class ReportSignature(Base):
     __tablename__ = "report_signatures"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    report_id = Column(String(36), ForeignKey("reports.id"), nullable=False)
-    doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False)
-    doctor_signature_id = Column(String(36), ForeignKey("doctor_signatures.id"), nullable=True) # <-- Ссылка на DoctorSignature
+    diagnosis_entry_id = Column(String(36), ForeignKey("doctor_diagnoses.id"), nullable=True, unique=True) 
+    doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False) 
+    doctor_signature_id = Column(String(36), ForeignKey("doctor_signatures.id"), nullable=True)
     signed_at = Column(DateTime, default=func.now())
-    
 
-    # Связи
-    report = relationship("Report", back_populates="signatures")
-    doctor = relationship("Doctor") 
+    # Связи 
+    doctor_diagnosis_entry = relationship("DoctorDiagnosis", back_populates="signature") 
+    doctor = relationship("Doctor")
     doctor_signature = relationship("DoctorSignature")
 
 class Report(Base):
     __tablename__ = "reports"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_id = Column(String(36), ForeignKey("cases.id"), unique=True, nullable=False) 
+    case_id = Column(String(36), ForeignKey("cases.id"), unique=True, nullable=False)
+    attached_glass_ids = Column(ARRAY(String(36)), nullable=True, default=[]) 
+    # Связи
+    case = relationship("Case", back_populates="report")
+    doctor_diagnoses = relationship("DoctorDiagnosis", back_populates="report", order_by="DoctorDiagnosis.created_at") 
 
+
+class DoctorDiagnosis(Base):
+    __tablename__ = "doctor_diagnoses"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(String(36), ForeignKey("reports.id"), nullable=False)
+    doctor_id = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=False)
+    created_at = Column(DateTime, default=func.now())
 
     immunohistochemical_profile = Column(Text, nullable=True)
     molecular_genetic_profile = Column(Text, nullable=True)
     pathomorphological_diagnosis = Column(Text, nullable=True)
+
     icd_code = Column(String(50), nullable=True)
     comment = Column(Text, nullable=True)
-    
-    # Список ID стёкол, прикрепленных к этому заключению
-    attached_glass_ids = Column(ARRAY(String(36)), nullable=True, default=[]) 
 
-    # Связи
-    case = relationship("Case", back_populates="report")
-    signatures = relationship("ReportSignature", back_populates="report") 
+    report_macrodescription = Column(Text, nullable=True)
+    report_microdescription = Column(Text, nullable=True)
 
+    # Связи 
+    report = relationship("Report", back_populates="doctor_diagnoses")
+    doctor = relationship("Doctor")
+    signature = relationship("ReportSignature", uselist=False, back_populates="doctor_diagnosis_entry") 
 
 # Base.metadata.create_all(bind=engine)

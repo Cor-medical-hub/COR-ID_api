@@ -36,6 +36,7 @@ from cor_pass.repository.doctor import (
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import add_existing_patient, register_new_patient
 from cor_pass.schemas import (
+    CaseCloseResponse,
     CaseCreate,
     CaseFinalReportPageResponse,
     CaseIDReportPageResponse,
@@ -43,6 +44,7 @@ from cor_pass.schemas import (
     GetAllPatientsResponce,
     PatientFinalReportPageResponse,
     PatientTestReportPageResponse,
+    ReportAndDiagnosisUpdateSchema,
     ReportResponseSchema,
     ReportUpdateSchema,
     DoctorCreate,
@@ -650,8 +652,6 @@ async def delete_signature(
 
 
 
-
-
 @router.get(
     "/patients/{patient_id}/report-page-data", 
     response_model=PatientTestReportPageResponse,
@@ -673,7 +673,6 @@ async def get_patient_report_full_page_data_route(
     return await case_service.get_patient_report_page_data(db=db, patient_id=patient_id, router=router)
 
 
-
 @router.get(
     "/cases/{case_id}/report",
     response_model=CaseIDReportPageResponse,
@@ -693,32 +692,26 @@ async def get_case_report_route(
     return await case_service.get_report_by_case_id(db=db, case_id=case_id, router=router)
 
 
-@router.put( 
-    "/cases/{case_id}/report/upsert", 
-    response_model=ReportResponseSchema,
-    dependencies=[Depends(doctor_access)],
-    status_code=status.HTTP_200_OK, 
-    summary="Создаем или обновляем заключение",
-    tags=["DoctorPage"]
-)
-async def upsert_case_report(
+@router.put("/cases/{case_id}/report/upsert", response_model=ReportResponseSchema)
+async def handle_report_and_diagnosis(
     case_id: str,
-    report_data: ReportUpdateSchema, 
+    update_data: ReportAndDiagnosisUpdateSchema = Body(...),
     db: AsyncSession = Depends(get_db),
-) -> ReportResponseSchema:
-    """
-    Создает новое заключение для указанного кейса или обновляет существующее.
-    """
-    return await case_service.create_or_update_report(db=db, case_id=case_id, report_data=report_data, router=router)
-
-
-
-
+    user: User = Depends(auth_service.get_current_user),
+):
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await case_service.create_or_update_report_and_diagnosis(
+        db=db,
+        case_id=case_id,
+        router=router, 
+        update_data=update_data,
+        current_doctor_id=doctor.doctor_id
+    )
 
 
 
 @router.post(
-    "/cases/{case_id}/report/sign",
+    "/diagnosis/{diagnosis_entry_id}/report/sign",
     response_model=ReportResponseSchema,
     dependencies=[Depends(doctor_access)], 
     status_code=status.HTTP_200_OK,
@@ -726,15 +719,17 @@ async def upsert_case_report(
     tags=["DoctorPage"]
 )
 async def add_signature_to_report_route(
-    case_id: str,
+    diagnosis_entry_id: str,
     request: SignReportRequest, 
     db: AsyncSession = Depends(get_db),
     user: User = Depends(auth_service.get_current_user)
 ) -> ReportResponseSchema:
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
-    return await case_service.add_report_signature(db=db, case_id=case_id, doctor_id=doctor.id, doctor_signature_id=request.doctor_signature_id, router=router)
+    return await case_service.add_diagnosis_signature(db=db, diagnosis_entry_id=diagnosis_entry_id, doctor_id=doctor.doctor_id, doctor_signature_id=request.doctor_signature_id, router=router)
 
 
+
+# Проверить
 @router.get("/signatures/{signature_id}/attachment", 
             dependencies=[Depends(doctor_access)]
             )
@@ -759,7 +754,7 @@ async def get_signature_attachment(
 
 
 
-
+# !!!!!Переделать
 @router.get(
     "/patients/{patient_id}/final-report-page-data", 
     response_model=PatientFinalReportPageResponse,
@@ -778,6 +773,8 @@ async def get_patient_final_report_full_page_data_route(
     return await case_service.get_patient_final_report_page_data(db=db, patient_id=patient_id, router=router)
 
 
+
+# !!!!!Переделать
 @router.get(
     "/cases/{case_id}/final-report",
     response_model=CaseFinalReportPageResponse,
@@ -798,6 +795,7 @@ async def get_case_final_report_route(
 
 
 # Текущие кейсы 
+
 @router.get(
     "/current_cases/report-page-data", 
     response_model=PatientTestReportPageResponse,
@@ -891,6 +889,8 @@ async def get_current_cases_glass_page_data(
     return glass_page_data
 
 
+
+# !!!!!Переделать
 @router.get(
     "/current_cases/final-report-page-data", 
     response_model=PatientFinalReportPageResponse,
@@ -908,3 +908,23 @@ async def get_current_cases_final_report_full_page_data_route(
     Этот маршрут возвращает список всех кейсов пациента и данные для формирования финального заключения по последнему кейсу
     """
     return await case_service.get_current_cases_final_report_page_data(db=db, router=router, skip=skip, limit=limit)
+
+
+
+@router.put(
+    "/cases/{case_id}/close",
+    response_model=CaseCloseResponse,
+    summary="Закрыть кейс",
+    description="Закрывает кейс, устанавливая grossing_status в COMPLETED. Доступно только владельцу кейса при наличии всех необходимых подписей под диагнозами.",
+    status_code=status.HTTP_200_OK
+)
+async def close_case_endpoint(
+    case_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(auth_service.get_current_user), 
+) -> CaseCloseResponse:
+    """
+    Эндпоинт для закрытия кейса.
+    """
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await case_service.close_case_service(db=db, case_id=case_id, current_doctor=doctor)

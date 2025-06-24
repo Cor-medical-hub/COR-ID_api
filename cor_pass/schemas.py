@@ -854,6 +854,8 @@ class UpdateCaseCode(BaseModel):
     )
 
 
+
+
 class Case(BaseModel):
     id: str
     creation_date: datetime
@@ -930,6 +932,7 @@ class CaseDetailsResponse(BaseModel):
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
     samples: List[SampleWithoutCassettesSchema | Sample]
+    case_owner: Optional[str] = None
 
 
 class SimpleCaseResponse(BaseModel):
@@ -1324,7 +1327,7 @@ class DoctorSignatureResponse(DoctorSignatureBase):
 class ReportSignatureSchema(BaseModel):
     id: str
     doctor: DoctorResponseForSignature 
-    signed_at: datetime
+    signed_at: Optional[datetime] = None 
 
     doctor_signature: Optional[DoctorSignatureResponse] = None 
 
@@ -1347,42 +1350,9 @@ class ReportUpdateSchema(ReportBaseSchema):
     pass
 
 
-class ReportResponseSchema(BaseModel):
-    id: str
-    case_id: str
-    case_details: Optional[Case] = None 
-    macro_description_from_case_params: Optional[str] = None
-    microdescription_from_case: Optional[str] = None
-
-    immunohistochemical_profile: Optional[str] = None
-    molecular_genetic_profile: Optional[str] = None
-    pathomorphological_diagnosis: Optional[str] = None
-    icd_code: Optional[str] = None
-    comment: Optional[str] = None
-
-    signatures: List[ReportSignatureSchema] = [] 
-    
-    attached_glasses: List[Glass] = []
-
-    class Config:
-        from_attributes = True
-
-
-class PatientReportPageResponse(BaseModel):
-    all_cases: List[Case] 
-    
-    last_case_for_report: Optional[Case] = None 
-    report_details: Optional[ReportResponseSchema] = None
-    
-    all_glasses_for_last_case: List[FirstCaseGlassDetailsSchema] = [] 
-
-    class Config:
-        from_attributes = True
 
 
 
-class SignReportRequest(BaseModel):
-    doctor_signature_id: Optional[str] = None
 
 
 
@@ -1421,94 +1391,12 @@ class FirstCaseTestGlassDetailsSchema(BaseModel):
         from_attributes = True
 
 
-class PatientTestReportPageResponse(BaseModel):
-    all_cases: List[Case]
-    last_case_for_report: Optional[Case]
-    report_details: Optional[ReportResponseSchema]
-    all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
-    class Config:
-        from_attributes = True
-
-class CaseIDReportPageResponse(BaseModel):
-    last_case_for_report: Optional[Case] = None 
-    report_details: Optional[ReportResponseSchema] = None
-    all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
-
-    class Config:
-        from_attributes = True
 
 
 
 
-class FinalReportResponseSchema(BaseModel):
-    id: str
-    case_id: str
-    case_code: str
-    
-
-    biopsy_date: Optional[date] = None
-    arrival_date: Optional[date] = None
-    report_date: Optional[date] = None
-
-    # Пациент
-    patient_cor_id: Optional[str] = None
-    patient_first_name: Optional[str] = None
-    patient_surname: Optional[str] = None
-    patient_middle_name: Optional[str] = None
-    patient_sex: Optional[str] = None
-    patient_birth_date: Optional[date] = None
-    patient_full_age: Optional[int] = None
-    patient_phone_number: Optional[str] = None
-    patient_email: Optional[str] = None
 
 
-    # направление 
-    medical_card_number: Optional[str] = None
-    medical_institution: Optional[str] = None
-    medical_department: Optional[str] = None
-    attending_doctor: Optional[str] = None
-    clinical_data: Optional[str] = None
-    clinical_diagnosis: Optional[str] = None
-
-    painting: Optional[List[StainingType]] = None
-
-    # Параметры кейса
-    macroarchive: Optional[MacroArchive] = None
-    decalcification: Optional[DecalcificationType] = None
-    fixation: Optional[FixationType] = None
-    num_blocks: Optional[int] = None
-    containers_recieved: Optional[int] = None
-    containers_actual: Optional[int] = None
-
-    # заключение (репорт)
-    macrodescription: Optional[str] = None
-    microdescription: Optional[str] = None
-    pathomorphological_diagnosis: Optional[str] = None
-    immunohistochemical_profile: Optional[str] = None
-    molecular_genetic_profile: Optional[str] = None
-    comment: Optional[str] = None
-    icd_code: Optional[str] = None
-
-
-    signatures: List[ReportSignatureSchema] = [] 
-    attached_glasses: List[Glass] = []
-
-    class Config:
-        from_attributes = True
-
-
-class PatientFinalReportPageResponse(BaseModel):
-    all_cases: Optional[List[Case]] = None
-    last_case_details: Optional[Case] = None
-    report_details: Optional[FinalReportResponseSchema]
-    class Config:
-        from_attributes = True
-
-class CaseFinalReportPageResponse(BaseModel):
-    case_details: Case
-    report_details: Optional[FinalReportResponseSchema]
-    class Config:
-        from_attributes = True
 
 
 class LabAssistantCreate(BaseModel):
@@ -1599,3 +1487,142 @@ class LawyerResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class DoctorDiagnosisSchema(BaseModel):
+    id: str
+    report_id: str
+    doctor: DoctorResponseForSignature 
+    created_at: datetime
+    immunohistochemical_profile: Optional[str] = None
+    molecular_genetic_profile: Optional[str] = None
+    pathomorphological_diagnosis: Optional[str] = None
+    signature: Optional[ReportSignatureSchema] = None 
+
+    class Config:
+        from_attributes = True
+
+
+class ReportResponseSchema(BaseModel):
+    id: str
+    case_id: str
+    case_details: Optional[Case] = None 
+    macro_description_from_case_params: Optional[str] = None
+    microdescription_from_case: Optional[str] = None
+
+    doctor_diagnoses: List[DoctorDiagnosisSchema] = [] 
+
+    attached_glasses: List[Glass] = []
+
+    class Config:
+        from_attributes = True
+class PatientReportPageResponse(BaseModel):
+    all_cases: List[Case] 
+    
+    last_case_for_report: Optional[Case] = None 
+    report_details: Optional[ReportResponseSchema] = None
+    
+    all_glasses_for_last_case: List[FirstCaseGlassDetailsSchema] = [] 
+
+    class Config:
+        from_attributes = True
+
+
+
+class SignReportRequest(BaseModel):
+    doctor_signature_id: Optional[str] = None
+
+
+
+class PatientTestReportPageResponse(BaseModel):
+    all_cases: List[Case]
+    last_case_for_report: Optional[Case]
+    report_details: Optional[ReportResponseSchema]
+    all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
+    class Config:
+        from_attributes = True
+
+class CaseIDReportPageResponse(BaseModel):
+    last_case_for_report: Optional[Case] = None 
+    report_details: Optional[ReportResponseSchema] = None
+    all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
+
+    class Config:
+        from_attributes = True
+
+
+
+class DoctorDiagnosisInputSchema(BaseModel):
+    report_microdescription: Optional[str] = None
+    report_macrodescription: Optional[str] = None
+    pathomorphological_diagnosis: Optional[str] = None
+    icd_code: Optional[str] = None
+    comment: Optional[str] = None
+    immunohistochemical_profile: Optional[str] = None
+    molecular_genetic_profile: Optional[str] = None
+
+
+class ReportAndDiagnosisUpdateSchema(BaseModel):
+
+    attached_glass_ids: Optional[List[str]] = None 
+    doctor_diagnosis_data: Optional[DoctorDiagnosisInputSchema] = None
+
+
+class FinalReportResponseSchema(BaseModel):
+    id: str 
+    case_id: str
+    case_code: str
+    
+    biopsy_date: Optional[date] = None
+    arrival_date: Optional[date] = None
+    report_date: Optional[date] = None
+
+    patient_cor_id: Optional[str] = None
+    patient_first_name: Optional[str] = None
+    patient_surname: Optional[str] = None
+    patient_middle_name: Optional[str] = None
+    patient_sex: Optional[str] = None
+    patient_birth_date: Optional[date] = None
+    patient_full_age: Optional[int] = None
+    patient_phone_number: Optional[str] = None
+    patient_email: Optional[str] = None
+
+    medical_card_number: Optional[str] = None
+    medical_institution: Optional[str] = None
+    medical_department: Optional[str] = None
+    attending_doctor: Optional[str] = None
+    clinical_data: Optional[str] = None
+    clinical_diagnosis: Optional[str] = None
+
+    painting: Optional[List[StainingType]] = None
+    
+    macroarchive: Optional[MacroArchive] = None
+    decalcification: Optional[DecalcificationType] = None
+    fixation: Optional[FixationType] = None
+    num_blocks: Optional[int] = None
+    containers_recieved: Optional[int] = None
+    containers_actual: Optional[int] = None
+
+    doctor_diagnoses: List[DoctorDiagnosisSchema] = [] 
+
+    # attached_glass_ids: List[str] = [] 
+    attached_glasses: List[Glass] = [] 
+
+    class Config:
+        from_attributes = True
+
+class PatientFinalReportPageResponse(BaseModel):
+    all_cases: Optional[List[Case]] = None
+    last_case_details: Optional[Case] = None
+    report_details: Optional[FinalReportResponseSchema]
+    class Config:
+        from_attributes = True
+
+class CaseFinalReportPageResponse(BaseModel):
+    case_details: Case
+    report_details: Optional[FinalReportResponseSchema]
+    class Config:
+        from_attributes = True
+
+class CaseCloseResponse(BaseModel):
+    message: str
+    case_id: str
+    new_status: str
