@@ -537,8 +537,8 @@ async def refresh_token(
     if device_information["device_type"] == "Mobile":
         if not existing_sessions:
             logger.debug(
-                        f"existing_sessions for mobile device - {existing_sessions}, need master key"
-                    )
+                f"existing_sessions for mobile device - {existing_sessions}, need master key"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Нужен ввод мастер-ключа",
@@ -554,19 +554,20 @@ async def refresh_token(
                     logger.debug(
                         f"Mobile session validation is {is_valid_session}"
                     )
-                    break
+                    break 
             except Exception:
                 logger.warning(
                     f"Failed to decrypt refresh token for session {session.id}"
                 )
-            if not is_valid_session:
-                logger.debug(
-                        f"Invalid refresh token for this device or mobile session validation is {is_valid_session}"
-                    )
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid refresh token for this device",
-                )
+        
+        if not is_valid_session: 
+            logger.debug(
+                f"Invalid refresh token for this mobile device. Mobile session validation is {is_valid_session}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token for this device",
+            )
                 
     elif existing_sessions:
         for session in existing_sessions:
