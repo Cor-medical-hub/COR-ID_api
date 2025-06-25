@@ -130,6 +130,7 @@
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
 
     let currentUserCorId = PATIENT_COR_ID || null;
+    console.log(currentUserCorId, "currentUserCorId")
     let currentCase = null;
     let currentGlasses = null;
     let activeGlasses = []
@@ -237,7 +238,7 @@
                         .then(userData => {
                             document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
                             document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                            document.querySelector('#userAge').innerHTML = `${userData.age}р`;
+                            document.querySelector('#userAge').innerHTML = `${userData.age ? `${userData.age}р` : ''}`;
 
                         })
                 })
@@ -337,7 +338,7 @@
                     .then(userData => {
                         document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
                         document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                        document.querySelector('#userAge').innerHTML = `${userData.age}р`;
+                        document.querySelector('#userAge').innerHTML = `${userData.age ? `${userData.age}р` : ''}`;
 
                     })
             })
@@ -346,13 +347,13 @@
 
     const switchRole = () => {
         document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
-            window.location.href = `/static/lab.html?userCorId=${currentUserCorId}`
+            console.log(currentUserCorId, "currentUserCorId")
+            // window.location.href = `/static/lab.html?userCorId=${currentUserCorId}`
         })
     }
     const goToTab = () => {
         document.querySelectorAll(".tabs .tab:not(.active)").forEach(elem => {
             elem.addEventListener('click', e => {
-                console.log(currentCase, "currentCase")
                 const element = e.currentTarget;
                 let queryString = []
 
