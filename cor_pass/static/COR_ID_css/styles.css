@@ -82,6 +82,11 @@ input[type="text"] {
     box-sizing: border-box;
 }
 
+input:focus, textarea:focus, select:focus {
+    outline: 2px solid #7B43F2; /* Фиолетовый цвет */
+
+}
+
  .toggle-password {
     position: absolute;
     right: 10px;
@@ -330,6 +335,13 @@ h1 {
 h3 {
     color: #333;
     margin-bottom: 20px;
+    text-align: center;
+}
+
+h4 {
+    color:#291161;
+    font-size: 16px;
+    margin-bottom: 10px;
     text-align: center;
 }
 
