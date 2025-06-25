@@ -9,6 +9,7 @@ from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.schemas import (
     CaseCreate,
     CaseDetailsResponse,
+    CaseOwnershipResponse,
     CaseParametersScheema,
     DeleteCasesRequest,
     DeleteCasesResponse,
@@ -269,7 +270,7 @@ async def get_referral_attachment(
 
 
 
-@router.post("/{case_id}/take", response_model=CaseDetailsResponse, summary="Взять кейс себе")
+@router.post("/{case_id}/take", response_model=CaseOwnershipResponse, summary="Взять кейс себе")
 async def take_case(
     case_id: str,
     user: User = Depends(auth_service.get_current_user), # Получаем ID текущего доктора
@@ -287,7 +288,7 @@ async def take_case(
 
 
 
-@router.post("/{case_id}/release", response_model=CaseDetailsResponse, summary="Убрать кейс с себя")
+@router.post("/{case_id}/release", response_model=CaseOwnershipResponse, summary="Убрать кейс с себя")
 async def release_case(
     case_id: str,
     user: User = Depends(auth_service.get_current_user), # Получаем ID текущего доктора
