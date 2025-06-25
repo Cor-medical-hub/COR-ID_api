@@ -1650,3 +1650,40 @@ class CaseCloseResponse(BaseModel):
 class CaseOwnershipResponse(BaseModel):
     case_details: Optional[CaseDetailsResponse]
     case_owner: Optional[CaseOwnerResponse]
+
+
+class BloodPressureMeasurementCreate(BaseModel):
+    systolic_pressure: int = Field(..., gt=0, description="Систолическое (верхнее) давление")
+    diastolic_pressure: int = Field(..., gt=0, description="Диастолическое (нижнее) давление")
+    pulse: int = Field(..., gt=0, description="Пульс")
+    measured_at: datetime = Field(..., description="Дата и время измерения (с устройства)")
+
+    @field_validator('systolic_pressure')
+    @classmethod
+    def validate_systolic_range(cls, v):
+        if not (50 <= v <= 250):
+            raise ValueError("Систолическое давление должно быть в диапазоне от 50 до 250.")
+        return v
+
+    @field_validator('diastolic_pressure')
+    @classmethod
+    def validate_diastolic_range(cls, v):
+        if not (30 <= v <= 150):
+            raise ValueError("Диастолическое давление должно быть в диапазоне от 30 до 150.")
+        return v
+
+
+    @model_validator(mode='after') 
+    def check_diastolic_less_than_systolic(self):
+        if self.diastolic_pressure >= self.systolic_pressure:
+            raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
+        return self 
+
+# Схема для ответа (то, что ваш API будет возвращать)
+class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
+    id: str = Field(..., description="Уникальный идентификатор измерения")
+    user_id: str = Field(..., description="Идентификатор пользователя, которому принадлежит измерение")
+    created_at: datetime = Field(..., description="Дата и время записи в БД")
+
+    class Config:
+        from_attributes = True 
