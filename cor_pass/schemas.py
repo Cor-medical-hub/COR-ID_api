@@ -941,7 +941,7 @@ class CaseDetailsResponse(BaseModel):
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
     samples: List[SampleWithoutCassettesSchema | Sample]
-    case_owner: Optional[DoctorResponseForSignature] = None
+    # case_owner: Optional[DoctorResponseForSignature] = None
 
 
 
@@ -1646,3 +1646,7 @@ class CaseCloseResponse(BaseModel):
     message: str
     case_id: str
     new_status: str
+
+class CaseOwnershipResponse(BaseModel):
+    case_details: Optional[CaseDetailsResponse]
+    case_owner: Optional[CaseOwnerResponse]

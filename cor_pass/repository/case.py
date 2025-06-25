@@ -15,6 +15,7 @@ from cor_pass.schemas import (
     CaseFinalReportPageResponse,
     CaseIDReportPageResponse,
     CaseOwnerResponse,
+    CaseOwnershipResponse,
     CaseParametersScheema,
     CassetteForGlassPage,
     CassetteTestForGlassPage,
@@ -2960,7 +2961,7 @@ async def take_case_ownership(db: AsyncSession, case_id: str, doctor_id: str) ->
     await db.commit()
     await db.refresh(case_db)
 
-
+    doctor = await get_doctor(db=db, doctor_id=case_db.case_owner)
     samples_result = await db.execute(
         select(db_models.Sample)
         .where(db_models.Sample.case_id == case_db.id)
@@ -3014,11 +3015,25 @@ async def take_case_ownership(db: AsyncSession, case_id: str, doctor_id: str) ->
             pathohistological_conclusion=case_db.pathohistological_conclusion,
             microdescription=case_db.microdescription,
             samples=first_case_samples,
-            case_owner=doctor_db
         )
-    return response
+    case_owner_response = CaseOwnerResponse(
+        id=doctor.id if case_db.case_owner else None,
+        doctor_id=doctor.doctor_id if case_db.case_owner else None,
+        work_email=doctor.work_email if case_db.case_owner else None,
+        phone_number=doctor.phone_number if case_db.case_owner else None,
+        first_name=doctor.first_name if case_db.case_owner else None,
+        middle_name=doctor.middle_name if case_db.case_owner else None,
+        last_name=doctor.last_name if case_db.case_owner else None,
+        is_case_owner=True,
 
-async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str) -> db_models.Case:
+        )
+    general_response = CaseOwnershipResponse(
+        case_details = response,
+        case_owner = case_owner_response
+    )
+    return general_response
+
+async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str) -> CaseOwnershipResponse:
     """
     Позволяет доктору отказаться от владения кейсом.
     """
@@ -3091,9 +3106,23 @@ async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str)
             pathohistological_conclusion=case_db.pathohistological_conclusion,
             microdescription=case_db.microdescription,
             samples=first_case_samples,
-            case_owner=doctor
         )
-    return response
+    case_owner_response = CaseOwnerResponse(
+        id=doctor.id if case_db.case_owner else None,
+        doctor_id=doctor.doctor_id if case_db.case_owner else None,
+        work_email=doctor.work_email if case_db.case_owner else None,
+        phone_number=doctor.phone_number if case_db.case_owner else None,
+        first_name=doctor.first_name if case_db.case_owner else None,
+        middle_name=doctor.middle_name if case_db.case_owner else None,
+        last_name=doctor.last_name if case_db.case_owner else None,
+        is_case_owner=False,
+
+        )
+    general_response = CaseOwnershipResponse(
+        case_details = response,
+        case_owner = case_owner_response
+    )
+    return general_response
 
 
 
