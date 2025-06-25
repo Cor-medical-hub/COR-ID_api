@@ -367,7 +367,7 @@ async def add_existing_patient_to_doctor(
     return existing_patient
 
 
-# добавить кейс оунера
+# добавить кейс оунера -check
 @router.get(
     "/patients/{patient_id}/glass-details",
     response_model=PatientGlassPageResponse,
@@ -378,19 +378,20 @@ async def add_existing_patient_to_doctor(
 )
 async def get_patient_glass_page_data(
     patient_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
     
 ) -> PatientGlassPageResponse:
     """
     Возвращает список всех кейсов пациента и все стёкла первого кейса
     """
-    
-    glass_page_data = await case_service.get_patient_case_details_for_glass_page(db=db, patient_id=patient_id)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    glass_page_data = await case_service.get_patient_case_details_for_glass_page(db=db, patient_id=patient_id, current_doctor_id=doctor.doctor_id)
         
     return glass_page_data
 
 
-# добавить кейс оунера
+# добавить кейс оунера -check
 @router.get(
     "/cases/{case_id}/glass-details",
     response_model=SingleCaseGlassPageResponse,
@@ -401,20 +402,21 @@ async def get_patient_glass_page_data(
 )
 async def get_single_case_details_for_glass_page(
     case_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
     
 ) -> SingleCaseGlassPageResponse:
     """
     Возвращает стёкла конкретного кейса
     """
-    
-    glass_page_data = await case_service.get_single_case_details_for_glass_page(db=db, case_id=case_id)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    glass_page_data = await case_service.get_single_case_details_for_glass_page(db=db, case_id=case_id, current_doctor_id=doctor.doctor_id)
         
     return glass_page_data
 
 
 
-# добавить кейс оунера
+# добавить кейс оунера -check
 @router.get(
     "/patients/{patient_cor_id}/referral_page",
     response_model=PatientCasesWithReferralsResponse,
@@ -425,12 +427,14 @@ async def get_single_case_details_for_glass_page(
 )
 async def get_patient_cases_for_doctor(
     patient_cor_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PatientCasesWithReferralsResponse:
     """
     Возвращает список всех кейсов конкретного пациента, а также детали первого кейса, включая ссылку на файлы его направлений
     """
-    patient_cases_data = await case_service.get_patient_cases_with_directions(db=db, patient_id=patient_cor_id)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    patient_cases_data = await case_service.get_patient_cases_with_directions(db=db, patient_id=patient_cor_id, current_doctor_id=doctor.doctor_id)
     if not patient_cases_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -440,7 +444,7 @@ async def get_patient_cases_for_doctor(
     return patient_cases_data
 
 
-# добавить кейс оунера
+# добавить кейс оунера - check
 @router.get("/patients/referrals/{case_id}", response_model=ReferralResponseForDoctor, 
             dependencies=[Depends(doctor_access)],
             status_code=status.HTTP_200_OK,
@@ -448,6 +452,7 @@ async def get_patient_cases_for_doctor(
             tags=["DoctorPage"])
 async def get_single_referral(
     case_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -456,7 +461,7 @@ async def get_single_referral(
     referral = await case_service.get_referral_by_case(db=db, case_id=case_id)
     if not referral:
         referral = None
-
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
 
     # Генерируем URL для каждого прикрепленного файла
     if referral:
@@ -470,9 +475,10 @@ async def get_single_referral(
         ]
 
     case_db = await case_service.get_single_case(db=db, case_id=case_id)
-
+    case_owner = await case_service.get_case_owner(db=db, case_id=case_db.id, doctor_id=doctor.doctor_id)
     response = ReferralResponseForDoctor(
         case_details=case_db,
+        case_owner = case_owner,
         referral_id=referral.id if referral else None,
         attachments=attachments_response if referral else None
         )
@@ -534,7 +540,7 @@ async def update_microdescription(
     return db_case
 
 
-# добавить кейс оунера
+# добавить кейс оунера - check
 @router.get(
     "/patients/{patient_id}/excision-details",
     response_model=PatientExcisionPageResponse,
@@ -545,19 +551,20 @@ async def update_microdescription(
 )
 async def get_patient_excision_page_data(
     patient_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PatientExcisionPageResponse:
     """
     Возвращает все кейсы и данные вырезки по последнему кейсу
     """
-
-    excision_page_data = await case_service.get_patient_case_details_for_excision_page(db=db, patient_id=patient_id)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    excision_page_data = await case_service.get_patient_case_details_for_excision_page(db=db, patient_id=patient_id, current_doctor_id=doctor.doctor_id)
         
     return excision_page_data
 
 
 
-# добавить кейс оунера
+# добавить кейс оунера - check
 @router.get(
     "/cases/{case_id}/excision-details",
     response_model=SingleCaseExcisionPageResponse,
@@ -568,14 +575,15 @@ async def get_patient_excision_page_data(
 )
 async def get_single_case_details_for_excision_page(
     case_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
     
 ) -> SingleCaseExcisionPageResponse:
     """
     Возвращает данные вырезки конкретного кейса
     """
-    
-    excision_page_data = await case_service.get_single_case_details_for_excision_page(db=db, case_id=case_id)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    excision_page_data = await case_service.get_single_case_details_for_excision_page(db=db, case_id=case_id, current_doctor_id=doctor.doctor_id)
         
     return excision_page_data
 
@@ -654,7 +662,7 @@ async def delete_signature(
     return await delete_doctor_signature(db=db, doctor_id=doctor.id, signature_id=signature_id)
 
 
-# добавить кейс оунера
+# добавить кейс оунера - check
 @router.get(
     "/patients/{patient_id}/report-page-data", 
     response_model=PatientTestReportPageResponse,
@@ -665,6 +673,7 @@ async def delete_signature(
 )
 async def get_patient_report_full_page_data_route(
     patient_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PatientTestReportPageResponse:
     """
@@ -673,9 +682,10 @@ async def get_patient_report_full_page_data_route(
     для выбора для прикрепления к заключению. Если заключение для последнего кейса 
     отсутствует, оно будет автоматически создано с пустыми полями.
     """
-    return await case_service.get_patient_report_page_data(db=db, patient_id=patient_id, router=router)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await case_service.get_patient_report_page_data(db=db, patient_id=patient_id, router=router, current_doctor_id=doctor.doctor_id)
 
-# добавить кейс оунера
+# добавить кейс оунера - check
 @router.get(
     "/cases/{case_id}/report",
     response_model=CaseIDReportPageResponse,
@@ -686,13 +696,15 @@ async def get_patient_report_full_page_data_route(
 )
 async def get_case_report_route(
     case_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CaseIDReportPageResponse:
     """
     Этот маршрут возвращает подробности заключения для указанного кейса. 
     Если заключение для этого кейса отсутствует, оно будет автоматически создано с пустыми полями.
     """
-    return await case_service.get_report_by_case_id(db=db, case_id=case_id, router=router)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await case_service.get_report_by_case_id(db=db, case_id=case_id, router=router, current_doctor_id=doctor.doctor_id)
 
 
 @router.put("/cases/{case_id}/report/upsert", response_model=ReportResponseSchema)
@@ -757,7 +769,7 @@ async def get_signature_attachment(
 
 
 
-# добавить кейс оунера
+# добавить кейс оунера - check
 @router.get(
     "/patients/{patient_id}/final-report-page-data", 
     response_model=PatientFinalReportPageResponse,
@@ -768,16 +780,18 @@ async def get_signature_attachment(
 )
 async def get_patient_final_report_full_page_data_route(
     patient_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PatientFinalReportPageResponse:
     """
     Этот маршрут возвращает список всех кейсов пациента и данные для формирования финального заключения по последнему кейсу
     """
-    return await case_service.get_patient_final_report_page_data(db=db, patient_id=patient_id, router=router)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await case_service.get_patient_final_report_page_data(db=db, patient_id=patient_id, router=router, current_doctor_id=doctor.doctor_id)
 
 
 
-# добавить кейс оунера
+# добавить кейс оунера - check
 @router.get(
     "/cases/{case_id}/final-report",
     response_model=CaseFinalReportPageResponse,
@@ -788,12 +802,14 @@ async def get_patient_final_report_full_page_data_route(
 )
 async def get_case_final_report_route(
     case_id: str,
+    user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CaseFinalReportPageResponse:
     """
     Этот маршрут возвращает данные для финального заключения для указанного кейса
     """
-    return await case_service.get_final_report_by_case_id(db=db, case_id=case_id, router=router)
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    return await case_service.get_final_report_by_case_id(db=db, case_id=case_id, router=router, current_doctor_id=doctor.doctor_id)
 
 
 
@@ -823,7 +839,7 @@ async def get_current_cases_report_full_page_data_route(
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
     return await case_service.get_current_cases_report_page_data(db=db, router=router, skip=skip, limit=limit, current_doctor_id=doctor.doctor_id)
 
-# добавить кейс оунера - проверить
+
 @router.get(
     "/current_cases/referral_page",
     response_model=PatientCasesWithReferralsResponse,
@@ -851,7 +867,7 @@ async def get_current_cases_with_directions_for_doctor(
         
     return patient_cases_data
 
-# добавить кейс оунера - проверить
+
 @router.get(
     "/current_cases/excision-details",
     response_model=PatientExcisionPageResponse,
@@ -875,7 +891,7 @@ async def get_patient_excision_page_data(
     return excision_page_data
 
 
-# добавить кейс оунера - проверить
+
 @router.get(
     "/current_cases/glass-details",
     response_model=PatientGlassPageResponse,
@@ -900,7 +916,7 @@ async def get_current_cases_glass_page_data(
     return glass_page_data
 
 
-# добавить кейс оунера - проверить
+
 @router.get(
     "/current_cases/final-report-page-data", 
     response_model=PatientFinalReportPageResponse,
