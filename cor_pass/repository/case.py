@@ -734,7 +734,7 @@ def generate_file_url(file_id: str, case_id: str) -> str:
 
 
 async def get_patient_cases_with_directions(
-    db: AsyncSession, patient_id: str
+    db: AsyncSession, patient_id: str, current_doctor_id: str
 ) -> PatientCasesWithReferralsResponse: # Указываем тип возвращаемого значения
     """
     Асинхронно получает список всех кейсов пациента и детализацию первого из них:
@@ -790,18 +790,19 @@ async def get_patient_cases_with_directions(
                 attachments=attachments_for_response,
                 grossing_status=first_case_db.grossing_status
             )
-
+    case_owner = await get_case_owner(db=db, case_id=first_case_db.id, doctor_id=current_doctor_id)
     return PatientCasesWithReferralsResponse(
         all_cases=all_cases,
         case_details=first_case_db,
+        case_owner=case_owner,
         first_case_direction=first_case_direction_details
     )
 
 
 
 async def get_patient_case_details_for_glass_page(
-    db: AsyncSession, patient_id: str
-) -> PatientGlassPageResponse: #
+    db: AsyncSession, patient_id: str, current_doctor_id: str
+) -> PatientGlassPageResponse: 
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
     для первого кейса, отсортированного по дате создания.
@@ -879,10 +880,11 @@ async def get_patient_case_details_for_glass_page(
             samples=first_case_samples_schematized,
             grossing_status=first_case_db.grossing_status 
         )
-
+    case_owner = await get_case_owner(db=db, case_id=first_case_db.id, doctor_id=current_doctor_id)
     return PatientGlassPageResponse(
         all_cases=all_cases_schematized,
         first_case_details_for_glass=first_case_details_for_glass,
+        case_owner=case_owner
     )
 
 
@@ -1097,7 +1099,7 @@ async def get_current_cases_glass_details(
        
 
 async def get_single_case_details_for_glass_page(
-    db: AsyncSession, case_id:str
+    db: AsyncSession, case_id:str, current_doctor_id: str
 ) -> SingleCaseGlassPageResponse: 
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
@@ -1171,9 +1173,10 @@ async def get_single_case_details_for_glass_page(
             grossing_status=case_db.grossing_status,
             patient_cor_id = case_db.patient_id
         )
-
+    case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
     return SingleCaseGlassPageResponse(
         single_case_for_glass_page=first_case_details_for_glass,
+        case_owner=case_owner
     )
 
 
@@ -1221,7 +1224,7 @@ async def update_case_microdescription(db: AsyncSession, case_id: str, body: Upd
 
 
 async def get_patient_case_details_for_excision_page(
-    db: AsyncSession, patient_id: str
+    db: AsyncSession, patient_id: str, current_doctor_id: str
 ) -> PatientExcisionPageResponse: #
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию
@@ -1294,10 +1297,11 @@ async def get_patient_case_details_for_excision_page(
                 grossing_status=last_case_db.grossing_status
             )
 
-
+    case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
     return PatientExcisionPageResponse(
         all_cases=all_cases_schematized,
         last_case_details_for_excision=last_case_details_for_excision,
+        case_owner=case_owner
     )
 
 
@@ -1305,7 +1309,7 @@ async def get_patient_case_details_for_excision_page(
 
 
 async def get_single_case_details_for_excision_page(
-    db: AsyncSession, case_id:str
+    db: AsyncSession, case_id:str, current_doctor_id: str
 ) -> SingleCaseExcisionPageResponse: 
 
     last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
@@ -1355,9 +1359,10 @@ async def get_single_case_details_for_excision_page(
             grossing_status=last_case_with_relations.grossing_status,
             patient_cor_id = last_case_with_relations.patient_id
         )
-
+    case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
     return SingleCaseExcisionPageResponse(
         case_details_for_excision=last_case_details_for_excision,
+        case_owner=case_owner
     )
 
 async def _format_report_response(
@@ -1446,12 +1451,13 @@ async def _format_report_response(
         case_id=db_report.case_id,
         case_details=case_db,
         macro_description_from_case_params=macro_desc_from_params,
+        microdescription_from_case=case_db.microdescription if case_db else None,
         doctor_diagnoses=doctor_diagnoses_schematized, 
         attached_glasses=attached_glasses_schematized
     )
 
 async def get_report_by_case_id(
-    db: AsyncSession, case_id: str, router: APIRouter
+    db: AsyncSession, case_id: str, router: APIRouter, current_doctor_id: str
 ) -> CaseIDReportPageResponse:
     """
     Получает заключение для конкретного кейса. Если заключения нет, оно будет создано.
@@ -1539,9 +1545,10 @@ async def get_report_by_case_id(
             samples=all_samples_for_last_case_schematized,
             grossing_status=case_db.grossing_status 
         )
-
+    case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
     general_response = CaseIDReportPageResponse(
-        last_case_for_report=case_db, 
+        last_case_for_report=case_db,
+        case_owner=case_owner, 
         report_details=report_details,
         all_glasses_for_last_case=first_case_details_for_glass
     )
@@ -1549,7 +1556,7 @@ async def get_report_by_case_id(
 
 
 async def get_patient_report_page_data(
-    db: AsyncSession, patient_id: str, router: APIRouter
+    db: AsyncSession, patient_id: str, router: APIRouter, current_doctor_id: str
 ) -> PatientTestReportPageResponse:
     """
     Получает данные для вкладки "Заключение" на странице врача:
@@ -1655,10 +1662,11 @@ async def get_patient_report_page_data(
                 samples=all_samples_for_last_case_schematized,
                 grossing_status=last_case_with_relations.grossing_status 
             )
-
+    case_owner = await get_case_owner(db=db, case_id=last_case_for_report.id, doctor_id=current_doctor_id)
     return PatientTestReportPageResponse(
         all_cases=all_cases_schematized,
         last_case_for_report=last_case_for_report,
+        case_owner=case_owner, 
         report_details=report_details,
         all_glasses_for_last_case=first_case_details_for_glass 
     )
@@ -1839,7 +1847,7 @@ async def add_diagnosis_signature(
 
 
 async def get_patient_final_report_page_data(
-    db: AsyncSession, patient_id: str, router: APIRouter
+    db: AsyncSession, patient_id: str, router: APIRouter, current_doctor_id: str
 ) -> PatientFinalReportPageResponse:
     """
     Получает данные для вкладки "Заключение" на странице врача:
@@ -1902,9 +1910,11 @@ async def get_patient_final_report_page_data(
                 referral_db=referral_db,
                 case_db=last_case_with_relations
             )
+    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientFinalReportPageResponse(
         all_cases=all_cases_schematized,
         last_case_details=last_case_details,
+        case_owner=case_owner,
         report_details=report_details
     )
 
@@ -2053,7 +2063,7 @@ async def _format_final_report_response(
 
 
 async def get_final_report_by_case_id(
-    db: AsyncSession, case_id: str, router: APIRouter
+    db: AsyncSession, case_id: str, router: APIRouter, current_doctor_id: str
 ) -> CaseFinalReportPageResponse:
     """
     Получает заключение для конкретного кейса. Если заключения нет, оно будет создано.
@@ -2101,9 +2111,10 @@ async def get_final_report_by_case_id(
             referral_db=referral_db,
             case_db=last_case_with_relations
         )
-
+    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return CaseFinalReportPageResponse(
         case_details=last_case_details,
+        case_owner=case_owner,
         report_details=report_details,
     )
 
