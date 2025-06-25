@@ -664,6 +664,15 @@ class ExistingPatientAdd(BaseModel):
 
 # Модели для лабораторных исследований
 
+class CaseOwnerResponse(BaseModel):
+    id: Optional[str] = Field(None, description="ID врача")
+    doctor_id: Optional[str] = Field(None, description="COR-ID врача")
+    work_email: Optional[EmailStr] = Field(None, description="Рабочий имейл")
+    phone_number: Optional[str] = Field(None, description="Номер телефона")
+    first_name: Optional[str] = Field(None, description="Имя врача")
+    middle_name: Optional[str] = Field(None, description="Отчество врача")
+    last_name: Optional[str] = Field(None, description="Фамилия врача")
+    is_case_owner: Optional[bool] = Field(False, description="Владелец кейса")
 
 class GlassBase(BaseModel):
     glass_number: int
@@ -1213,6 +1222,7 @@ class FirstCaseReferralDetailsSchema(BaseModel):
 class PatientCasesWithReferralsResponse(BaseModel):
     all_cases: List[Case]
     case_details: Optional[Case]
+    case_owner: Optional[CaseOwnerResponse]
     first_case_direction: Optional[FirstCaseReferralDetailsSchema] = None
 
     class Config:
@@ -1238,7 +1248,8 @@ class FirstCaseGlassDetailsSchema(BaseModel):
 
 class PatientGlassPageResponse(BaseModel):
     all_cases: List[Case] 
-    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None 
+    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
+    case_owner: Optional[CaseOwnerResponse]
 
     class Config:
         from_attributes = True
@@ -1293,7 +1304,8 @@ class LastCaseExcisionDetailsSchema(BaseModel):
 
 class PatientExcisionPageResponse(BaseModel):
     all_cases: List[Case]
-    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None 
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+    case_owner: Optional[CaseOwnerResponse]
 
     class Config:
         from_attributes = True
@@ -1536,6 +1548,7 @@ class SignReportRequest(BaseModel):
 class PatientTestReportPageResponse(BaseModel):
     all_cases: List[Case]
     last_case_for_report: Optional[Case]
+    case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[ReportResponseSchema]
     all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
     class Config:
@@ -1613,6 +1626,7 @@ class FinalReportResponseSchema(BaseModel):
 class PatientFinalReportPageResponse(BaseModel):
     all_cases: Optional[List[Case]] = None
     last_case_details: Optional[Case] = None
+    case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[FinalReportResponseSchema]
     class Config:
         from_attributes = True
