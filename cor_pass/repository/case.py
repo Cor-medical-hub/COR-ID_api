@@ -1451,6 +1451,7 @@ async def _format_report_response(
         case_id=db_report.case_id,
         case_details=case_db,
         macro_description_from_case_params=macro_desc_from_params,
+        microdescription_from_case=case_db.microdescription if case_db else None,
         doctor_diagnoses=doctor_diagnoses_schematized, 
         attached_glasses=attached_glasses_schematized
     )

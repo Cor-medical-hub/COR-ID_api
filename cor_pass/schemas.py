@@ -1507,6 +1507,10 @@ class DoctorDiagnosisSchema(BaseModel):
     immunohistochemical_profile: Optional[str] = None
     molecular_genetic_profile: Optional[str] = None
     pathomorphological_diagnosis: Optional[str] = None
+    icd_code: Optional[str] = None
+    comment: Optional[str] = None
+    report_microdescription: Optional[str] = None
+    report_macrodescription: Optional[str] = None
     signature: Optional[ReportSignatureSchema] = None 
 
     class Config:
