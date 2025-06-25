@@ -222,6 +222,11 @@ class User(Base):
     user_lawyers = relationship(
         "Lawyer", back_populates="user", cascade="all, delete-orphan"
     )
+    blood_pressure_measurements = relationship(
+        "BloodPressureMeasurement", 
+        back_populates="user", 
+        cascade="all, delete-orphan"
+    )
 
     # Индексы
     __table_args__ = (
@@ -852,5 +857,29 @@ class DoctorDiagnosis(Base):
     report = relationship("Report", back_populates="doctor_diagnoses")
     doctor = relationship("Doctor")
     signature = relationship("ReportSignature", uselist=False, back_populates="doctor_diagnosis_entry") 
+
+
+class BloodPressureMeasurement(Base):
+    __tablename__ = "blood_pressure_measurements"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    
+
+    systolic_pressure = Column(Integer, nullable=False, comment="Систолическое (верхнее) артериальное давление")
+    diastolic_pressure = Column(Integer, nullable=False, comment="Диастолическое (нижнее) артериальное давление")
+    pulse = Column(Integer, nullable=False, comment="Частота сердечных сокращений (пульс)")
+    
+    measured_at = Column(DateTime, nullable=False, comment="Дата и время измерения, полученное с устройства")
+    created_at = Column(DateTime, nullable=False, default=func.now(), comment="Дата и время сохранения записи в БД")
+    user = relationship("User", back_populates="blood_pressure_measurements")
+
+
+    __table_args__ = (
+        Index("idx_bpm_user_id", "user_id"),
+        Index("idx_bpm_measured_at", "measured_at"),
+    )
+
 
 # Base.metadata.create_all(bind=engine)
