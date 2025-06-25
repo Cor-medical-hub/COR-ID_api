@@ -56,7 +56,7 @@ from datetime import datetime, timedelta
 from cor_pass.services.websocket import send_websocket_message
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from jose import jwt, JWTError
 
 auth_attempts = defaultdict(list)
 blocked_ips = {}
@@ -496,9 +496,38 @@ async def confirm_login(
         )
 
 
+async def get_user_device_rate_limit_key(request: Request) -> str:
+    """
+    Создает уникальный идентификатор для рейт-лимитера на основе user_id и device_info.
+    """
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, key=auth_service.SECRET_KEY, algorithms=auth_service.ALGORITHM, options={"verify_exp": False}) 
+        
+        user_id = payload.get("oid")
+    except JWTError as e:
+        logger.debug(f"Failed to decode token for rate limiter key (JWTError): {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error in get_user_id_from_token_sync: {e}")
+        return None
+    device_type = request.headers.get("X-Device-Type", "unknown")
+    device_info_str = request.headers.get("X-Device-Info", "unknown")
+    if user_id:
+        return f"user:{user_id}_device_type:{device_type}_device_info:{device_info_str}"
+    else:
+        user_agent = request.headers.get("User-Agent", "unknown-agent")
+        return f"ip:{request.client.host}_ua:{user_agent}"
+
 @router.get(
     "/refresh_token",
     response_model=TokenModel,
+    dependencies=[Depends(RateLimiter(times=1, seconds=5, identifier=get_user_device_rate_limit_key))]
 )
 async def refresh_token(
     request: Request,
@@ -622,160 +651,6 @@ async def refresh_token(
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
-
-
-"""
-async def refresh_token(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials = Security(security),
-    db: AsyncSession = Depends(get_db),
-    device_info: dict = Depends(di.get_device_header),
-):
-
-    current_refresh_token = credentials.credentials # Получаем переданный рефреш-токен
-
-    # 1. Декодируем переданный рефреш-токен, чтобы получить user_id
-    user_id = await auth_service.decode_refresh_token(current_refresh_token)
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
-        )
-    
-    # 2. Получаем пользователя по user_id
-    user = await repository_person.get_user_by_uuid(user_id, db)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-
-    device_type = device_info.get("device_type")
-    device_info_str = device_info.get("device_info") # Строка типа "iOS 18.5", "Windows Chrome", etc.
-
-    # Общая переменная для сессии, которую мы будем обновлять
-    session_to_update: Optional[db_models.Session] = None
-    
-    # --- Сценарий для МОБИЛЬНЫХ устройств ---
-    if device_type == "Mobile":
-        # Для мобильных устройств ищем конкретную сессию по user_id и device_info
-        # и проверяем, соответствует ли переданный токен одной из них.
-        
-        # 1. Получаем все сессии пользователя для данного устройства
-        existing_device_sessions = await repository_session.get_user_sessions_by_device_info(
-            user_cor_id=user.cor_id, device_info_hash=device_info_str, db=db
-        )
-        
-        if not existing_device_sessions:
-            # Если для мобильного устройства нет ни одной сессии,
-            # это означает, что устройство либо не авторизовано, либо все сессии удалены.
-            # Требуем ввод мастер-ключа (полную переавторизацию).
-            logger.info(f"Mobile device {device_info_str} for user {user.email} has no existing sessions. Master key required.")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Master key input required for mobile device (no active sessions found).",
-            )
-        
-        # 2. Проверяем, соответствует ли переданный токен одной из существующих сессий
-        found_valid_mobile_session = False
-        for session in existing_device_sessions:
-            try:
-                decrypted_session_token = await decrypt_data(
-                    encrypted_data=session.refresh_token,
-                    key=await decrypt_user_key(user.unique_cipher_key),
-                )
-                if decrypted_session_token == current_refresh_token:
-                    found_valid_mobile_session = True
-                    session_to_update = session # Запоминаем сессию, которую будем обновлять
-                    break
-            except Exception as e:
-                logger.warning(f"Failed to decrypt session token {session.id} for user {user.email}: {e}")
-                # Если дешифрование не удалось, это может быть поврежденный токен, пропускаем.
-
-        if not found_valid_mobile_session:
-            # Если токен не совпал ни с одной из найденных сессий на устройстве
-            logger.warning(f"Mobile refresh token mismatch for user {user.email} on device {device_info_str}.")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token for this mobile device. Re-login required.",
-            )
-
-    # --- Сценарий для НЕ-МОБИЛЬНЫХ устройств (Web, Desktop, etc.) ---
-    else: # device_type is not "Mobile"
-        # Для не-мобильных устройств мы ищем *любую* сессию пользователя, которая содержит этот токен.
-        # Мы не привязываемся строго к device_info, если это не требуется по вашей логике.
-        # Если `repository_session.get_user_sessions_by_token` вернет конкретную сессию
-        session_to_update = await repository_session.get_user_session_by_token(
-            user_cor_id=user.cor_id, refresh_token=current_refresh_token, db=db
-        )
-
-        if not session_to_update:
-            logger.warning(f"Non-mobile refresh token not found for user {user.email}. Token: {current_refresh_token[:10]}...")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token.",
-            )
-        
-        # Для не-мобильных устройств, если сессия найдена, дополнительная проверка device_info может быть необязательной,
-        # если вы не отслеживаете сессии на веб-клиентах по конкретным отпечаткам браузера.
-        # Если вы хотите более строгую привязку к device_info и для веб, то логика будет аналогична мобильной.
-        # Но судя по вашему описанию "без привязки к сессии", достаточно найти сессию с этим токеном.
-
-    # --- Общая логика после проверки сессии ---
-
-    # 3. Проверка ролей (не зависит от типа устройства)
-    user_roles = await repository_person.get_user_roles(email=user.email, db=db)
-
-    # 4. Генерация новых токенов
-    token_data = {"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
-    
-    # Управление сроком действия токенов (eternal accounts)
-    expires_delta_access: Optional[timedelta] = None
-    expires_delta_refresh: Optional[timedelta] = None
-
-    if user.email in settings.eternal_accounts:
-        expires_delta_access = settings.eternal_token_expiration # Предполагаем, что это timedelta
-        expires_delta_refresh = settings.eternal_token_expiration # Refresh-токен тоже вечный
-    else:
-        # Ваши стандартные сроки действия для обычных аккаунтов
-        expires_delta_access = timedelta(minutes=settings.access_token_expire_minutes)
-        expires_delta_refresh = timedelta(days=settings.refresh_token_expire_days)
-
-
-    access_token, access_token_jti = await auth_service.create_access_token(
-        data=token_data, expires_delta=expires_delta_access
-    )
-    new_refresh_token = await auth_service.create_refresh_token(
-        data=token_data, expires_delta=expires_delta_refresh
-    )
-
-    # 5. Обновление сессии в базе данных
-    # Теперь у нас есть `session_to_update`, которую мы должны обновить.
-    # Ваша функция `repository_session.update_session_token` должна быть адаптирована
-    # для обновления конкретной найденной сессии.
-    
-    # Предполагая, что `repository_session.update_session_token` может принять
-    # ID сессии или сам объект сессии для обновления
-    await repository_session.update_session_token(
-        session_id=session_to_update.id, # Передаем ID найденной сессии
-        new_refresh_token=new_refresh_token,
-        new_access_token_jti=access_token_jti,
-        new_access_token=access_token,
-        db=db,
-        # Если `device_info` также обновляется, передайте его здесь
-        # device_info_hash=device_info_str
-    )
-    
-    logger.debug(
-        f"{user.email}'s refresh token updated for device {device_info_str} (session ID: {session_to_update.id})"
-    )
-    
-    return {
-        "access_token": access_token,
-        "refresh_token": new_refresh_token,
-        "token_type": "bearer",
-    }
-
-"""
-
 @router.get("/verify")
 async def verify_access_token(
     credentials: HTTPAuthorizationCredentials = Security(security),
