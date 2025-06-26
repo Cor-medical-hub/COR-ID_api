@@ -789,7 +789,8 @@ async def get_patient_cases_with_directions(
                 pathohistological_conclusion=first_case_db.pathohistological_conclusion,
                 microdescription=first_case_db.microdescription,
                 attachments=attachments_for_response,
-                grossing_status=first_case_db.grossing_status
+                grossing_status=first_case_db.grossing_status,
+                patient_cor_id=first_case_db.patient_id
             )
     case_owner = await get_case_owner(db=db, case_id=first_case_db.id, doctor_id=current_doctor_id)
     return PatientCasesWithReferralsResponse(
@@ -879,7 +880,8 @@ async def get_patient_case_details_for_glass_page(
             pathohistological_conclusion=first_case_db.pathohistological_conclusion,
             microdescription=first_case_db.microdescription,
             samples=first_case_samples_schematized,
-            grossing_status=first_case_db.grossing_status 
+            grossing_status=first_case_db.grossing_status,
+            patient_cor_id=first_case_db.patient_id
         )
     case_owner = await get_case_owner(db=db, case_id=first_case_db.id, doctor_id=current_doctor_id)
     return PatientGlassPageResponse(
@@ -1295,7 +1297,8 @@ async def get_patient_case_details_for_excision_page(
                 microdescription=last_case_db.microdescription,
                 case_parameters=case_parameters_schematized,
                 samples=samples_for_excision_page,
-                grossing_status=last_case_db.grossing_status
+                grossing_status=last_case_db.grossing_status,
+                patient_cor_id=last_case_db.patient_id
             )
 
     case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)

@@ -367,7 +367,7 @@ async def add_existing_patient_to_doctor(
     return existing_patient
 
 
-# добавить кейс оунера -check
+
 @router.get(
     "/patients/{patient_id}/glass-details",
     response_model=PatientGlassPageResponse,
@@ -391,7 +391,6 @@ async def get_patient_glass_page_data(
     return glass_page_data
 
 
-# добавить кейс оунера -check
 @router.get(
     "/cases/{case_id}/glass-details",
     response_model=SingleCaseGlassPageResponse,
@@ -416,7 +415,6 @@ async def get_single_case_details_for_glass_page(
 
 
 
-# добавить кейс оунера -check
 @router.get(
     "/patients/{patient_cor_id}/referral_page",
     response_model=PatientCasesWithReferralsResponse,
@@ -444,7 +442,6 @@ async def get_patient_cases_for_doctor(
     return patient_cases_data
 
 
-# добавить кейс оунера - check
 @router.get("/patients/referrals/{case_id}", response_model=ReferralResponseForDoctor, 
             dependencies=[Depends(doctor_access)],
             status_code=status.HTTP_200_OK,
@@ -540,7 +537,6 @@ async def update_microdescription(
     return db_case
 
 
-# добавить кейс оунера - check
 @router.get(
     "/patients/{patient_id}/excision-details",
     response_model=PatientExcisionPageResponse,
@@ -564,7 +560,6 @@ async def get_patient_excision_page_data(
 
 
 
-# добавить кейс оунера - check
 @router.get(
     "/cases/{case_id}/excision-details",
     response_model=SingleCaseExcisionPageResponse,
@@ -662,7 +657,6 @@ async def delete_signature(
     return await delete_doctor_signature(db=db, doctor_id=doctor.id, signature_id=signature_id)
 
 
-# добавить кейс оунера - check
 @router.get(
     "/patients/{patient_id}/report-page-data", 
     response_model=PatientTestReportPageResponse,
@@ -685,7 +679,7 @@ async def get_patient_report_full_page_data_route(
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
     return await case_service.get_patient_report_page_data(db=db, patient_id=patient_id, router=router, current_doctor_id=doctor.doctor_id)
 
-# добавить кейс оунера - check
+
 @router.get(
     "/cases/{case_id}/report",
     response_model=CaseIDReportPageResponse,
@@ -769,7 +763,6 @@ async def get_signature_attachment(
 
 
 
-# добавить кейс оунера - check
 @router.get(
     "/patients/{patient_id}/final-report-page-data", 
     response_model=PatientFinalReportPageResponse,
@@ -791,7 +784,7 @@ async def get_patient_final_report_full_page_data_route(
 
 
 
-# добавить кейс оунера - check
+
 @router.get(
     "/cases/{case_id}/final-report",
     response_model=CaseFinalReportPageResponse,
