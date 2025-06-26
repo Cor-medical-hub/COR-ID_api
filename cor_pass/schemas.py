@@ -1389,7 +1389,8 @@ class CassetteTestForGlassPage(BaseModel):
 class SampleTestForGlassPage(BaseModel):
     id: str
     sample_number: str 
-    case_id: str 
+    case_id: str
+    sample_macro_description: Optional[str] = None
 
     cassettes: List[CassetteTestForGlassPage] = [] 
 
@@ -1523,6 +1524,7 @@ class ReportResponseSchema(BaseModel):
     case_details: Optional[Case] = None 
     macro_description_from_case_params: Optional[str] = None
     microdescription_from_case: Optional[str] = None
+    concatenated_macro_description: Optional[str] = None
 
     doctor_diagnoses: List[DoctorDiagnosisSchema] = [] 
 
@@ -1602,6 +1604,8 @@ class FinalReportResponseSchema(BaseModel):
     patient_full_age: Optional[int] = None
     patient_phone_number: Optional[str] = None
     patient_email: Optional[str] = None
+
+    concatenated_macro_description: Optional[str] = None
 
     medical_card_number: Optional[str] = None
     medical_institution: Optional[str] = None
