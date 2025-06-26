@@ -48,3 +48,25 @@
   font-size: 14px;
   font-weight: 600;
 }
+.conclusionBtnOwner{
+  padding: 12px 24px;
+  border: none;
+  font-size: 16px;
+  background: #6C00FF;
+  color: #FFFFFF;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+  text-align: center;
+  margin-bottom: 30px;
+}
+.conclusionOwnerInfo{
+  font-size: 12px;
+  color: #5B4296;
+}
+
+.conclusionSecondOpinion{
+  font-size: 12px;
+  margin-left: 10px;
+  margin-bottom: 5px;
+}

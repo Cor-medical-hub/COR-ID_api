@@ -220,7 +220,7 @@
                         .then(userData => {
                             document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
                             document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                            document.querySelector('#userAge').innerHTML = `${userData.age}р`;
+                            document.querySelector('#userAge').innerHTML = `${userData.age ? `${userData.age}р` : ''}`;
 
                         })
                 })
@@ -266,7 +266,7 @@
                     .then(userData => {
                         document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
                         document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                        document.querySelector('#userAge').innerHTML = `${userData.age}р`;
+                        document.querySelector('#userAge').innerHTML = `${userData.age ? `${userData.age}р` : ''}`;
 
                     })
             })
