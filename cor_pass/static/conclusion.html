@@ -571,6 +571,18 @@
         document.querySelector('.conclusionActionBottom')?.addEventListener('click', () => {
             const formNODE = document.querySelector('#reportForm');
             const formData = Object.fromEntries(new FormData(formNODE).entries());
+            const isMyCase = currentCaseOwner?.is_case_owner;
+
+            const requestData = {
+                doctor_diagnosis_data: {
+                    ...formData,
+                },
+            }
+
+            if(isMyCase){
+                requestData.attached_glass_ids = activeGlasses.map(({id}) => id)
+            }
+
 
             fetch(`${API_BASE_URL}/api/doctor/cases/${currentCase.id}/report/upsert`, {
                 method: "PUT",
@@ -578,12 +590,7 @@
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({
-                    doctor_diagnosis_data: {
-                        ...formData,
-                    },
-                    attached_glass_ids: activeGlasses.map(({id}) => id)
-                })
+                body: JSON.stringify(requestData)
             })
                 .then(res => res.json())
                 .then(() => {
