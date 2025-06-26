@@ -183,10 +183,25 @@
                 })
         })
     }
+    const setCaseEdit = () => {
+        const caseIsClosed = currentCase.grossing_status === "COMPLETED";
+
+        if(caseIsClosed){
+            caseMicroDescriptionTextareaNODE.nextElementSibling.style.display = "none"
+            casePathohistologicalConclusionTextareaNODE.nextElementSibling.style.display = "none"
+            return;
+        }
+
+
+        caseMicroDescriptionTextareaNODE.nextElementSibling.style.display = "block"
+        casePathohistologicalConclusionTextareaNODE.nextElementSibling.style.display = "block"
+    }
 
     const setOwnerInfo = (caseOwner) => {
         const hasOwner = caseOwner?.id
         reportOwnerInfoNODE.innerHTML = ""
+
+
 
         if (hasOwner) {
             const div = document.createElement('div')
@@ -197,6 +212,11 @@
                 Власник: ${getShortName(caseOwner.last_name, caseOwner.first_name, caseOwner.middle_name)}
             </div>
             `;
+
+            if(currentCase?.grossing_status === "COMPLETED"){
+                reportOwnerInfoNODE.append(div)
+                return;
+            }
 
             if (caseOwner?.is_case_owner) {
                 const btn = document.createElement('div')
@@ -263,16 +283,17 @@
         }
     }
     const setReport = (currentReport, workCase, caseOwner) => {
+        const caseIsClosed = workCase.grossing_status === "COMPLETED";
         reportWrapperNODE.innerHTML = ""
 
         const isMyCase = caseOwner?.is_case_owner;
         const disabledStyle = "opacity: .4; pointer-events: none"
         const formNODE = document.createElement('form')
         formNODE.setAttribute("id", "reportForm")
+        formNODE.style.pointerEvents = "none"
         const myReportData = currentReport.doctor_diagnoses.find(({doctor}) => doctor.doctor_id === myCorId)
         const secondThinkReportData = currentReport.doctor_diagnoses.filter(({doctor}) => doctor.doctor_id !== myCorId)
         const caseOwnerReport = currentReport.doctor_diagnoses.find(({doctor}) => doctor.doctor_id === caseOwner?.doctor_id)
-        console.log(caseOwnerReport, "caseOwnerReport")
 
         const {immunohistochemicalProfile, molecularGeneticProfile, pathomorphologicalDiagnosis} = secondThinkReportData
             .reduce((secondThinkReportData, reportData) => {
@@ -308,7 +329,7 @@
                 pathomorphologicalDiagnosis: "",
             })
 
-        const reportHTmL = `
+        let reportHTmL = `
         <div class="conclusionTop df aic jcsb">
             <div class="conclusionTopLabel">
                 ${workCase.case_code}
@@ -362,16 +383,17 @@
             </div>
             <input type="text" name="comment" class="conclusionFormGroupInput" value="${caseOwnerReport?.comment || ""}">
         </div>
-        <div class="conclusionActionBottom" style="margin-bottom: 20px">
-            Оновити репорт
-        </div>
         `
+
+        if(!caseIsClosed){
+            reportHTmL += `<div class="conclusionActionBottom" style="margin-bottom: 20px">Оновити репорт</div>`
+        }
 
         formNODE.innerHTML = reportHTmL
         reportWrapperNODE.append(formNODE)
 
-        sendReportHandler()
         setOwnerInfo(caseOwner)
+        sendReportHandler()
     }
     const setReportGlasses = (currentGlassReport, activeGlassReport, caseOwner) => {
         reportGlassWrapperNODE.innerHTML = "";
@@ -420,6 +442,7 @@
 
                 setReport(currentReport, currentCase, case_owner);
                 setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                setCaseEdit();
 
                 caseLabelNode.innerHTML = currentCase.case_code
                 caseMicroDescriptionTextareaNODE.value = currentCase.microdescription || ""
@@ -508,6 +531,7 @@
         return caseNewNODE
     }
     const glassTemplate = (currentGlass, activeGlass, caseOwner) => {
+        const caseIsClosed = currentCase.grossing_status === "COMPLETED";
         const activeGlassIds = activeGlass.map(({id}) => id)
         const glassNewNODE = document.createElement('div');
         glassNewNODE.classList = `glassWrapper ${activeGlassIds.includes(currentGlass.id) ? "active" : ""}`;
@@ -521,7 +545,7 @@
             </div>
         `;
 
-        if (caseOwner?.is_case_owner) {
+        if (caseOwner?.is_case_owner && !caseIsClosed) {
             glassNewNODE.addEventListener("click", () => {
                 const isActiveGlass = glassNewNODE.classList.contains('active');
                 const actionMethod = isActiveGlass ? "remove" : "add"
@@ -543,7 +567,7 @@
     }
 
     const sendReportHandler = () => {
-        document.querySelector('.conclusionActionBottom').addEventListener('click', () => {
+        document.querySelector('.conclusionActionBottom')?.addEventListener('click', () => {
             const formNODE = document.querySelector('#reportForm');
             const formData = Object.fromEntries(new FormData(formNODE).entries());
 
