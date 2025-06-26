@@ -246,6 +246,32 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 fileViewerWrapperNODE.classList.add('full')
             }
 
+
+            if(file.content_type.includes('pdf')){
+                if(file.file_url){
+                    fetch(`${API_BASE_URL}/api${file.file_url}`, {
+                        method: "GET",
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        },
+                    })
+                        .then(response => response.blob())
+                        .then(blob => {
+                            fileViewerWrapperNODE.innerHTML += `
+                            <div style="background: white; height: 100%; width: 100%">
+                                <embed
+                                    src="${URL.createObjectURL(blob)}#toolbar=0"
+                                    type="application/pdf"
+                                    style="border: none; background: white; margin: 0 auto; display: block; height: 100%; width: 100%;"
+                                ></embed>
+                            </div>
+                            `
+                            uploadArea.appendChild(fileViewerWrapperNODE);
+                        })
+                }
+
+                return;
+            }
             const imgNODE = document.createElement('img');
 
             if(file.file_url){

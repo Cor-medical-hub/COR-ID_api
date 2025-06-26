@@ -213,8 +213,11 @@
     }
     const showCloseCaseBtn = (currentReport, currentCaseOwner) => {
         const hasAllSigns = currentReport?.doctor_diagnoses.every(({signature}) => !!signature);
+        const reportIsClose = currentCase?.grossing_status === "COMPLETED";
 
-        if(currentCaseOwner.is_case_owner && hasAllSigns){
+        console.log(currentCase, "reportIsClose")
+
+        if(currentCaseOwner.is_case_owner && hasAllSigns && !reportIsClose){
             closeCaseBtnNODE.classList.add('open')
             return;
         }
@@ -520,26 +523,31 @@
                         imgNODE.src = e.target.result; // ✅ base64 строка
                         attachedGlassesReportNODE.appendChild(imgNODE);
                     };
-                    reader.readAsDataURL(blob); // 👈 конвертируем blob в base64
+                    reader.readAsDataURL(blob);
                 })
 
                 doctorFiles.forEach((blob, index) => {
                     const currentDoctor = doctorDiagnoses[index]
                     const signaturesDoctorReportNODE = document.querySelector('#signaturesDoctorReport')
+                    const div = document.createElement('div');
+                    div.classList = "signoff-section"
+                    div.innerHTML = `
+                    <div class="signoff-left">
+                        <strong>Лікар: </strong>${currentDoctor.doctor.last_name} ${currentDoctor.doctor.first_name} ${currentDoctor.doctor.middle_name}
+                    </div>
+                    ${currentDoctor.signature ? `<div className="signoff-right"><strong>Дата:</strong> ${new Date(currentDoctor.signature.signed_at).toLocaleDateString()}</div>` : ""}
+                    `;
+                    signaturesDoctorReportNODE.append(div)
 
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        signaturesDoctorReportNODE.innerHTML += `
-                        <div class="signoff-section">
-                            <div class="signoff-left">
-                                <strong>Лікар: </strong>${currentDoctor.doctor.last_name} ${currentDoctor.doctor.first_name} ${currentDoctor.doctor.middle_name}
-                                ${blob ? `<img src="${e.target.result}" alt="signature">` : ""}
-                            </div>
-                            ${currentDoctor.signature ? `<div className="signoff-right"><strong>Дата:</strong> ${new Date(currentDoctor.signature.signed_at).toLocaleDateString()}</div>` : ""}
-                        </div>
-                        `
-                    };
-                    reader.readAsDataURL(blob); // 👈 конвертируем blob в base64
+                    if(blob){
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            console.log(e, "e")
+                            div.querySelector('.signoff-left').innerHTML += `${blob ? `<img src="${e.target.result}" alt="signature">` : ""}`
+                        };
+                        reader.readAsDataURL(blob);
+                    }
+
                 })
             })
     }
