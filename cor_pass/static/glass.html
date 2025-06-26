@@ -131,7 +131,6 @@
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
 
     let currentUserCorId = PATIENT_COR_ID || null;
-    console.log(currentUserCorId, "currentUserCorId")
     let currentCase = null;
     let currentGlasses = null;
     let activeGlasses = []
@@ -348,8 +347,7 @@
 
     const switchRole = () => {
         document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
-            console.log(currentUserCorId, "currentUserCorId")
-            // window.location.href = `/static/lab.html?userCorId=${currentUserCorId}`
+            window.location.href = `/static/lab.html?userCorId=${currentUserCorId}`
         })
     }
     const goToTab = () => {
