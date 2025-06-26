@@ -1412,9 +1412,9 @@ class FirstCaseTestGlassDetailsSchema(BaseModel):
 
 
 class LabAssistantCreate(BaseModel):
-    first_name: str = Field(..., description="Имя лаборанта")
-    middle_name: str = Field(..., description="Отчество лаборанта")
-    last_name: str = Field(..., description="Фамилия лаборанта")
+    first_name: Optional[str] = Field(None, description="Имя лаборанта")
+    middle_name: Optional[str] = Field(None, description="Отчество лаборанта")
+    last_name: Optional[str] = Field(None, description="Фамилия лаборанта")
 
     class Config:
         from_attributes = True
@@ -1433,9 +1433,9 @@ class LabAssistantResponse(BaseModel):
 
 
 class EnergyManagerCreate(BaseModel):
-    first_name: str = Field(..., description="Имя менеджера энергии")
-    middle_name: str = Field(..., description="Отчество менеджера энергии")
-    last_name: str = Field(..., description="Фамилия менеджера энергии")
+    first_name: Optional[str] = Field(None, description="Имя менеджера энергии")
+    middle_name: Optional[str] = Field(None, description="Отчество менеджера энергии")
+    last_name: Optional[str] = Field(None, description="Фамилия менеджера энергии")
 
     class Config:
         from_attributes = True
