@@ -9,6 +9,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
     let uploadedFiles = []
     let currentReferralId = null
 
+    const initUploadArea = () => {
+        uploadArea.innerHTML = (
+            `<div class="upload-box" id="uploadBox" tabindex="0">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 4v10M7 9l5-5 5 5"/><rect x="4" y="18" width="16" height="2" rx="1"/></svg>
+                </div>
+                <span>Перетягніть сюди свої файли<br><b>або скануйте</b></span>
+                <small class="note">до 5 файлів</small>
+                <input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden>
+            </div>`
+        )
+    }
     const closeModal  = () => {
         uploadedFiles = []
         currentReferralId = null
@@ -231,8 +243,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
         if(!files.length) {
             return;
         }
+
         const cutTo5Files = [...files].slice(0,5);
-        uploadArea.querySelectorAll('.thumb').forEach(thumb => thumb.remove());
+        uploadArea.innerHTML = ""
 
         if(uploadBox.parentElement) {
             uploadBox.remove()
@@ -247,31 +260,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             }
 
 
-            if(file.content_type.includes('pdf')){
-                if(file.file_url){
-                    fetch(`${API_BASE_URL}/api${file.file_url}`, {
-                        method: "GET",
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                        },
-                    })
-                        .then(response => response.blob())
-                        .then(blob => {
-                            fileViewerWrapperNODE.innerHTML += `
-                            <div style="background: white; height: 100%; width: 100%">
-                                <embed
-                                    src="${URL.createObjectURL(blob)}#toolbar=0"
-                                    type="application/pdf"
-                                    style="border: none; background: white; margin: 0 auto; display: block; height: 100%; width: 100%;"
-                                ></embed>
-                            </div>
-                            `
-                            uploadArea.appendChild(fileViewerWrapperNODE);
-                        })
-                }
-
-                return;
-            }
+            const isPDF = file?.content_type?.includes('pdf') || file?.type?.includes('pdf');
             const imgNODE = document.createElement('img');
 
             if(file.file_url){
@@ -283,6 +272,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 })
                     .then(response => response.blob())
                     .then(blob => {
+                        if(isPDF){
+                            fileViewerWrapperNODE.innerHTML += `
+                            <div style="background: white; height: 100%; width: 100%">
+                                <embed
+                                    src="${URL.createObjectURL(blob)}#toolbar=0"
+                                    type="application/pdf"
+                                    style="border: none; background: white; margin: 0 auto; display: block; height: 100%; width: 100%;"
+                                ></embed>
+                            </div>
+                            `
+                            uploadArea.appendChild(fileViewerWrapperNODE);
+                            return;
+                        }
+
                         imgNODE.src = URL.createObjectURL(blob);
                         imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
                         fileViewerWrapperNODE.appendChild(imgNODE);
@@ -290,6 +293,21 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     })
                 return;
             }
+
+            if(isPDF){
+                fileViewerWrapperNODE.innerHTML += `
+                            <div style="background: white; height: 100%; width: 100%">
+                                <embed
+                                    src="${URL.createObjectURL(file)}#toolbar=0"
+                                    type="application/pdf"
+                                    style="border: none; background: white; margin: 0 auto; display: block; height: 100%; width: 100%;"
+                                ></embed>
+                            </div>
+                            `
+                uploadArea.appendChild(fileViewerWrapperNODE);
+                return;
+            }
+
 
             imgNODE.src=URL.createObjectURL(file);
             imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
