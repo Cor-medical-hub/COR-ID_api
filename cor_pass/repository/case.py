@@ -1501,6 +1501,7 @@ async def get_report_by_case_id(
             router=router, 
             case_db=case_db
         )
+        report_details.concatenated_macro_description = f"{report_details.macro_description_from_case_params}" if report_details.macro_description_from_case_params else " "
 
         for sample_db in case_db.samples:
             def sort_cassettes(cassette: db_models.Cassette):
@@ -1537,7 +1538,9 @@ async def get_report_by_case_id(
 
             sample_schematized = SampleTestForGlassPage(id=sample_db.id,
                                                         sample_number=sample_db.sample_number,
-                                                        case_id=sample_db.case_id)
+                                                        case_id=sample_db.case_id,
+                                                        sample_macro_description=sample_db.macro_description)
+            report_details.concatenated_macro_description += f"| {sample_db.macro_description}" if sample_db.macro_description else ""
             sample_schematized.cassettes = cassettes_for_sample
             all_samples_for_last_case_schematized.append(sample_schematized)
 
@@ -1618,6 +1621,7 @@ async def get_patient_report_page_data(
                 router=router, 
                 case_db=last_case_with_relations
             )
+            report_details.concatenated_macro_description = f"{report_details.macro_description_from_case_params}" if report_details.macro_description_from_case_params else " "
 
             for sample_db in last_case_with_relations.samples:
                 def sort_cassettes(cassette: db_models.Cassette):
@@ -1654,7 +1658,9 @@ async def get_patient_report_page_data(
 
                 sample_schematized = SampleTestForGlassPage(id=sample_db.id,
                                                             sample_number=sample_db.sample_number,
-                                                            case_id=sample_db.case_id)
+                                                            case_id=sample_db.case_id,
+                                                            sample_macro_description=sample_db.macro_description)
+                report_details.concatenated_macro_description += f"| {sample_db.macro_description}" if sample_db.macro_description else ""
                 sample_schematized.cassettes = cassettes_for_sample
                 all_samples_for_last_case_schematized.append(sample_schematized)
 
@@ -1912,7 +1918,8 @@ async def get_patient_final_report_page_data(
                 router=router,
                 patient_db=patient_db,
                 referral_db=referral_db,
-                case_db=last_case_with_relations
+                case_db=last_case_with_relations,
+                current_doctor_id=current_doctor_id
             )
     case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientFinalReportPageResponse(
@@ -1932,6 +1939,7 @@ async def _format_final_report_response(
     patient_db: db_models.Patient,
     referral_db: db_models.Referral,
     case_db: db_models.Case,
+    current_doctor_id: str,
     db_case_parameters: Optional[db_models.CaseParameters]
 ) -> ReportResponseSchema:
     """
@@ -2026,6 +2034,9 @@ async def _format_final_report_response(
             attached_glasses_schemas.append(GlassModelScheema.model_validate(glass))
             glass_stainings.append(glass.staining)
     glass_stainings = set(glass_stainings)
+    # concatenated_macro_description = f"{db_case_parameters.macro_description}" if db_case_parameters.macro_description else ""
+    report = await get_report_by_case_id(db=db, case_id=case_db.id, router=router, current_doctor_id=current_doctor_id)
+    concatenated_macro_description = report.report_details.concatenated_macro_description
     return FinalReportResponseSchema(
         id=db_report.id,
         case_id=case_db.id,
@@ -2044,6 +2055,8 @@ async def _format_final_report_response(
         patient_full_age=patient_age,
         patient_phone_number=patient_db.phone_number,
         patient_email=patient_db.email,
+
+        concatenated_macro_description=concatenated_macro_description,
 
         medical_card_number=referral_db.medical_card_number if referral_db else None,
         medical_institution=referral_db.medical_institution if referral_db else None,
@@ -2113,7 +2126,8 @@ async def get_final_report_by_case_id(
             router=router,
             patient_db=patient_db,
             referral_db=referral_db,
-            case_db=last_case_with_relations
+            case_db=last_case_with_relations,
+            current_doctor_id = current_doctor_id
         )
     case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return CaseFinalReportPageResponse(
