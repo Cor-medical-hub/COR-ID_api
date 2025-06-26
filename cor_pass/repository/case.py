@@ -2944,7 +2944,8 @@ async def get_current_cases_final_report_page_data(
                 router=router,
                 patient_db=patient_db,
                 referral_db=referral_db,
-                case_db=last_case_with_relations
+                case_db=last_case_with_relations,
+                current_doctor_id=current_doctor_id
             )
     case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientFinalReportPageResponse(
