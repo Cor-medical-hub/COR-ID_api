@@ -198,6 +198,7 @@
     }
 
     const setOwnerInfo = (caseOwner) => {
+        const caseIsClosed = currentCase?.grossing_status === "COMPLETED";
         const hasOwner = caseOwner?.id
         reportOwnerInfoNODE.innerHTML = ""
 
@@ -248,7 +249,7 @@
             reportOwnerInfoNODE.append(div)
         }
 
-        if (!hasOwner) {
+        if (!hasOwner && !caseIsClosed) {
             const div = document.createElement('div')
             div.classList = "conclusionBtnOwner"
             div.innerText = "Взяти дослідження"
@@ -342,7 +343,7 @@
             <div class="conclusionFormGroupLabel">
                 Макроопис
             </div>
-            <input type="text" class="conclusionFormGroupInput" name="report_macrodescription" value="${caseOwnerReport?.report_macrodescription || currentReport.macro_description_from_case_params || ""}">
+            <input type="text" class="conclusionFormGroupInput" name="report_macrodescription" value="${caseOwnerReport?.report_macrodescription || currentReport.concatenated_macro_description || ""}">
         </div>
         <div class="conclusionFormGroup"  style="${!isMyCase ? disabledStyle : ""}">
             <div class="conclusionFormGroupLabel">
