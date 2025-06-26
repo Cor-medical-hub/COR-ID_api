@@ -305,10 +305,10 @@
         return caseNewNODE
     }
 
-    const setReport = (currentCase, caseOwner) => {
+    const setReport = (currentReport, caseOwner) => {
         explorationContentNODE.innerHTML = ``;
-        const doctorDiagnoses = currentCase.doctor_diagnoses;
-        currentCase.attached_glasses = currentCase.attached_glasses.map(data => ({
+        const doctorDiagnoses = currentReport.doctor_diagnoses;
+        currentReport.attached_glasses = currentReport.attached_glasses.map(data => ({
             ...data,
             file_url: "/cases/attachments/85ee8e3c-a912-4d2c-aaa1-875eeda0bd34"
         }))
@@ -372,27 +372,27 @@
                     <div class="doc-subtitle">
                         <strong>МЕДИЧНА ДОКУМЕНТАЦІЯ 014/о</strong> Затверджена наказом МОЗ України 29.05.2013 р. № 435
                     </div>
-                    <div class="report-number">№ ${currentCase.case_code}</div>
+                    <div class="report-number">№ ${currentReport.case_code}</div>
                     <div class="report-type">Патогістологія</div>
                     <hr>
 
                     <section class="report-dates">
-                        <div><strong>Дата біопсії:</strong> ${currentCase.biopsy_date || ""}</div>
-                        <div><strong>Дата надходження:</strong> ${currentCase.arrival_date || ""}</div>
-                        <div><strong>Дата завершення:</strong> ${currentCase.report_date || ""}</div>
+                        <div><strong>Дата біопсії:</strong> ${currentReport.biopsy_date || ""}</div>
+                        <div><strong>Дата надходження:</strong> ${currentReport.arrival_date || ""}</div>
+                        <div><strong>Дата завершення:</strong> ${currentReport.report_date || ""}</div>
                     </section>
                     <hr>
 
                     <section class="patient-section">
                         <div class="patient-name">
-                            <strong>Пацієнт:</strong> ${`${currentCase.patient_surname} ${currentCase.patient_first_name} ${currentCase.patient_middle_name}`}
+                            <strong>Пацієнт:</strong> ${`${currentReport.patient_surname} ${currentReport.patient_first_name} ${currentReport.patient_middle_name}`}
                         </div>
                         <hr class="patient-hr">
                         <div class="patient-details">
-                            <span><strong>Стать:</strong> ${currentCase.patient_sex === "F"? "Жін": "Чол" }</span>
-                            <span><strong>Д/н:</strong> ${new Date(currentCase.patient_birth_date).toLocaleDateString()}</span>
-                            <span><strong>Вік:</strong> ${getAge(currentCase.patient_birth_date)} років</span>
-                            <span><strong>Контакт:</strong> ${currentCase.patient_phone_number}, ${currentCase.patient_email}</span>
+                            <span><strong>Стать:</strong> ${currentReport.patient_sex === "F"? "Жін": "Чол" }</span>
+                            <span><strong>Д/н:</strong> ${new Date(currentReport.patient_birth_date).toLocaleDateString()}</span>
+                            <span><strong>Вік:</strong> ${getAge(currentReport.patient_birth_date)} років</span>
+                            <span><strong>Контакт:</strong> ${currentReport.patient_phone_number}, ${currentReport.patient_email}</span>
                         </div>
                     </section>
                     <hr>
@@ -400,27 +400,27 @@
                     <section class="case-info">
                         <div class="info-item">
                             <div class="info-label"><strong>Медична карта:</strong></div>
-                            <div class="info-value">№ ${currentCase.medical_card_number || ""}</div>
+                            <div class="info-value">№ ${currentReport.medical_card_number || ""}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label"><strong>Медичний заклад:</strong></div>
-                            <div class="info-value">${currentCase.medical_institution || ""}</div>
+                            <div class="info-value">${currentReport.medical_institution || ""}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label"><strong>Відділення:</strong></div>
-                            <div class="info-value">${currentCase.medical_department || ""}</div>
+                            <div class="info-value">${currentReport.medical_department || ""}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label"><strong>Лікуючий лікар:</strong></div>
-                            <div class="info-value">${currentCase.attending_doctor || ""}</div>
+                            <div class="info-value">${currentReport.attending_doctor || ""}</div>
                         </div>
                     </section>
                     <hr>
 
                     <section class="clinical-section">
-                        <p><strong>Клінічні дані:</strong> ${currentCase.clinical_data || ""}</p>
+                        <p><strong>Клінічні дані:</strong> ${currentReport.clinical_data || ""}</p>
                         <hr class="mini-hr">
-                        <p><strong>Клінічний діагноз:</strong> ${currentCase.clinical_diagnosis || ""}</p>
+                        <p><strong>Клінічний діагноз:</strong> ${currentReport.clinical_diagnosis || ""}</p>
                     </section>
                     <hr>
 
@@ -428,45 +428,45 @@
                         <div class="stats-item">
                             <strong>Кількість контейнерів:</strong>
                             <div class="stats-line">
-                                <strong>Отримано</strong> <span class="stats-value">${currentCase.containers_recieved || ""}</span>
-                                <strong>Заявлено</strong> <span class="stats-value">${currentCase.containers_actual || ""}</span>
+                                <strong>Отримано</strong> <span class="stats-value">${currentReport.containers_recieved || ""}</span>
+                                <strong>Заявлено</strong> <span class="stats-value">${currentReport.containers_actual || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
                             <strong>Кількість блоків:</strong>
                             <div class="stats-line">
-                                <span class="stats-value">${currentCase.num_blocks || ""}</span>
+                                <span class="stats-value">${currentReport.num_blocks || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
                             <strong>Фіксація:</strong>
                             <div class="stats-line">
-                                <span class="stats-value">${currentCase.fixation || ""}</span>
+                                <span class="stats-value">${currentReport.fixation || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
                             <strong>Декальцинація:</strong>
                             <div class="stats-line">
-                                <span class="stats-value">${currentCase.decalcification || ""}</span>
+                                <span class="stats-value">${currentReport.decalcification || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
                             <strong>Макроархів:</strong>
                             <div class="stats-line">
-                                <span class="stats-value">${currentCase.macroarchive || ""}</span>
+                                <span class="stats-value">${currentReport.macroarchive || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
                             <strong>Фарбування:</strong>
                             <div class="stats-line">
-                                ${currentCase.painting.map( paint => `<span class="stats-value">${paint}</span>`)}
+                                ${currentReport.painting.map( paint => `<span class="stats-value">${paint}</span>`)}
                             </div>
                         </div>
                     </section>
                     <hr>
 
                     <section class="text-section">
-                        <p><strong>Макроскопічний опис:</strong> ${caseOwnerDiagnosis?.report_macrodescription || currentCase.concatenated_macro_description || ""}</p>
+                        <p><strong>Макроскопічний опис:</strong> ${caseOwnerDiagnosis?.report_macrodescription || currentReport.concatenated_macro_description || ""}</p>
                     </section>
                     <hr>
                     <section class="text-section">
@@ -505,14 +505,14 @@
         `
 
         const allFiles = [
-            ...currentCase.attached_glasses.map(({file_url}) => file_url),
+            ...currentReport.attached_glasses.map(({file_url}) => file_url),
             ...doctorDiagnoses.map(({signature}) => signature?.doctor_signature?.signature_scan_data)
         ]
 
         Promise.all(allFiles.map(getImages))
             .then(filesBlob => {
-                const glassFiles = filesBlob.slice(0, currentCase.attached_glasses.length)
-                const doctorFiles = filesBlob.slice(currentCase.attached_glasses.length)
+                const glassFiles = filesBlob.slice(0, currentReport.attached_glasses.length)
+                const doctorFiles = filesBlob.slice(currentReport.attached_glasses.length)
 
                 glassFiles.forEach((blob) => {
                     const attachedGlassesReportNODE = document.querySelector('#attachedGlassesReport');

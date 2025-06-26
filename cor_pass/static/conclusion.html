@@ -291,7 +291,7 @@
         const disabledStyle = "opacity: .4; pointer-events: none"
         const formNODE = document.createElement('form')
         formNODE.setAttribute("id", "reportForm")
-        formNODE.style.pointerEvents = "none"
+        formNODE.style.pointerEvents = caseIsClosed ? "none" : "auto"
         const myReportData = currentReport.doctor_diagnoses.find(({doctor}) => doctor.doctor_id === myCorId)
         const secondThinkReportData = currentReport.doctor_diagnoses.filter(({doctor}) => doctor.doctor_id !== myCorId)
         const caseOwnerReport = currentReport.doctor_diagnoses.find(({doctor}) => doctor.doctor_id === caseOwner?.doctor_id)
