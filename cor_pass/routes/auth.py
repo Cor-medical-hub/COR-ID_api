@@ -659,8 +659,8 @@ async def refresh_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token for this device",
             )
-    elif device_information["device_type"] != "Mobile CorEnergy" and device_information["device_type"] != "Mobile":
-        logger.debug(">>> Entered LAST validation block <<<")
+    elif device_information["device_type"] == "Desktop":
+        logger.debug(">>> Entered Desktop validation block <<<")
         is_valid_session = True
     if is_valid_session:
         # Проверка ролей
