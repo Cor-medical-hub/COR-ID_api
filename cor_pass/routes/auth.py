@@ -337,12 +337,12 @@ async def check_session_status(
         if user.email in settings.eternal_accounts
         else None
     )
-
+    # Временно увеличиваем срок жизни токенов кор-енерджи
     access_token, access_token_jti = await auth_service.create_access_token(
-        data=token_data, expires_delta=expires_delta
+        data=token_data, expires_delta=100
     )
     refresh_token = await auth_service.create_refresh_token(
-        data=token_data, expires_delta=expires_delta
+        data=token_data, expires_delta=100
     )
     # Создаём новую сессию
     device_information = di.get_device_info(request)
@@ -458,12 +458,12 @@ async def confirm_login(
             if user.email in settings.eternal_accounts
             else None
         )
-
+        # Временно увеличиваем срок жизни токенов кор-енерджи
         access_token, access_token_jti = await auth_service.create_access_token(
-            data=token_data, expires_delta=expires_delta
+            data=token_data, expires_delta=100
         )
         refresh_token = await auth_service.create_refresh_token(
-            data=token_data, expires_delta=expires_delta
+            data=token_data, expires_delta=100
         )
 
         # Создаём новую сессию
@@ -622,10 +622,6 @@ async def refresh_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Session not found for this device",
             )
-        # Временный запрос
-        existing_sessions_for_cor_energy = await repository_session.get_user_sessions_by_device_info(
-        user_id= user.cor_id, device_info="Mobile CorEnergy", db=db
-    )
         for session in existing_sessions:
             try:
                 session_token = await decrypt_data(
@@ -640,26 +636,7 @@ async def refresh_token(
                     break 
             except Exception:
                 logger.warning(
-                    f"Failed to decrypt refresh token for cor-energy session {session.id}"
-                )
-        # Временный блок
-        for cor_session in existing_sessions_for_cor_energy:
-            try:
-                session_token = await decrypt_data(
-                    encrypted_data=cor_session.refresh_token,
-                    key=await decrypt_user_key(user.unique_cipher_key),
-                )
-                if session_token == token:
-                    is_valid_session = True
-                    logger.debug(
-                        f"Mobile cor-energy session validation is {is_valid_session}"
-                    )
-                    break 
-            except Exception:
-                logger.warning(
-                    f"Failed to decrypt refresh token for cor-energy session {session.id}"
-                )
-        
+                    f"Failed to decrypt refresh token for cor-energy session {session.id}")        
         if not is_valid_session: 
             logger.debug(
                 f"Invalid refresh token for this cor-energy mobile device. Mobile session validation is {is_valid_session}"
