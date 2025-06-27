@@ -15,6 +15,14 @@ const getShortName = (lastName, firstName, middleName) => {
     return result;
 }
 
+const getCaseColor = (currentCase) => {
+    if(currentCase?.grossing_status === "COMPLETED"){
+        return "#49AC26"
+    }
+
+    return "#5B4296"
+}
+
 const getItemCountByAllKeys = (entity, keys = []) => {
     let currentLevel = [entity];
 
@@ -31,7 +39,7 @@ const getItemCountByAllKeys = (entity, keys = []) => {
 const showTextareaButton = (textareaId) => {
     const textareaNODE = document.querySelector(`#${textareaId}`);
     textareaNODE?.addEventListener('focus', () => {
-        textareaNODE.nextElementSibling.style.display = "block";
+        textareaNODE.nextElementSibling.classList.add('open');
     })
 }
 

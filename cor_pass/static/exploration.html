@@ -50,6 +50,8 @@
                 </div>
             </div>
             <div class="meta-info">
+                <div id="reportOwnerInfo">
+                </div>
                 <div>
                     <span id="searchCaseId"></span>
                     <button class="edit-btn" aria-label="Edit case">
@@ -67,14 +69,12 @@
     </div>
     <div class="glassPageContent df jcsb">
         <div class="left">
-            <div class="top borderRadiusLeft df jcsb">
+            <div class="top borderRadiusLeft df aic">
+                <div class="glassPageRevert" style="display: none">
+                    <img src="./assets/arrow.svg" alt="arrow">
+                </div>
                 <div>
                     Поточні кейси
-                </div>
-                <div class="glassPageRevert" style="display: none">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="800px" height="800px" viewBox="0 0 24 24">
-                        <path fill="none" stroke="#000000" stroke-width="2" d="M8,3 L3,8 L8,13 M12,20 L15,20 C18.3137085,20 21,17.3137085 21,14 C21,10.6862915 18.3137085,8 15,8 L4,8"/>
-                    </svg>
                 </div>
             </div>
             <div class="bottom">
@@ -82,32 +82,24 @@
             </div>
         </div>
         <div class="middle df fdc">
-            <div class="top df jcsb">
+            <div class="top df aic jcsb">
                 <div>
-                    Дослідження
+                    Скельця
+                </div>
+                <div class="topActions df aic">
+                    <div class="topActionsItem" id="doctorSignModalBtn">
+                        Підписати
+                    </div>
+                    <div class="topActionsItem open" id="printReport">
+                        Друкувати дослідження
+                    </div>
+                    <div class="topActionsItem" id="closeCase">
+                        Закрити дослідження
+                    </div>
                 </div>
             </div>
             <div class="bottom df ">
                 <div class="report-wrapper" id="explorationContent"></div>
-            </div>
-        </div>
-        <div class="right" style="min-width: 180px">
-            <div class="top">
-                Дії
-            </div>
-            <div class="bottom ">
-                <div class="explorationButton" id="doctorSignModalBtn">
-                    Підписати репорт
-                </div>
-                <div class="explorationButton">
-                    Виключити думку
-                </div>
-                <div class="explorationButton" id="closeCase">
-                    Закрити дослідження
-                </div>
-                <div class="explorationButton open" id="printReport">
-                    Друкувати репорт
-                </div>
             </div>
         </div>
     </div>
@@ -192,6 +184,7 @@
     let currentCase = null;
     let currentDiagnosis = null
 
+    const reportOwnerInfoNODE = document.querySelector('#reportOwnerInfo')
     const caseContentNODE = document.querySelector("#caseItems");
     const explorationContentNODE = document.querySelector("#explorationContent");
     const caseLabelNode = document.querySelector('#searchCaseId');
@@ -246,7 +239,7 @@
         caseNewNODE.innerHTML = `
             <div>
                 <div class="caseItemDate">${new Date(workCase.creation_date).toLocaleDateString()}</div>
-                <div class="caseItemLabel">${workCase.case_code}</div>
+                <div class="caseItemLabel" style="color: ${getCaseColor(workCase)}">${workCase.case_code}</div>
             </div>
             <div class="caseItemSample df aic jcc">
                 ${workCase.bank_count}
@@ -285,9 +278,12 @@
                     setReport(currentReport, currentCaseOwner)
                     getMyCurrentDiagnosis(currentReport)
                     showCloseCaseBtn(currentReport, currentCaseOwner)
+                    setOwnerInfo(currentCaseOwner)
 
 
                     caseLabelNode.innerHTML = currentCase.case_code
+                    caseLabelNode.style.color = getCaseColor(currentCase)
+
                     fetch(`${API_BASE_URL}/api/doctor/patients/${currentCase.patient_id}`, {
                         method: "GET",
                         headers: {
@@ -480,7 +476,7 @@
                         <p><strong>Молекулярно-генетичний профіль:</strong> ${molecularGeneticProfile || ""}</p>
                     </section>
                     <section class="text-section">
-                        <p><strong>Патоморфологічний діагноз:</strong> ${pathomorphologicalDiagnosis || ""}</p>
+                        <p><strong>Патогістологічний висновок:</strong> ${pathomorphologicalDiagnosis || ""}</p>
                     </section>
                     <hr>
                     <section class="text-section">
@@ -577,8 +573,10 @@
                 setReport(currentReport, currentCaseOwner)
                 getMyCurrentDiagnosis(currentReport)
                 showCloseCaseBtn(currentReport, currentCaseOwner)
+                setOwnerInfo(currentCaseOwner)
 
                 caseLabelNode.innerHTML = currentCase.case_code
+                caseLabelNode.style.color = getCaseColor(currentCase)
 
                 fetch(`${API_BASE_URL}/api/doctor/patients/${currentCase.patient_id}`, {
                     method: "GET",
@@ -593,6 +591,84 @@
                         document.querySelector('#userAge').innerHTML = `${userData.age ? `${userData.age}р` : ''}`;
                     })
             })
+    }
+    const setOwnerInfo = (caseOwner) => {
+        const caseIsClosed = currentCase?.grossing_status === "COMPLETED";
+        const hasOwner = caseOwner?.id
+        reportOwnerInfoNODE.innerHTML = ""
+
+        if (hasOwner) {
+            if (!caseOwner?.is_case_owner || caseIsClosed) {
+                const div = document.createElement('div')
+                div.innerHTML = `Власник: ${getShortName(caseOwner.last_name, caseOwner.first_name, caseOwner.middle_name)}`;
+                div.classList = "caseBtnOwner owner";
+                div.style.marginBottom = 0;
+
+                reportOwnerInfoNODE.append(div)
+                return;
+            }
+
+            if (caseOwner?.is_case_owner) {
+                const div = document.createElement('div')
+                div.innerText = "Власний кейс";
+                div.classList = "caseBtnOwner my";
+                div.style.marginBottom = 0;
+
+                div.addEventListener('click', (e) => {
+                    fetch(`${API_BASE_URL}/api/cases/${currentCase.id}/release`, {
+                        method: "POST",
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                            "Content-Type": "application/json"
+                        },
+                    })
+                        .then(res => res.json())
+                        .then(() => {
+                            currentCaseOwner = null;
+                            activeGlasses = [];
+
+                            setReport(currentReport, currentCase, currentCaseOwner);
+                            setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                        })
+                })
+
+                reportOwnerInfoNODE.append(div)
+            }
+        }
+
+        if (!hasOwner && !caseIsClosed) {
+            const div = document.createElement('div')
+            div.classList = "caseBtnOwner"
+            div.innerText = "Забрати кейс"
+
+            div.addEventListener('click', (e) => {
+                fetch(`${API_BASE_URL}/api/cases/${currentCase.id}/take`, {
+                    method: "POST",
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        "Content-Type": "application/json"
+                    },
+                })
+                    .then(res => res.json())
+                    .then(() => {
+                        currentCaseOwner = {
+                            doctor_id: "153348TN1-1994M",
+                            first_name:"Алексей",
+                            id: "009412bd-bc34-4988-8631-9f407f08f41b",
+                            last_name: "Жовтенко",
+                            middle_name: "Александрович",
+                            phone_number: "+380635890210",
+                            work_email: "zhowtenko.oleksiy_work@gmail.com",
+                            is_case_owner: true,
+                        };
+
+                        setReport(currentReport, currentCase, currentCaseOwner);
+                        setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                    })
+            })
+
+            reportOwnerInfoNODE.append(div)
+        }
     }
 
     const switchRole = () => {

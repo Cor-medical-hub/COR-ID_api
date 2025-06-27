@@ -35,6 +35,7 @@
 
 .glassMark{
     margin-top: 4px;
+    position: relative;
 }
 .glassPlaceholder{
     padding: 12px 8px;
@@ -198,4 +199,26 @@
 }
 .cassetteCommentsArea::placeholder{
     color: #B1A1DA;
+}
+
+.glassPicker{
+    position: fixed;
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid #FFF;
+    background: rgba(255, 255, 255, 1);
+    z-index: 1;
+    overflow: auto;
+}
+.glassPickerList{
+    padding: 8px 12px;
+    color: #5B4296;
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    border-radius: 12px;
+}
+.glassPickerList.active{
+    background: #EFECF8;
 }
