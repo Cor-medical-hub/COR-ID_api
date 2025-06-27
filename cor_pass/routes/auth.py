@@ -350,7 +350,7 @@ async def check_session_status(
         "user_id": user.cor_id,
         "refresh_token": refresh_token,
         "device_type": "Mobile CorEnergy",  # Тип устройства
-        "device_info": device_information["device_info"] + " MobileCorEnergy",  # Информация об устройстве
+        "device_info": device_information["device_info"],  # Информация об устройстве "iOS 18.5 MobileCorEnergy"
         "ip_address": device_information["ip_address"],  # IP-адрес
         "device_os": device_information["device_os"],
         "jti": access_token_jti,
@@ -462,7 +462,7 @@ async def confirm_login(
             "user_id": user.cor_id,
             "refresh_token": refresh_token,
             "device_type": "Mobile CorEnergy",  # Тип устройства
-            "device_info": device_information["device_info"],  # Информация об устройстве
+            "device_info": device_information["device_info"] + " MobileCorEnergy",  # Информация об устройстве
             "ip_address": device_information["ip_address"],  # IP-адрес
             "device_os": device_information["device_os"],
             "jti": access_token_jti,
