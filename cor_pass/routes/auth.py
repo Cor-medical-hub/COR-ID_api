@@ -581,6 +581,7 @@ async def refresh_token(
                     encrypted_data=session.refresh_token,
                     key=await decrypt_user_key(user.unique_cipher_key),
                 )
+                logger.debug(f"Comparing tokens: received={token} vs decrypted_session={session_token}")
                 if session_token == token:
                     is_valid_session = True
                     logger.debug(
