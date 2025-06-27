@@ -85,7 +85,7 @@
 }
 .caseItemDate{
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 400;
     margin-bottom: 6px;
 }
 .caseItemSample{
@@ -113,7 +113,7 @@
 .topActionsItem{
     cursor: pointer;
     color: #7B43F2;
-    font-weight: 600;
+    font-weight: 400;
     display: none;
 }
 .topActionsItem.open{
@@ -121,7 +121,7 @@
 }
 .caseBtnOwner{
     color: #7B43F2;
-    font-weight: 600;
+    font-weight: 400;
     cursor: pointer;
 }
 .caseBtnOwner.my{

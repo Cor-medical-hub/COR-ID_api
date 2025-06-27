@@ -341,12 +341,8 @@
                         },
                     })
                         .then(res => res.json())
-                        .then(() => {
-                            currentCaseOwner = null;
-                            activeGlasses = [];
-
-                            setReport(currentReport, currentCase, currentCaseOwner);
-                            setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                        .then(({case_owner}) => {
+                            setOwnerInfo(case_owner)
                         })
                 })
 
@@ -368,20 +364,8 @@
                     },
                 })
                     .then(res => res.json())
-                    .then(() => {
-                        currentCaseOwner = {
-                            doctor_id: "153348TN1-1994M",
-                            first_name:"Алексей",
-                            id: "009412bd-bc34-4988-8631-9f407f08f41b",
-                            last_name: "Жовтенко",
-                            middle_name: "Александрович",
-                            phone_number: "+380635890210",
-                            work_email: "zhowtenko.oleksiy_work@gmail.com",
-                            is_case_owner: true,
-                        };
-
-                        setReport(currentReport, currentCase, currentCaseOwner);
-                        setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                    .then(({case_owner}) => {
+                        setOwnerInfo(case_owner)
                     })
             })
 
