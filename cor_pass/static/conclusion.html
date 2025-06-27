@@ -51,6 +51,8 @@
                 </div>
             </div>
             <div class="meta-info">
+                <div id="reportOwnerInfo">
+                </div>
                 <div>
                     <span id="searchCaseId"></span>
                     <button class="edit-btn" aria-label="Edit case">
@@ -68,15 +70,12 @@
     </div>
     <div class="glassPageContent df jcsb">
         <div class="left">
-            <div class="top borderRadiusLeft df jcsb">
+            <div class="top borderRadiusLeft df aic">
+                <div class="glassPageRevert" style="display: none">
+                    <img src="./assets/arrow.svg" alt="arrow">
+                </div>
                 <div>
                     Поточні кейси
-                </div>
-                <div class="glassPageRevert" style="display: none">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="800px" height="800px" viewBox="0 0 24 24">
-                        <path fill="none" stroke="#000000" stroke-width="2"
-                              d="M8,3 L3,8 L8,13 M12,20 L15,20 C18.3137085,20 21,17.3137085 21,14 C21,10.6862915 18.3137085,8 15,8 L4,8"/>
-                    </svg>
                 </div>
             </div>
             <div class="bottom">
@@ -86,40 +85,17 @@
             </div>
         </div>
         <div class="middle df fdc">
-            <div class="top">
+            <div class="top df aic">
                 Заключення
             </div>
             <div class="bottom df ">
                 <div class="conclusionContent">
-                    <div id="reportOwnerInfo">
-
-                    </div>
                     <div id="reportWrapper">
 
                     </div>
                 </div>
                 <div class="glassContent df" id="reportGlassWrapper">
 
-                </div>
-            </div>
-        </div>
-        <div class="right">
-            <div style="height: 50%" class="df fdc">
-                <div class="commentsWrapper df fdc" style="height: 100%">
-                    <div class="commentsWrapperTop">
-                        Патогістологічний висновок
-                    </div>
-                    <textarea id="casePathohistologicalConclusion"></textarea>
-                    <button class="commentsWrapperButton">Зберегти</button>
-                </div>
-            </div>
-            <div style="height: 50%" class="df fdc">
-                <div class="commentsWrapper df fdc" style="height: 100%">
-                    <div class="commentsWrapperTop">
-                        Мікроопис
-                    </div>
-                    <textarea id="caseMicroDescription"></textarea>
-                    <button class="commentsWrapperButton">Зберегти</button>
                 </div>
             </div>
         </div>
@@ -144,88 +120,29 @@
     const reportWrapperNODE = document.querySelector('#reportWrapper')
     const caseContentNODE = document.querySelector("#caseItems");
     const caseLabelNode = document.querySelector('#searchCaseId');
-    const caseMicroDescriptionTextareaNODE = document.querySelector('#caseMicroDescription');
-    const casePathohistologicalConclusionTextareaNODE = document.querySelector('#casePathohistologicalConclusion');
-
-    const changeMicroDescription = () => {
-        caseMicroDescriptionTextareaNODE.nextElementSibling.addEventListener('click', () => {
-            fetch(`${API_BASE_URL}/api/doctor/microdescription/${currentCase.id}`, {
-                method: "PUT",
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    microdescription: caseMicroDescriptionTextareaNODE.value.trim(),
-                })
-            })
-                .then(res => res.json())
-                .then(() => {
-                    alert('Мікро опис успішно оновлений')
-                })
-        })
-    }
-    const changePathohistologicalConclusion = () => {
-        casePathohistologicalConclusionTextareaNODE.nextElementSibling.addEventListener('click', () => {
-            fetch(`${API_BASE_URL}/api/doctor/pathohistological_conclusion/${currentCase.id}`, {
-                method: "PUT",
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    pathohistological_conclusion: casePathohistologicalConclusionTextareaNODE.value.trim(),
-                })
-            })
-                .then(res => res.json())
-                .then(() => {
-                    alert('Патогістологічний висновок успішно оновлений')
-                })
-        })
-    }
-    const setCaseEdit = () => {
-        const caseIsClosed = currentCase.grossing_status === "COMPLETED";
-
-        if(caseIsClosed){
-            caseMicroDescriptionTextareaNODE.nextElementSibling.style.display = "none"
-            casePathohistologicalConclusionTextareaNODE.nextElementSibling.style.display = "none"
-            return;
-        }
-
-
-        caseMicroDescriptionTextareaNODE.nextElementSibling.style.display = "block"
-        casePathohistologicalConclusionTextareaNODE.nextElementSibling.style.display = "block"
-    }
 
     const setOwnerInfo = (caseOwner) => {
         const caseIsClosed = currentCase?.grossing_status === "COMPLETED";
         const hasOwner = caseOwner?.id
         reportOwnerInfoNODE.innerHTML = ""
 
-
-
         if (hasOwner) {
-            const div = document.createElement('div')
-            div.classList = "df aic jcsb conclusionOwnerInfo"
-            div.style.marginBottom = "30px";
-            div.innerHTML = `
-            <div>
-                Власник: ${getShortName(caseOwner.last_name, caseOwner.first_name, caseOwner.middle_name)}
-            </div>
-            `;
+            if (!caseOwner?.is_case_owner || caseIsClosed) {
+                const div = document.createElement('div')
+                div.innerHTML = `Власник: ${getShortName(caseOwner.last_name, caseOwner.first_name, caseOwner.middle_name)}`;
+                div.classList = "caseBtnOwner owner";
+                div.style.marginBottom = 0;
 
-            if(currentCase?.grossing_status === "COMPLETED"){
                 reportOwnerInfoNODE.append(div)
-                return;
             }
 
             if (caseOwner?.is_case_owner) {
-                const btn = document.createElement('div')
-                btn.innerText = "Відати дослідження";
-                btn.classList = "conclusionBtnOwner";
-                btn.style.marginBottom = 0;
+                const div = document.createElement('div')
+                div.innerText = "Власний кейс";
+                div.classList = "caseBtnOwner my";
+                div.style.marginBottom = 0;
 
-                btn.addEventListener('click', (e) => {
+                div.addEventListener('click', (e) => {
                     fetch(`${API_BASE_URL}/api/cases/${currentCase.id}/release`, {
                         method: "POST",
                         headers: {
@@ -242,17 +159,15 @@
                             setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
                         })
                 })
-                div.prepend(btn)
+
+                reportOwnerInfoNODE.append(div)
             }
-
-
-            reportOwnerInfoNODE.append(div)
         }
 
         if (!hasOwner && !caseIsClosed) {
             const div = document.createElement('div')
-            div.classList = "conclusionBtnOwner"
-            div.innerText = "Взяти дослідження"
+            div.classList = "caseBtnOwner"
+            div.innerText = "Забрати кейс"
 
             div.addEventListener('click', (e) => {
                 fetch(`${API_BASE_URL}/api/cases/${currentCase.id}/take`, {
@@ -367,7 +282,7 @@
         </div>
         <div class="conclusionFormGroup">
             <div class="conclusionFormGroupLabel">
-                Патоморфологічний діагноз
+                Патогістологічний висновок
             </div>
             ${pathomorphologicalDiagnosis}
             <input type="text" name="pathomorphological_diagnosis" class="conclusionFormGroupInput" value="${myReportData?.pathomorphological_diagnosis || ""}">
@@ -443,11 +358,9 @@
 
                 setReport(currentReport, currentCase, case_owner);
                 setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
-                setCaseEdit();
 
                 caseLabelNode.innerHTML = currentCase.case_code
-                caseMicroDescriptionTextareaNODE.value = currentCase.microdescription || ""
-                casePathohistologicalConclusionTextareaNODE.value = currentCase.pathohistological_conclusion || ""
+                caseLabelNode.style.color = getCaseColor(currentCase)
 
                 fetch(`${API_BASE_URL}/api/doctor/patients/${currentCase.patient_id}`, {
                     method: "GET",
@@ -470,7 +383,7 @@
         caseNewNODE.innerHTML = `
             <div>
                 <div class="caseItemDate">${new Date(workCase.creation_date).toLocaleDateString()}</div>
-                <div class="caseItemLabel">${workCase.case_code}</div>
+                <div class="caseItemLabel" style="color: ${getCaseColor(workCase)}">${workCase.case_code}</div>
             </div>
             <div class="caseItemSample df aic jcc">
                 ${workCase.bank_count}
@@ -496,7 +409,7 @@
             })
                 .then(res => res.json())
                 .then(caseData => {
-                    const {report_details, all_glasses_for_last_case, last_case_for_report} = caseData;
+                    const {report_details, all_glasses_for_last_case, case_owner, last_case_for_report} = caseData;
 
                     document.querySelector('.caseItem.active').classList.remove('active')
                     caseNewNODE.classList.add('active')
@@ -508,12 +421,11 @@
                     activeGlasses = report_details.attached_glasses
                     currentUserCorId = last_case_for_report.patient_id
 
-                    setReport(report_details, last_case_for_report);
+                    setReport(report_details, last_case_for_report, case_owner);
                     setReportGlasses(all_glasses_for_last_case, report_details.attached_glasses)
 
                     caseLabelNode.innerHTML = last_case_for_report.case_code
-                    caseMicroDescriptionTextareaNODE.value = last_case_for_report.microdescription || ""
-                    casePathohistologicalConclusionTextareaNODE.value = last_case_for_report.pathohistological_conclusion || ""
+                    caseLabelNode.style.color = getCaseColor(last_case_for_report)
 
                     fetch(`${API_BASE_URL}/api/doctor/patients/${last_case_for_report.patient_id}`, {
                         method: "GET",
@@ -655,9 +567,7 @@
         goToTab()
         switchRole()
         setAllCases()
-        changeMicroDescription()
         revertButtonHandler()
-        changePathohistologicalConclusion()
         showTextareaButton('caseMicroDescription')
         showTextareaButton('casePathohistologicalConclusion')
     });

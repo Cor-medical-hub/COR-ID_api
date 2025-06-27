@@ -17,14 +17,15 @@
     <title>Document</title>
 </head>
 <body>
+
 <div class="wrapper">
     <div class="pathomorphology df">
         <div class="caseWrapper">
             <div class="casePlaceholder placeholder">
                 <div class="df aic jcsb">
-                    <div class="df aic counter">
+                    <div class="df aic counter notNegative">
                         <svg class="counterAction" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                             xmlns="http://www.w3.org/2000/svg">
+                             xmlns="http://www.w3.org/2000/svg" style="display: none;">
                             <path d="M7.01695 13C6.4553 13 6 12.5523 6 12C6 11.4477 6.4553 11 7.01695 11L16.9831 11C17.5447 11 18 11.4477 18 12C18 12.5523 17.5447 13 16.9831 13L7.01695 13Z"
                                   fill="#7527B2"/>
                         </svg>
@@ -67,10 +68,10 @@
             <div id="caseItems" class="caseItems df fdc aic"></div>
             <div class="arrows" id="caseItemsScroll">
                 <div class="prev">
-                    <img src="./assets/arrowDown.svg" alt="arrow">
+                    <img src="assets/arrow.svg" alt="arrow">
                 </div>
                 <div class="next">
-                    <img src="./assets/arrowDown.svg" alt="arrow">
+                    <img src="assets/arrow.svg" alt="arrow">
                 </div>
             </div>
         </div>
@@ -111,10 +112,10 @@
 
             <div class="arrows" id="specimenItemsScroll">
                 <div class="prev">
-                    <img src="./assets/arrowDown.svg" alt="arrow">
+                    <img src="assets/arrow.svg" alt="arrow">
                 </div>
                 <div class="next">
-                    <img src="./assets/arrowDown.svg" alt="arrow">
+                    <img src="assets/arrow.svg" alt="arrow">
                 </div>
             </div>
         </div>
@@ -205,18 +206,18 @@
                     </div>
                     <div class="arrows" id="glassItemsScroll">
                         <div class="prev">
-                            <img src="./assets/arrowDown.svg" alt="arrow">
+                            <img src="assets/arrow.svg" alt="arrow">
                         </div>
                         <div class="next">
-                            <img src="./assets/arrowDown.svg" alt="arrow">
+                            <img src="assets/arrow.svg" alt="arrow">
                         </div>
                     </div>
                     <div class="arrows right" id="cassetteItemsScroll">
                         <div class="prev">
-                            <img src="./assets/arrowDown.svg" alt="arrow">
+                            <img src="assets/arrow.svg" alt="arrow">
                         </div>
                         <div class="next">
-                            <img src="./assets/arrowDown.svg" alt="arrow">
+                            <img src="assets/arrow.svg" alt="arrow">
                         </div>
                     </div>
                 </div>
@@ -232,61 +233,67 @@
     </div>
     <div id="caseSettingsModal" class="modal">
         <div class="modalWrapper">
-            <div class="modalTitle">Параметри кейсу</div>
-            <div class="caseSettings">
-                <div class="df">
-                    <div class="caseSettingsContent df">
+            <div class="modalContent">
+                <div class="modalTitle">Параметри кейсу</div>
+                <div class="caseSettings">
+                    <div class="df">
+                        <div class="caseSettingsContent df">
 
-                    </div>
-                    <div class="commentsWrapper df fdc">
-                        <div class="commentsWrapperTop">
-                            Макроопис зразка
                         </div>
-                        <textarea id="caseSettingsComments"></textarea>
+                        <div class="commentsWrapper df fdc">
+                            <div class="commentsWrapperTop">
+                                Макроопис зразка
+                            </div>
+                            <textarea id="caseSettingsComments"></textarea>
+                        </div>
                     </div>
+                    <button class="modalButton">
+                        Зберегти
+                    </button>
                 </div>
-                <button class="modalButton">
-                    Зберегти
-                </button>
             </div>
         </div>
     </div>
     <div id="cassetteComments" class="modal">
         <div class="modalWrapper">
-            <div class="modalTitle">Комментарий</div>
-            <div>
-                <textarea class="cassetteCommentsArea" placeholder="Текст комментария..."></textarea>
-                <div class="modalSubmit">
-                    Сохранить
+            <div class="modalContent">
+                <div class="modalTitle">Комментарий</div>
+                <div>
+                    <textarea class="cassetteCommentsArea" placeholder="Текст комментария..."></textarea>
+                    <div class="modalSubmit">
+                        Сохранить
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     <div id="caseDirection" class="modal">
         <div class="modalWrapper">
-            <div class="modalTitle">Направлення</div>
-            <div class="directorModalTop">
-                <!-- cor-id -->
-                <b>S25B01251</b>
-                <span class="mid"><span id="todayMeta"></span> | Фото/скан документу</span>
-            </div>
-            <div class="df gap4">
-                <div class="directorModalLeft"></div>
+            <div class="modalContent">
+                <div class="modalTitle">Направлення</div>
+                <div class="directorModalTop">
+                    <!-- cor-id -->
+                    <b>S25B01251</b>
+                    <span class="mid"><span id="todayMeta"></span> | Фото/скан документу</span>
+                </div>
+                <div class="df gap4">
+                    <div class="directorModalLeft"></div>
 
-                <div class="directorModalRight" id="uploadArea">
-                    <div class="upload-box" id="uploadBox" tabindex="0">
-                        <div class="upload-icon">
-                            <svg viewBox="0 0 24 24"><path d="M12 4v10M7 9l5-5 5 5"/><rect x="4" y="18" width="16" height="2" rx="1"/></svg>
+                    <div class="directorModalRight" id="uploadArea">
+                        <div class="upload-box" id="uploadBox" tabindex="0">
+                            <div class="upload-icon">
+                                <svg viewBox="0 0 24 24"><path d="M12 4v10M7 9l5-5 5 5"/><rect x="4" y="18" width="16" height="2" rx="1"/></svg>
+                            </div>
+                            <span>Перетягніть сюди свої файли<br><b>або скануйте</b></span>
+                            <small class="note">до 5 файлів</small>
+                            <input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden>
                         </div>
-                        <span>Перетягніть сюди свої файли<br><b>або скануйте</b></span>
-                        <small class="note">до 5 файлів</small>
-                        <input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden>
                     </div>
                 </div>
-            </div>
-            <div class="directorModalFooter">
-                <button class="btn btn-primary" id="caseDirectionSubmit">Зберегти</button>
-                <button class="btn btn-outline" id="caseDirectionScan">Сканувати</button>
+                <div class="directorModalFooter">
+                    <button class="btn btn-primary" id="caseDirectionSubmit">Зберегти</button>
+                    <button class="btn btn-outline" id="caseDirectionScan">Сканувати</button>
+                </div>
             </div>
         </div>
     </div>
@@ -311,6 +318,99 @@
     }
 </script>
 <script>
+    const glassPaintList = [
+        {
+            id: "H&E",
+            name: "H&E",
+            short: "H&E",
+        },
+        {
+            id: "Alcian PAS",
+            name: "Alcian Pas",
+            short: "AP",
+        },
+        {
+            id: "Congo red",
+            name: "Congo red",
+            short: "CR",
+        },
+        {
+            id: "Masson Trichrome",
+            name: "Masson Trichrome",
+            short: "MT",
+        },
+        {
+            id: "van Gieson",
+            name: "Van Gieson",
+            short: "VG",
+        },
+        {
+            id: "Ziehl Neelsen",
+            name: "Ziehl Neelsen",
+            short: "ZN",
+        },
+        {
+            id: "Warthin-Starry Silver",
+            name: "Warthin-Starry Silver",
+            short: "WSS",
+        },
+        {
+            id: "Grocott's Methenamine Silver",
+            name: "Grocott's Methenamine Silver",
+            short: "GMS",
+        },
+        {
+            id: "Toluidine Blue",
+            name: "Toluidine Blue",
+            short: "TB",
+        },
+        {
+            id: "Perls Prussian Blue",
+            name: "Perls Prussian Blue",
+            short: "PPB",
+        },
+        {
+            id: "PAMS",
+            name: "PAMS",
+            short: "PAMS",
+        },
+        {
+            id: "Picrosirius",
+            name: "Picrosirius",
+            short: "P",
+        },
+        {
+            id: "Sirius red",
+            name: "Sirius red",
+            short: "SR",
+        },
+        {
+            id: "Thioflavin T",
+            name: "Thioflavin T",
+            short: "TT",
+        },
+        {
+            id: "Trichrome AFOG",
+            name: "Trichrome AFOG",
+            short: "TA",
+        },
+        {
+            id: "von Kossa",
+            name: "Von Kossa",
+            short: "VK",
+        },
+        {
+            id: "Giemsa",
+            name: "Giemsa",
+            short: "G",
+        },
+        {
+            id: "Other",
+            name: "Other",
+            short: "O",
+        },
+    ]
+
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
     let cases = []
 
@@ -391,6 +491,52 @@
         return newPaginationPage;
     };
 
+    const setCaseEdit = () => {
+        const commentsWrapperButtonNODE = document.querySelector('.commentsWrapperButton');
+        const directorModalFooterNODE = document.querySelector('.directorModalFooter');
+        const allPlaceholderNODE = document.querySelectorAll('.placeholder');
+        const modalContentNODE = document.querySelectorAll('.modalContent');
+        const modalSubmitNODE = document.querySelectorAll('.modalSubmit');
+        const modalButtonNODE = document.querySelectorAll('.modalButton');
+
+        const currentCase = cases[lastActiveCaseIndex];
+
+        if(currentCase.grossing_status === "COMPLETED"){
+            allPlaceholderNODE.forEach(elem => {
+                elem.style.opacity = .4
+                elem.style.pointerEvents = "none"
+            })
+            modalContentNODE.forEach(elem => {
+                elem.style.pointerEvents = "none"
+            })
+            modalButtonNODE.forEach(elem => {
+                elem.style.display = "none"
+            })
+            modalSubmitNODE.forEach(elem => {
+                elem.style.display = "none"
+            })
+            directorModalFooterNODE.style.display = "none";
+            commentsWrapperButtonNODE.style.display = "none";
+            return;
+        }
+
+        allPlaceholderNODE.forEach(elem => {
+            elem.style.opacity = 1;
+            elem.style.pointerEvents = "auto"
+        })
+        modalContentNODE.forEach(elem => {
+            elem.style.pointerEvents = "auto"
+        })
+        modalButtonNODE.forEach(elem => {
+            elem.style.display = "block"
+        })
+        modalSubmitNODE.forEach(elem => {
+            elem.style.display = "block"
+        })
+        directorModalFooterNODE.style.display = "block";
+        commentsWrapperButtonNODE.style = "";
+    }
+
     const setPathomorphologyTemplate = (activeCaseIndex, activeSpecimenIndex) => {
         if ((activeCaseIndex === lastActiveCaseIndex) && (activeSpecimenIndex === lastActiveSpecimenIndex)) {
             return;
@@ -403,6 +549,7 @@
         macroDescriptionTextareaNODE.value = currentSpecimen.macro_description || "";
 
         document.querySelector('#searchCaseId').innerHTML = currentCase.case_code
+        document.querySelector('#searchCaseId').style.color = getCaseColor(currentCase)
 
         cassetteContentNODE.innerHTML = ""
 
@@ -484,6 +631,7 @@
                         })
 
                         setPathomorphologyTemplate(0, 0)
+                        setCaseEdit()
                         countCaseInputNODE.setAttribute('data-delete-count', cases.length - 1)
                     })
             })
@@ -493,6 +641,7 @@
     //ENTITY HTML TEMPLATES
     const caseTemplate = (currentCase, isActive) => {
         const caseNewNODE = document.createElement('div');
+        console.log(currentCase, "currentCase")
         caseNewNODE.classList.add('caseItem', ...(isActive ? ['active'] : []));
         caseNewNODE.innerHTML = `
             <div class="caseItemTop df jcsb aic">
@@ -506,7 +655,7 @@
                             <div class="caseItemDate">
                                 ${new Date(currentCase.creation_date).toLocaleDateString()}
                             </div>
-                            <div class="caseItemMark">
+                            <div class="caseItemMark" style="color: ${getCaseColor(currentCase)}">
                                 ${currentCase.case_code}
                             </div>
                         </div>
@@ -554,6 +703,7 @@
                     cases[currentCaseIndex].samples = currentCase.samples;
 
                     setPathomorphologyTemplate(currentCaseIndex, 0)
+                    setCaseEdit()
                 })
         });
         return caseNewNODE
@@ -656,7 +806,7 @@
                     </div>
                 </div>
             </div>
-            <div class="glassPlaceholder placeholder" data-glass-index='${index}'>
+            <div class="glassPlaceholder placeholder" data-glass-paint-id="H&E" data-glass-index='${index}'>
                 <div class="df aic jcc counter">
                     <svg class="counterAction" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M7.01695 13C6.4553 13 6 12.5523 6 12C6 11.4477 6.4553 11 7.01695 11L16.9831 11C17.5447 11 18 11.4477 18 12C18 12.5523 17.5447 13 16.9831 13L7.01695 13Z" fill="#7527B2"/>
@@ -668,11 +818,11 @@
                     </svg>
                 </div>
                 <div class="df aic jcsb glassMark" data-help-text="Фарбування скельця">
-                    <div>
+                    <div class="glassPaintValue">
                         H&E
                     </div>
                     <div>
-                        <img src="./assets/arrowDown.svg" alt="arrowDown">
+                        <img src="assets/arrow.svg" alt="arrowDown">
                     </div>
                 </div>
                 <div class="df aic jcsb">
@@ -701,13 +851,61 @@
             cassetteCommentModalNODE.querySelector('textarea').value = currentUpdatedCassette.comment
         })
 
+        cassetteColumnNODE.querySelector('.glassMark').addEventListener('click', (e) => {
+            const elem = e.currentTarget;
+            const currentGlassPickerNODE = elem.closest('.glassPlaceholder').querySelector('.glassPicker');
+
+            if(currentGlassPickerNODE){
+                currentGlassPickerNODE.remove()
+                return;
+            }
+
+            const closeOutOfPopup = (e) => {
+                console.log('1111')
+                if(!e.target.closest('.glassPicker') && !e.target.closest('.glassMark')){
+                    div.remove()
+                    document.removeEventListener('click', closeOutOfPopup)
+                }
+            }
+            const {top, right, bottom, left}  = elem.getBoundingClientRect();
+            const div = document.createElement('div');
+            const topValue = top + elem.clientHeight;
+            const leftValue = left;
+            const heightValue = window.innerHeight - topValue - 30;
+
+            div.classList = "glassPicker"
+            div.style.top = `${topValue}px`;
+            div.style.left = `${leftValue}px`;
+            div.style.height = `${heightValue}px`
+            elem.closest('.glassPlaceholder').prepend(div)
+
+            glassPaintList.forEach( glassPaint => {
+                const currentPaintId = div.closest('.glassPlaceholder').dataset.glassPaintId
+                const glassDiv = document.createElement('div');
+                glassDiv.classList = `glassPickerList ${currentPaintId === glassPaint.id ? "active" : ""}`
+                glassDiv.innerHTML = glassPaint.name
+
+                glassDiv.addEventListener('click', (e) => {
+                    glassDiv.closest('.glassPlaceholder').setAttribute('data-glass-paint-id', glassPaint.id)
+                    elem.querySelector('.glassPaintValue').innerHTML = glassPaint.short
+                    div.remove()
+                    document.removeEventListener('click', closeOutOfPopup)
+                })
+
+                div.append(glassDiv)
+            })
+
+            document.addEventListener('click', closeOutOfPopup)
+        })
+
         return cassetteColumnNODE
     }
     const glassTemplate = (currentGlass) => {
+        const currentPrint = glassPaintList.find((glassPaint) => glassPaint.id === currentGlass.staining)
         return (
             `<div class="glassItem df aic jcsb">
                         <div>
-                            ${currentGlass.glass_number} ${currentGlass.staining}
+                            ${currentGlass.glass_number} ${currentPrint.short}
                         </div>
                         <div>
                             <img src="./assets/print.svg" alt="print">
@@ -728,6 +926,7 @@
             const isDelete = placeholderNODE.classList.contains('negative')
 
             if (isDelete) {
+                return;
                 const deletedCasesIds = [...cases]
                     .reverse()
                     .slice(0, +countCaseInputNODE.value)
@@ -775,7 +974,8 @@
                     },
                     body: JSON.stringify({
                         patient_cor_id: PATIENT_COR_ID,
-                        num_cases: +countCaseInputNODE.value,
+                        num_cases: 1,
+                        num_samples: +countCaseInputNODE.value,
                         urgency: parentMark,
                         material_type: childMark
                     })
@@ -1086,7 +1286,7 @@
                         },
                         body: JSON.stringify({
                             cassette_id: currentCassette.id,
-                            staining_type: "H&E",
+                            staining_type: placeholderNODE.dataset.glassPaintId,
                             num_glasses: +countOfGlassInput.value,
                         })
                     })
@@ -1130,9 +1330,16 @@
             }
             const newValue = +currentInputNODE.value + 1;
 
-            currentInputNODE.value = +currentInputNODE.value + 1
+            currentInputNODE.value = newValue
             currentInputNODE.dispatchEvent(new Event('input'))
 
+
+            const notNegative = currentCounterNODE.classList.contains('notNegative');
+
+            if(notNegative){
+                currentCounterNODE.querySelector('.counterAction').style.display = "block"
+                return;
+            }
 
             const isNegative = currentCounterNODE.classList.contains('negative');
             if (isNegative) {
@@ -1143,10 +1350,12 @@
             }
         }
         const decreaseNumber = (currentInputNODE, currentCounterNODE) => {
+            const newValue = +currentInputNODE.value - 1
             if (currentInputNODE.value === "1") {
                 if (!+currentInputNODE.dataset.deleteCount) {
                     return;
                 }
+
 
                 const isNegative = currentCounterNODE.classList.contains('negative');
                 const classListMethod = isNegative ? "remove" : "add";
@@ -1161,6 +1370,12 @@
                 createActionBtnIcon.setAttribute('src', `./assets/${createActionBtnIconSrc}.svg`);
 
                 return;
+            }
+
+            const notNegative = currentCounterNODE.classList.contains('notNegative');
+
+            if(newValue === 1 && notNegative){
+                currentCounterNODE.querySelector('.counterAction').style.display = "none"
             }
 
             currentInputNODE.value = +currentInputNODE.value - 1
@@ -1252,7 +1467,7 @@
                 .then(() => {
                     alert('Макро опис успішно оновлений')
 
-                    macroDescriptionTextareaNODE.nextElementSibling.style.display = "none";
+                    macroDescriptionTextareaNODE.nextElementSibling.classList.remove('open');
                 })
         })
     }
