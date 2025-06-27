@@ -346,21 +346,31 @@ async def check_session_status(
     )
     # Создаём новую сессию
     device_information = di.get_device_info(request)
-    session_data = {
-        "user_id": user.cor_id,
-        "refresh_token": refresh_token,
-        "device_type": "Mobile CorEnergy",  # Тип устройства
-        "device_info": device_information["device_info"],  # Информация об устройстве "iOS 18.5 MobileCorEnergy"
-        "ip_address": device_information["ip_address"],  # IP-адрес
-        "device_os": device_information["device_os"],
-        "jti": access_token_jti,
-        "access_token": access_token
-    }
-    new_session = await repository_session.create_user_session(
-        body=UserSession(**session_data),  # Передаём данные для сессии
-        user=user,
-        db=db,
+    existing_sessions = await repository_session.get_user_sessions_by_device_info(
+        user.cor_id, device_information["device_info"], db
     )
+    if not existing_sessions:
+        session_data = {
+            "user_id": user.cor_id,
+            "refresh_token": refresh_token,
+            "device_type": "Mobile CorEnergy",  # Тип устройства
+            "device_info": device_information["device_info"],  # Информация об устройстве "iOS 18.5 MobileCorEnergy"
+            "ip_address": device_information["ip_address"],  # IP-адрес
+            "device_os": device_information["device_os"],
+            "jti": access_token_jti,
+            "access_token": access_token
+        }
+        new_session = await repository_session.create_user_session(
+            body=UserSession(**session_data),  # Передаём данные для сессии
+            user=user,
+            db=db,
+        )
+    else:
+        await repository_session.update_session_token(
+            user=user, token=refresh_token, device_info=device_information["device_info"], db=db, jti=access_token_jti, access_token=access_token
+        )
+        logger.debug(
+            f"{user.email}'s refresh token updated for device {device_information.get('device_info')}")
     response = ConfirmCheckSessionResponse(
         status="approved",
         access_token=access_token,
