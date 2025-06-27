@@ -285,6 +285,7 @@ async def initiate_login(
     return {"session_token": session_token}
 
 
+# вызывается на стороне Кор-енерджи
 @router.post(
     "/v1/check_session_status",
     response_model=ConfirmCheckSessionResponse,
@@ -348,8 +349,8 @@ async def check_session_status(
     session_data = {
         "user_id": user.cor_id,
         "refresh_token": refresh_token,
-        "device_type": device_information["device_type"],  # Тип устройства
-        "device_info": device_information["device_info"],  # Информация об устройстве
+        "device_type": "Mobile CorEnergy",  # Тип устройства
+        "device_info": device_information["device_info"] + " MobileCorEnergy",  # Информация об устройстве
         "ip_address": device_information["ip_address"],  # IP-адрес
         "device_os": device_information["device_os"],
         "jti": access_token_jti,
@@ -368,7 +369,7 @@ async def check_session_status(
     )
     return response
 
-
+# вызывается на стороне Кор-айди
 @router.post(
     "/v1/confirm-login",
     response_model=ConfirmLoginResponse,
@@ -460,7 +461,7 @@ async def confirm_login(
         session_data = {
             "user_id": user.cor_id,
             "refresh_token": refresh_token,
-            "device_type": "MobileCorEnergy",  # Тип устройства
+            "device_type": "Mobile CorEnergy",  # Тип устройства
             "device_info": device_information["device_info"],  # Информация об устройстве
             "ip_address": device_information["ip_address"],  # IP-адрес
             "device_os": device_information["device_os"],
@@ -563,7 +564,7 @@ async def refresh_token(
         user.cor_id, device_information["device_info"], db
     )
     logger.debug(f"Detected device type: {device_information['device_type']}")
-    logger.debug(f"Detected existing_sessions: {device_information['device_type']} - {existing_sessions}")
+    logger.debug(f"Detected existing_sessions: {device_information["device_info"]} - {existing_sessions}")
     is_valid_session = False
     if device_information["device_type"] == "Mobile":
         logger.debug(">>> Entered Mobile validation block <<<")
@@ -602,7 +603,7 @@ async def refresh_token(
                 detail="Invalid refresh token for this device",
             )
     elif device_information["device_type"] == "Mobile CorEnergy":
-        logger.debug(">>> Entered MobileCorEnergy validation block <<<")
+        logger.debug(">>> Entered Mobile CorEnergy validation block <<<")
         if not existing_sessions:
             logger.debug(
                 f"Session not found for this device for cor-energy app"
