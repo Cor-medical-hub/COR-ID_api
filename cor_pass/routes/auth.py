@@ -658,36 +658,44 @@ async def refresh_token(
             )
     elif device_information["device_type"] != "Mobile CorEnergy" and device_information["device_type"] != "Mobile":
         is_valid_session = True
+    if is_valid_session:
+        # Проверка ролей
+        user_roles = await repository_person.get_user_roles(email=user.email, db=db)
 
-    # Проверка ролей
-    user_roles = await repository_person.get_user_roles(email=user.email, db=db)
+        # Получаем токены
+        token_data = {"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
+        expires_delta = (
+            settings.eternal_token_expiration
+            if user.email in settings.eternal_accounts
+            else None
+        )
 
-    # Получаем токены
-    token_data = {"oid": str(user.id), "corid": user.cor_id, "roles": user_roles}
-    expires_delta = (
-        settings.eternal_token_expiration
-        if user.email in settings.eternal_accounts
-        else None
-    )
+        access_token, access_token_jti = await auth_service.create_access_token(
+            data=token_data, expires_delta=expires_delta
+        )
+        refresh_token = await auth_service.create_refresh_token(
+            data=token_data, expires_delta=expires_delta
+        )
 
-    access_token, access_token_jti = await auth_service.create_access_token(
-        data=token_data, expires_delta=expires_delta
-    )
-    refresh_token = await auth_service.create_refresh_token(
-        data=token_data, expires_delta=expires_delta
-    )
-
-    await repository_session.update_session_token(
-        user=user, token=refresh_token, device_info=device_information["device_info"], db=db, jti=access_token_jti, access_token=access_token
-    )
-    logger.debug(
-        f"{user.email}'s refresh token updated for device {device_information.get('device_info')}"
-    )
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-    }
+        await repository_session.update_session_token(
+            user=user, token=refresh_token, device_info=device_information["device_info"], db=db, jti=access_token_jti, access_token=access_token
+        )
+        logger.debug(
+            f"{user.email}'s refresh token updated for device {device_information.get('device_info')}"
+        )
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+        }
+    else:
+        logger.debug(
+                        f"Invalid refresh token for this device {device_information["device_type"]} {device_information["device_info"]}"
+                    )
+        raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+            )
 
 @router.get("/verify")
 async def verify_access_token(
