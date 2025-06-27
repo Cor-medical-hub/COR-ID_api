@@ -562,6 +562,8 @@ async def refresh_token(
     existing_sessions = await repository_session.get_user_sessions_by_device_info(
         user.cor_id, device_information["device_info"], db
     )
+    logger.debug(f"Detected device type: {device_information['device_type']}")
+    logger.debug(f"Detected existing_sessions: {device_information['device_type']} - {existing_sessions}")
     is_valid_session = False
     if device_information["device_type"] == "Mobile":
         if not existing_sessions:
@@ -597,7 +599,7 @@ async def refresh_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token for this device",
             )
-    if device_information["device_type"] == "Mobile CorEnergy":
+    elif device_information["device_type"] == "Mobile CorEnergy":
         if not existing_sessions:
             logger.debug(
                 f"Session not found for this device for cor-energy app"
@@ -654,7 +656,8 @@ async def refresh_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token for this device",
             )
-    is_valid_session = True
+    elif device_information["device_type"] != "Mobile CorEnergy" and device_information["device_type"] != "Mobile":
+        is_valid_session = True
 
     # Проверка ролей
     user_roles = await repository_person.get_user_roles(email=user.email, db=db)
@@ -685,6 +688,7 @@ async def refresh_token(
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
+
 @router.get("/verify")
 async def verify_access_token(
     credentials: HTTPAuthorizationCredentials = Security(security),
