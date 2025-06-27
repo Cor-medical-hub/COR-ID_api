@@ -320,7 +320,8 @@ async def add_new_patient_to_doctor(
             patient_cor_id = new_patient.patient_cor_id,
             num_cases= 1,
             urgency = UrgencyType.S,
-            material_type = MaterialType.R)
+            material_type = MaterialType.R,
+            num_samples=1)
     
         case = await case_service.create_cases_with_initial_data(db=db, body=case_body)
         return {
@@ -360,7 +361,8 @@ async def add_existing_patient_to_doctor(
     patient_cor_id = existing_patient.patient_cor_id,
     num_cases= 1,
     urgency = UrgencyType.S,
-    material_type = MaterialType.R)
+    material_type = MaterialType.R,
+    num_samples=1)
 
     case = await case_service.create_cases_with_initial_data(db=db, body=case_body)
 

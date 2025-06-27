@@ -841,6 +841,7 @@ class CaseCreate(BaseModel):
         description="Тип исследования",
         example=MaterialType.R,
     )
+    num_samples: int = Field(1, ge=1, description="Количество семплов для создания в каждом кейсе")
 
 
 class CaseCreateResponse(BaseModel):
