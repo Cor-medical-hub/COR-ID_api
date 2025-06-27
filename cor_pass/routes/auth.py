@@ -648,29 +648,29 @@ async def refresh_token(
                 detail="Invalid refresh token for this device",
             )
                 
-    elif existing_sessions:
-        logger.debug(">>> Entered existing_sessions validation block <<<")
-        for session in existing_sessions:
-            try:
-                session_token = await decrypt_data(
-                    encrypted_data=session.refresh_token,
-                    key=await decrypt_user_key(user.unique_cipher_key),
-                )
-                if session_token == token:
-                    is_valid_session = True
-                    break
-            except Exception:
-                logger.warning(
-                    f"Failed to decrypt refresh token for session {session.id}"
-                )
-        if not is_valid_session:
-            logger.debug(
-                        f"Invalid refresh token for this device or other session validation is {is_valid_session}. Its 401 for non-mobile devices"
-                    )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token for this device",
-            )
+    # elif existing_sessions:
+    #     logger.debug(">>> Entered existing_sessions validation block <<<")
+    #     for session in existing_sessions:
+    #         try:
+    #             session_token = await decrypt_data(
+    #                 encrypted_data=session.refresh_token,
+    #                 key=await decrypt_user_key(user.unique_cipher_key),
+    #             )
+    #             if session_token == token:
+    #                 is_valid_session = True
+    #                 break
+    #         except Exception:
+    #             logger.warning(
+    #                 f"Failed to decrypt refresh token for session {session.id}"
+    #             )
+    #     if not is_valid_session:
+    #         logger.debug(
+    #                     f"Invalid refresh token for this device or other session validation is {is_valid_session}. Its 401 for non-mobile devices"
+    #                 )
+    #         raise HTTPException(
+    #             status_code=status.HTTP_401_UNAUTHORIZED,
+    #             detail="Invalid refresh token for this device",
+    #         )
     elif device_information["device_type"] == "Desktop":
         logger.debug(">>> Entered Desktop validation block <<<")
         is_valid_session = True
