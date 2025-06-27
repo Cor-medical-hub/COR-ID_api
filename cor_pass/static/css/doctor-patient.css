@@ -26,6 +26,7 @@ html.layout-page, body.layout-page {
 html, body {
   font-family: 'Montserrat', sans-serif;
   font-size: 16px;
+  overflow: hidden;
 }
 
 
@@ -294,4 +295,48 @@ tbody tr:nth-child(even) td{background:#fafafa}
  {
   font-family: 'Mont', sans-serif;
   font-size: 18px;
+}
+/* Квадратная кнопка*/
+.btn-square {
+    width: 52px;
+    height: 52px;
+    background-color: #7527B2;
+    border: none;
+    border-radius: var(--radius-lg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+.btn-square img {
+    width: 24px;
+    height: 24px;
+}
+.btn-square:hover {
+    background: var(--clr-primary-hover);
+}
+
+/* Фиолетовая кнопка «Добавить пациента» */
+.add-button {
+    padding: 10px;
+    border: 1px solid #7527B2;
+    margin: 10px 0;
+    background-color: #7527B2;
+    color: white;
+    cursor: pointer;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 240px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 18px;
+    transition: background-color 0.3s, transform 0.2s;
+    text-decoration: none;
+}
+.add-button:hover {
+    background-color: #5f1b91;
 }

@@ -168,15 +168,15 @@ button:disabled {
     background-color: #7527B2;
     color: white;
     cursor: pointer;
-    border-radius: 16px;
+    border-radius: 12px;
     width: 100%;
-    max-width: 240px;
-    height: 50px;
+    max-width: 220px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    font-size: 18px;
+    font-size: 14px;
     transition: background-color 0.3s, color 0.3s, transform 0.2s;
     text-decoration: none;
   }
@@ -185,29 +185,6 @@ button:disabled {
     background-color: #5f1b91;
   }
   
-/* Квадратная кнопка */
-.btn-square {
-    width: 52px;
-    height: 52px;
-    border: 1px solid #7527B2;             
-    background-color: #7527B2;       
-    border: none;
-    border-radius: var(--radius-lg);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s, transform 0.2s;
-}
-
-.btn-square img {
-  width: 24px;
-  height: 24px;
-}
-
-.btn-square:hover {
-  background: var(--clr-primary-hover);
-}
 
 .delete-button {
     padding: 10px;
