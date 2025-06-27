@@ -597,6 +597,40 @@ async def refresh_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token for this device",
             )
+    if device_information["device_type"] == "Mobile CorEnergy":
+        if not existing_sessions:
+            logger.debug(
+                f"Session not found for this device for cor-energy app"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session not found for this device",
+            )
+        for session in existing_sessions:
+            try:
+                session_token = await decrypt_data(
+                    encrypted_data=session.refresh_token,
+                    key=await decrypt_user_key(user.unique_cipher_key),
+                )
+                if session_token == token:
+                    is_valid_session = True
+                    logger.debug(
+                        f"Mobile cor-energy session validation is {is_valid_session}"
+                    )
+                    break 
+            except Exception:
+                logger.warning(
+                    f"Failed to decrypt refresh token for cor-energy session {session.id}"
+                )
+        
+        if not is_valid_session: 
+            logger.debug(
+                f"Invalid refresh token for this cor-energy mobile device. Mobile session validation is {is_valid_session}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token for this device",
+            )
                 
     elif existing_sessions:
         for session in existing_sessions:
