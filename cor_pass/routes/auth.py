@@ -566,6 +566,7 @@ async def refresh_token(
     logger.debug(f"Detected existing_sessions: {device_information['device_type']} - {existing_sessions}")
     is_valid_session = False
     if device_information["device_type"] == "Mobile":
+        logger.debug(">>> Entered Mobile validation block <<<")
         if not existing_sessions:
             logger.debug(
                 f"existing_sessions for mobile device - {existing_sessions}, need master key"
@@ -600,6 +601,7 @@ async def refresh_token(
                 detail="Invalid refresh token for this device",
             )
     elif device_information["device_type"] == "Mobile CorEnergy":
+        logger.debug(">>> Entered MobileCorEnergy validation block <<<")
         if not existing_sessions:
             logger.debug(
                 f"Session not found for this device for cor-energy app"
@@ -635,6 +637,7 @@ async def refresh_token(
             )
                 
     elif existing_sessions:
+        logger.debug(">>> Entered existing_sessions validation block <<<")
         for session in existing_sessions:
             try:
                 session_token = await decrypt_data(
@@ -657,6 +660,7 @@ async def refresh_token(
                 detail="Invalid refresh token for this device",
             )
     elif device_information["device_type"] != "Mobile CorEnergy" and device_information["device_type"] != "Mobile":
+        logger.debug(">>> Entered LAST validation block <<<")
         is_valid_session = True
     if is_valid_session:
         # Проверка ролей
