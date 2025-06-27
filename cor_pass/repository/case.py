@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import get_patient_by_corid
+from cor_pass.repository.sample import _create_single_sample_with_dependencies
 from cor_pass.schemas import (
     Case as CaseModelScheema,
     CaseCloseResponse,
@@ -61,7 +62,7 @@ from datetime import date, datetime
 from cor_pass.services.cipher import decrypt_data
 from cor_pass.services.logger import logger
 from cor_pass.config.config import settings
-
+from string import ascii_uppercase
 
 class ErrorCode(str, Enum):
     CASE_NOT_FOUND = "CASE_NOT_FOUND"
@@ -82,46 +83,188 @@ async def generate_case_code(
     return f"{urgency_char}{year_short}{sample_type_char}{formatted_number}"
 
 
+# async def create_cases_with_initial_data(
+#     db: AsyncSession, body: CaseCreate
+# ) -> Dict[str, Any]:
+#     """Асинхронно створює вказану кількість кейсів та пов'язані з ними початкові дані.
+#     Повертає список всіх створених кейсів та деталізацію першого з них.
+#     """
+#     created_cases_db: List[db_models.Case] = []
+#     now = datetime.now()
+#     year_short = now.strftime("%y")
+#     urgency_char = body.urgency.value[0].upper()
+#     material_type_char = body.material_type.value[0].upper()
+
+
+#     result = await db.execute(select(db_models.Case.case_code))
+#     all_existing_case_codes = result.scalars().all()
+
+#     max_sequential_number = 0
+#     for code in all_existing_case_codes:
+#         if len(code) == 9: 
+#             code_year_part = code[1:3] 
+            
+#             if code_year_part == year_short: 
+#                 try:
+#                     sequential_part = code[4:] 
+#                     sequential_number = int(sequential_part)
+                    
+#                     if sequential_number > max_sequential_number:
+#                         max_sequential_number = sequential_number
+#                 except ValueError:
+#                     continue
+    
+#     next_number = max_sequential_number + 1
+
+#     for _ in range(body.num_cases):
+#         now = datetime.now()
+
+#         db_case = db_models.Case(
+#             id=str(uuid.uuid4()),
+#             patient_id=body.patient_cor_id,
+#             creation_date=now,
+#             bank_count=0,
+#             cassette_count=0,
+#             glass_count=0,
+#         )
+#         db_case.case_code = await generate_case_code(
+#             urgency_char, year_short, material_type_char, next_number
+#         )
+#         db.add(db_case)
+#         await db.commit()
+#         await db.refresh(db_case)
+#         next_number += 1
+
+
+#         db_sample = db_models.Sample(case_id=db_case.id, sample_number="A")
+#         db_case.bank_count += 1
+#         db.add(db_sample)
+#         await db.commit()
+#         await db.refresh(db_sample)
+#         await db.refresh(db_case)
+
+
+#         db_cassette = db_models.Cassette(
+#             sample_id=db_sample.id,
+#             cassette_number=f"{db_sample.sample_number}1",
+#             glass_count=0,
+#         )
+#         db.add(db_cassette)
+#         db_case.cassette_count += 1
+#         db_sample.cassette_count += 1
+#         await db.commit()
+#         await db.refresh(db_cassette)
+#         await db.refresh(db_case)
+#         await db.refresh(db_sample)
+
+
+#         db_glass = db_models.Glass(
+#             cassette_id=db_cassette.id,
+#             glass_number=0,
+#             staining=db_models.StainingType.HE,
+#         )
+#         db.add(db_glass)
+#         db_case.glass_count += 1
+#         db_sample.glass_count += 1
+#         db_cassette.glass_count += 1
+#         await db.commit()
+#         await db.refresh(db_glass)
+#         await db.refresh(db_case)
+#         await db.refresh(db_sample)
+#         await db.refresh(db_cassette)
+
+
+#         db_case_parameters = db_models.CaseParameters(
+#             case_id=db_case.id,
+#             urgency=body.urgency,
+#             material_type=body.material_type,
+#         )
+#         db.add(db_case_parameters)
+#         await db.commit()
+#         await db.refresh(db_case_parameters)
+#         await db.refresh(db_case)
+
+#         created_cases_db.append(db_case)
+
+#     all_cases = [
+#         CaseModelScheema.model_validate(case).model_dump() for case in created_cases_db
+#     ]
+#     first_case_details = None
+
+#     if created_cases_db:
+#         first_case_db = created_cases_db[0]
+
+
+#         samples_result = await db.execute(
+#             select(db_models.Sample)
+#             .where(db_models.Sample.case_id == first_case_db.id)
+#             .order_by(db_models.Sample.sample_number)
+#         )
+#         first_case_samples_db = samples_result.scalars().all()
+#         first_case_samples = []
+
+#         for i, sample_db in enumerate(first_case_samples_db):
+#             sample = SampleModelScheema.model_validate(sample_db).model_dump()
+#             sample["cassettes"] = []
+
+#             if i == 0 and sample_db:
+#                 await db.refresh(sample_db, attribute_names=["cassette"])
+#                 for cassette_db in sample_db.cassette:
+#                     await db.refresh(cassette_db, attribute_names=["glass"])
+#                     cassette = CassetteModelScheema.model_validate(
+#                         cassette_db
+#                     ).model_dump()
+#                     cassette["glasses"] = [
+#                         GlassModelScheema.model_validate(glass).model_dump()
+#                         for glass in cassette_db.glass
+#                     ]
+#                     sample["cassettes"].append(cassette)
+#             first_case_samples.append(sample)
+
+#         first_case_details = {
+#             "id": first_case_db.id,
+#             "case_code": first_case_db.case_code,
+#             "creation_date": first_case_db.creation_date,
+#             "samples": first_case_samples,
+#             "bank_count": first_case_db.bank_count,
+#             "cassette_count": first_case_db.cassette_count,
+#             "glass_count": first_case_db.glass_count,
+#             "grossing_status":first_case_db.grossing_status
+#         }
+
+#     return {"all_cases": all_cases, "first_case_details": first_case_details}
+
+
 async def create_cases_with_initial_data(
     db: AsyncSession, body: CaseCreate
 ) -> Dict[str, Any]:
-    """Асинхронно створює вказану кількість кейсів та пов'язані з ними початкові дані.
-    Повертає список всіх створених кейсів та деталізацію першого з них.
+    """
+    Асинхронно создает указанное количество кейсов, семплов и связанные с ними данные.
     """
     created_cases_db: List[db_models.Case] = []
+    
     now = datetime.now()
     year_short = now.strftime("%y")
     urgency_char = body.urgency.value[0].upper()
     material_type_char = body.material_type.value[0].upper()
 
-
     result = await db.execute(select(db_models.Case.case_code))
     all_existing_case_codes = result.scalars().all()
-
     max_sequential_number = 0
     for code in all_existing_case_codes:
-        if len(code) == 9: 
-            code_year_part = code[1:3] 
-            
-            if code_year_part == year_short: 
-                try:
-                    sequential_part = code[4:] 
-                    sequential_number = int(sequential_part)
-                    
-                    if sequential_number > max_sequential_number:
-                        max_sequential_number = sequential_number
-                except ValueError:
-                    continue
-    
+        if len(code) == 9 and code[1:3] == year_short:
+            try:
+                sequential_number = int(code[4:])
+                if sequential_number > max_sequential_number:
+                    max_sequential_number = sequential_number
+            except ValueError:
+                continue
     next_number = max_sequential_number + 1
-
-    for _ in range(body.num_cases):
-        now = datetime.now()
-
+    for i in range(body.num_cases):
         db_case = db_models.Case(
             id=str(uuid.uuid4()),
             patient_id=body.patient_cor_id,
-            creation_date=now,
+            creation_date=datetime.now(),
             bank_count=0,
             cassette_count=0,
             glass_count=0,
@@ -130,48 +273,15 @@ async def create_cases_with_initial_data(
             urgency_char, year_short, material_type_char, next_number
         )
         db.add(db_case)
-        await db.commit()
+
+        await db.flush() 
         await db.refresh(db_case)
         next_number += 1
 
+        for j in range(body.num_samples):
+            sample_char = ascii_uppercase[j] if j < len(ascii_uppercase) else f"Z{j - len(ascii_uppercase) + 1}"
 
-        db_sample = db_models.Sample(case_id=db_case.id, sample_number="A")
-        db_case.bank_count += 1
-        db.add(db_sample)
-        await db.commit()
-        await db.refresh(db_sample)
-        await db.refresh(db_case)
-
-
-        db_cassette = db_models.Cassette(
-            sample_id=db_sample.id,
-            cassette_number=f"{db_sample.sample_number}1",
-            glass_count=0,
-        )
-        db.add(db_cassette)
-        db_case.cassette_count += 1
-        db_sample.cassette_count += 1
-        await db.commit()
-        await db.refresh(db_cassette)
-        await db.refresh(db_case)
-        await db.refresh(db_sample)
-
-
-        db_glass = db_models.Glass(
-            cassette_id=db_cassette.id,
-            glass_number=0,
-            staining=db_models.StainingType.HE,
-        )
-        db.add(db_glass)
-        db_case.glass_count += 1
-        db_sample.glass_count += 1
-        db_cassette.glass_count += 1
-        await db.commit()
-        await db.refresh(db_glass)
-        await db.refresh(db_case)
-        await db.refresh(db_sample)
-        await db.refresh(db_cassette)
-
+            await _create_single_sample_with_dependencies(db, db_case.id, sample_char)
 
         db_case_parameters = db_models.CaseParameters(
             case_id=db_case.id,
@@ -179,11 +289,22 @@ async def create_cases_with_initial_data(
             material_type=body.material_type,
         )
         db.add(db_case_parameters)
+
         await db.commit()
         await db.refresh(db_case_parameters)
         await db.refresh(db_case)
 
         created_cases_db.append(db_case)
+            
+    if created_cases_db:
+        first_case_with_relations = await db.execute(
+            select(db_models.Case)
+            .options(
+                selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+            )
+            .where(db_models.Case.id == created_cases_db[0].id)
+        )
+        first_case_db_full = first_case_with_relations.scalar_one_or_none()
 
     all_cases = [
         CaseModelScheema.model_validate(case).model_dump() for case in created_cases_db
@@ -192,7 +313,6 @@ async def create_cases_with_initial_data(
 
     if created_cases_db:
         first_case_db = created_cases_db[0]
-
 
         samples_result = await db.execute(
             select(db_models.Sample)
