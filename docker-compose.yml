@@ -80,7 +80,7 @@ services:
     image: grafana/promtail:latest
     container_name: promtail
     ports:
-      - "9080:9080"
+      - $CORID_PROMTAIL_PORT:9080
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro 
       - /var/run/docker.sock:/var/run/docker.sock:ro 
