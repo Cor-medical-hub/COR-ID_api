@@ -9,6 +9,9 @@ name: $CORID_ENV-cor-id_v2
 
 services:
   fastapi:
+    privileged: true
+#    security_opt:
+#      - apparmor:unconfined
     build:
       context: .
       dockerfile: Dockerfile
@@ -21,6 +24,8 @@ services:
       - postgres
     env_file:
       - $CORID_ENV-corid.cor-medical.ua.env
+#    volumes:
+#      - dicom-storage:/$SCAN_DIR
     logging:
       driver: json-file
       options:
@@ -97,3 +102,9 @@ volumes:
   loki-data:
   compactor-data:
   prometheusdata:
+#  dicom-storage:
+#    driver: local
+#    driver_opts:
+#      type: cifs
+#      device: "$SCAN_UNC/$SCAN_UNC_DIR"
+#      o: "username=$SCAN_USER,password=$SCAN_USER"
