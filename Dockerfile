@@ -1,7 +1,7 @@
 
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y dos2unix
+RUN apt-get update && apt-get install -y dos2unix cifs-utils smbclient
 # netcat-traditional bind9-host iputils-ping iproute2 net-tools
 
 WORKDIR /app
@@ -15,9 +15,6 @@ RUN pip install -r requirements.txt.new
 
 
 COPY . /app
-
-
-RUN cat .dockerignore
 
 
 #CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
