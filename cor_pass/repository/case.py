@@ -1183,7 +1183,7 @@ async def update_case_microdescription(db: AsyncSession, case_id: str, body: Upd
         case_db.microdescription = body.microdescription
         await db.commit()
         await db.refresh(case_db)
-        response = MicrodescriptionResponse(pathohistological_conclusion=body.microdescription)
+        response = MicrodescriptionResponse(microdescription=body.microdescription)
         return response
     else:
         return None
