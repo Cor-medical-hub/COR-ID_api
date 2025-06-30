@@ -8,6 +8,12 @@
                     document.getElementById('State_Of_Сharge').value = initialSocValue;
                     document.getElementById('socSliderValue').textContent = initialSocValue;
                 });
+
+                  // Инициализация графика мощности
+                initPowerChart();
+                
+                // Запуск обновления данных каждые 2 секунды
+                setInterval(updateLoadData, 2000);
                 makeModalDraggable('batteryModal');
              //   makeModalDraggable('inverterModal');
                 makeModalDraggable('loadSettingsModal');
@@ -85,8 +91,8 @@
             function updateBatteryFlow(power) {
                 const indicator = document.getElementById('batteryFlowIndicator');
                 const label = document.getElementById('batteryFlowLabel');
-                const maxPower = 100000;  // Вт
-                const maxWidth = 1300;   // Половина общей ширины (2600 / 2)
+                const maxPower = 140000;  // Вт
+                const maxWidth = 1400;   // Половина общей ширины (2600 / 2)
                 const centerX = 1525;    // Центр батареи
             
                 const clampedPower = Math.max(-maxPower, Math.min(maxPower, power));
@@ -223,7 +229,7 @@
             
             function updateSolarPowerIndicator(totalPower) {
                 const maxWidth = 550;    // ширина SVG индикатора в пикселях (как у loadIndicator)
-                const maxPower = 150000; // максимальная мощность для 100%
+                const maxPower = 180000; // максимальная мощность для 100%
                 
                 // Ограничиваем мощность между 0 и maxPower
                 totalPower = Math.min(Math.max(totalPower, 0), maxPower);
@@ -413,7 +419,7 @@
 
 
 
-    // Функция сброса ползунка
+    // Функция сброса ползунка лимита батареи
     function resetSocSlider() {
         const slider = document.getElementById('State_Of_Сharge');
         slider.value = initialSocValue;
@@ -441,7 +447,33 @@
         }, 4000);
     }
 
+// Функция показа сообщения для отдачи в сеть
+function showFeedInConfirmationMessage(message, isSuccess) {
+    const element = document.getElementById('feedInConfirmationMessage');
+    const saveButton = document.getElementById('saveFeedInButton');
+    element.textContent = message;
+    element.style.color = isSuccess ? "rgb(11, 226, 11)" : "red";
+    element.style.display = "block";
+    saveButton.disabled = true;
+    setTimeout(() => {
+        element.style.display = "none";
+    }, 4000);
+}
 
+// Функция сброса ползунка отдачи в сеть
+function resetFeedInSlider() {
+    const slider = document.getElementById('feedInPowerSlider');
+    slider.value = initialFeedInValue;
+    document.getElementById('feedInSliderValue').textContent = initialFeedInValue;
+    const saveButton = document.getElementById('saveFeedInButton');
+    isFeedInSliderChanged = false;
+    saveButton.disabled = true;
+    // Очищаем таймер
+    if (feedInChangeTimeout) {
+        clearTimeout(feedInChangeTimeout);
+        feedInChangeTimeout = null;
+    }
+}
 
 
 // Функция для проверки состояния соединения
@@ -477,5 +509,32 @@ function updateConnectionIndicator(errorCount) {
         // Промежуточное состояние (например, желтый для 1-8 ошибок)
         indicator.classList.remove('active');
         indicator.style.backgroundColor = 'yellow';
+    }
+}
+
+
+function updateLoadData() {
+    try {
+        const powerText = document.getElementById('inputPowerTotal').textContent;
+        const powerValue = parseFloat(powerText) || 0;
+        
+        if (powerValue !== lastPowerValue) {
+            lastPowerValue = powerValue;
+            
+            timeCounter += 2;
+            timeData.push(timeCounter);
+            powerData.push(powerValue);
+
+            if (timeData.length > 300) {
+                timeData.shift();  
+                powerData.shift();
+            }
+
+            if (powerChart) {
+                powerChart.update();
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при обновлении графика мощности:', error);
     }
 }
