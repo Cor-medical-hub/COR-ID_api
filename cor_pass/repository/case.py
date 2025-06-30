@@ -1697,8 +1697,10 @@ async def create_or_update_report_and_diagnosis(
         is_case_owner = True
     if is_case_owner:
         if update_data.attached_glass_ids is not None:
-
             db_report.attached_glass_ids = update_data.attached_glass_ids
+        case_db.microdescription = update_data.doctor_diagnosis_data.report_microdescription if update_data.doctor_diagnosis_data.report_microdescription else None
+        await db.commit()
+        await db.refresh(case_db) 
     else:
         if update_data.attached_glass_ids is not None:
             raise HTTPException(
@@ -1741,9 +1743,9 @@ async def create_or_update_report_and_diagnosis(
     
     await db.commit()
     await db.refresh(db_report) 
-    case_db.grossing_status = db_models.Grossing_status.PROCESSING
-    await db.commit()
-    await db.refresh(case_db) 
+    # case_db.grossing_status = db_models.Grossing_status.PROCESSING
+    # await db.commit()
+    # await db.refresh(case_db) 
 
     return await _format_report_response(db=db, db_report=db_report, router=router, case_db=case_db)
 
