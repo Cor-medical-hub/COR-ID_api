@@ -14,7 +14,6 @@
     <link rel="stylesheet" href="/static/COR_Energy/energy.css">
     <link rel="stylesheet" href="/static/COR_ID_css/styles.css">
     <link rel="stylesheet" type="text/css" href="/static/COR_ID_css/modal.css">
-    <link rel="icon" type="image/png" href="/favicon.png">
     <title>COR-Energy</title>
     <script src="/static/COR_Energy/scripts.js"></script>
     <script src="/static/COR_Energy/power-settings.js"></script>
@@ -38,6 +37,7 @@
         <div class="tabs">
             <div class="tab active" onclick="openTab(event, 'control')">Управление</div>
             <div class="tab" onclick="openTab(event, 'monitor')">Мониторинг</div>
+            <div class="tab" onclick="openTab(event, 'timetable')">Расписание</div>        
             <div class="tab" onclick="openTab(event, 'settings')">Настройки</div>
         </div>
 
@@ -308,27 +308,27 @@
         <svg width="540" height="600" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="flowLoad" patternUnits="userSpaceOnUse" width="20" height="20">
-                    <rect id="loadFlowRect" width="10" height="20" fill="hsl(112.16959999999999, 100%, 50%)"></rect>
+                    <rect id="loadFlowRect" width="10" height="20" fill="#ffffff"></rect>
                     <animateTransform id="loadFlowAnim" attributeName="patternTransform" type="translate" from="0,0" to="40,0" dur="1s" repeatCount="indefinite"></animateTransform>
               </pattern>
               <pattern id="flowGrid" patternUnits="userSpaceOnUse" width="20" height="20">
-                <rect id="gridFlowRect" width="10" height="20" fill="rgb(167, 255, 0)"></rect>
+                <rect id="gridFlowRect" width="10" height="20" fill="#ffffff"></rect>
                 <animateTransform id="gridFlowAnim" attributeName="patternTransform" type="translate" from="40,0" to="0,0" dur="1s" repeatCount="indefinite"></animateTransform>
               </pattern>
               <pattern id="flowSolarV" patternUnits="userSpaceOnUse" width="20" height="20">
-                    <rect id="solarFlowRectV" width="20" height="10" fill="hsl(30.804799999999997, 100%, 50%)"></rect>
+                    <rect id="solarFlowRectV" width="20" height="10" fill="#ffffff"></rect>
                     <animateTransform id="solarFlowAnimV" attributeName="patternTransform" type="translate" from="0,40" to="0,0" dur="1s" repeatCount="indefinite"></animateTransform>
               </pattern>
               <pattern id="flowSolarH" patternUnits="userSpaceOnUse" width="20" height="20">
-                    <rect id="solarFlowRectH" width="10" height="20" fill="hsl(30.804799999999997, 100%, 50%)"></rect>
+                    <rect id="solarFlowRectH" width="10" height="20" fill="#ffffff"></rect>
                     <animateTransform id="solarFlowAnimH" attributeName="patternTransform" type="translate" from="40,0" to="0,0" dur="1s" repeatCount="indefinite"></animateTransform>
               </pattern>
               <pattern id="flowBatteryH" patternUnits="userSpaceOnUse" width="20" height="20">
-                <rect id="batteryFlowRectH" width="10" height="20" fill="rgb(240, 255, 0)"></rect>
+                <rect id="batteryFlowRectH" width="10" height="20" fill="#ffffff"></rect>
                 <animateTransform id="batteryFlowAnimH" attributeName="patternTransform" type="translate" from="40,0" to="0,0" dur="1s" repeatCount="indefinite"></animateTransform>
               </pattern>
               <pattern id="flowBatteryV" patternUnits="userSpaceOnUse" width="20" height="20">
-                    <rect id="batteryFlowRectV" width="20" height="10" fill="rgb(240, 255, 0)"></rect>
+                    <rect id="batteryFlowRectV" width="20" height="10" fill="#ffffff"></rect>
                     <animateTransform id="batteryFlowAnimV" attributeName="patternTransform" type="translate" from="0,0" to="0,40" dur="1s" repeatCount="indefinite"></animateTransform>
               </pattern>
             </defs>
@@ -361,8 +361,13 @@
 
             <!-- Контейнер для графика -->
             <div id="chartContainer">
-                <canvas id="speedChart"></canvas>
+                <canvas id="powerChart"></canvas>
             </div>
+        </div>
+
+        <div id="timetable" class="tabcontent">
+            
+
         </div>
 
        <!-- Контент вкладки Настройки -->
@@ -540,15 +545,13 @@
                     </table>
                     <!-- Суммарная мощность  -->
                     <p>Общая мощность нагрузки, КВт: <span id="inputPowerTotal">0</span></p>
-
-                    <input type="range" id="ac_setpoint_fine_slider" min="-100000" max="100000" step="100" value="0"   style="width: 300px;">
-                    <p>Текущее значение: <span id="ac_setpoint_fine_value">0</span> W</p>
-                    <button onclick="saveAcSetpointFine()">Сохранить</button>
-                    <div id="setpoint_confirmation" style="margin-top: 10px; display: none;"></div>
-                                    <!-- Кнопка Сохранить 
-                     <button id="saveLoadSettings" onclick="saveLoadSettings()">Сохранить</button>
-                     <div id="loadConfirmationMessage" style="margin-top: 10px; color: rgb(11, 226, 11); display: none;"></div>-->
-                
+                        <label for="feedInPowerSlider" style="font-weight: bold;">Ограничение отдачи в сеть (Вт)</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="range" id="feedInPowerSlider" min="-100000" max="100000" step="100" value="0" style="width: 250px;">
+                            <span id="feedInSliderValue">0</span>
+                        </div>
+                        <button id="saveFeedInButton" onclick="saveAcSetpoint()" disabled>Сохранить</button>
+                        <div id="feedInConfirmationMessage" style="margin-top: 10px; color: rgb(11, 226, 11); display: none;"></div>
             </div>
 
           <!--Модальное окно инвертора --> 
@@ -613,6 +616,18 @@
             let initialSocValue = 40;
             let socChangeTimeout = null;
             let isSliderChanged = false; // Флаг изменения ползунка
+
+            let initialFeedInValue = 0;
+            let feedInChangeTimeout = null;
+            let isFeedInSliderChanged = false;
+
+           
+            let lastPowerValue = 0;
+            let powerChart = null;
+            let timeData = [];
+            let powerData = [];
+            let timeCounter = 0;
+
         const modeNames = {
             1: "Charger Only",
             2: "Inverter Only",
@@ -633,11 +648,13 @@
             document.getElementById("batteryModal").style.display = "none";
                 }
 
-                    document.addEventListener('DOMContentLoaded', fetchGridLimitingStatus);
-                    document.getElementById("ac_setpoint_fine_slider").addEventListener("input", function() {
-                    document.getElementById("ac_setpoint_fine_value").textContent = this.value;
-                    });       
-                    
+                 //   document.addEventListener('DOMContentLoaded', fetchGridLimitingStatus);
+                 //   document.getElementById("ac_setpoint_fine_slider").addEventListener("input", function() {
+                 //   document.getElementById("ac_setpoint_fine_value").textContent = this.value;
+                 //   });       
+                    document.getElementById('feedInPowerSlider').addEventListener('input', function() {
+                        document.getElementById('feedInSliderValue').textContent = this.value;
+                    });
                     
 // Обработчик изменения ползунка батареи
 document.getElementById('State_Of_Сharge').addEventListener('input', function() {
@@ -659,7 +676,29 @@ document.getElementById('State_Of_Сharge').addEventListener('input', function()
     }, 4000);
 });
 
-                    
+      
+
+// Обработчик изменения ползунка отдачи в сеть
+document.getElementById('feedInPowerSlider').addEventListener('input', function() {
+    const newValue = this.value;
+    const saveButton = document.getElementById('saveFeedInButton');
+    document.getElementById('feedInSliderValue').textContent = newValue;
+    
+    isFeedInSliderChanged = true;
+    saveButton.disabled = false;
+    
+    // Сбрасываем предыдущий таймер, если он есть
+    if (feedInChangeTimeout) {
+        clearTimeout(feedInChangeTimeout);
+    }
+    
+    // Устанавливаем новый таймер на 4 секунды
+    feedInChangeTimeout = setTimeout(() => {
+        resetFeedInSlider();
+        showFeedInConfirmationMessage("Изменения не сохранены!!!", false);
+    }, 4000);
+});
+
 
         </script>
 
@@ -667,22 +706,7 @@ document.getElementById('State_Of_Сharge').addEventListener('input', function()
 
 <script>
   
-			// Функция для скрытия линии
-			function hideLeftLine() {
-			    const leftLine = document.getElementById('leftLine');
-			    if (leftLine) {
-			        leftLine.style.display = 'none';  // Скрыть линию
-			    }
-			}
-			
-			// Функция для отображения линии
-			function showLeftLine() {
-			    const leftLine = document.getElementById('leftLine');
-			    if (leftLine) {
-			        leftLine.style.display = '';  // Показать линию (по умолчанию)
-			    }
-			}
-
+		
  
     
         // Функция для переключения вкладок
@@ -707,50 +731,55 @@ document.getElementById('State_Of_Сharge').addEventListener('input', function()
         }
 
 			
-
-			     // Инициализация данных для графика
-			var timeData = [];
-			var speedData = [];
-			var timeCounter = 0; // Счетчик времени в секундах
-			
-			var speedChart = new Chart(document.getElementById('speedChart'), {
-			    type: 'line',
-			    data: {
-			        labels: timeData,
-			        datasets: [{
-			            label: 'Скорость (об/мин)',
-			            data: speedData,
-			            borderColor: 'rgba(75, 192, 192, 1)',
-			            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-			            fill: true
-			        }]
-			    },
-    options: {
-        animation: {
-            duration: 300, // Уменьшаем время анимации для более плавного обновления
-            easing: 'easeOutQuad' // Используем более плавный эффект
+ // Инициализация данных для графика мощности
+ 
+ function initPowerChart() {
+    const ctx = document.getElementById('powerChart').getContext('2d');
+    
+    powerChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timeData,
+            datasets: [{
+                label: 'Мощность (кВт)',
+                data: powerData,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: true
+            }]
         },
-        scales: {
-            x: {
-                type: 'linear',
-                position: 'bottom',
-                title: {
-                    display: true,
-                    text: 'Время (сек)'
+        options: {
+            animation: {
+                duration: 300,
+                easing: 'easeOutQuad'
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: 'Время (сек)'
+                    },
+                    min: 0,
+                    max: 600
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Мощность (кВт)'
+                    },
+                    min: -80,
+                    max: 80
                 }
             },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Мощность (КВт)'
-                }
-            }
+            responsive: true,
+            maintainAspectRatio: false
         }
-    }
-});
-
-
-		
+    });
+}
 	
 
 // Функция для получения текущего времени в формате HH:MM:SS
@@ -801,23 +830,6 @@ function updateChart(newSpeed) {
         }
 
  
-
-
-// Функция для переключения видимости
-function toggleVisibility() {
-    const leftLine = document.getElementById('leftLine');
-    if (leftLine) {
-        // Если элемент видим, скрыть его, иначе показать
-        if (leftLine.style.display === 'none') {
-            showLeftLine();
-        } else {
-            hideLeftLine();
-        }
-    }
-}
-
-  setInterval(toggleVisibility, 500);
-
   
   let tick = 0;
      // Обновим интервал обновления
@@ -832,7 +844,7 @@ function toggleVisibility() {
         if (tick % 7 === 0) fetchEssAdvancedSettings();
         if (tick % 9 === 0) fetchStatus();
         if (tick % 30 === 0) checkConnectionStatus();
-
+        if (tick % 11 === 0) fetchDynamicEssSettings();
         if (tick >= 60) tick = 0;
       }, 100);
     
@@ -845,6 +857,7 @@ function toggleVisibility() {
         fetchEssAdvancedSettings();
         fetchSolarChargerStatus();
         checkConnectionStatus();
+        fetchDynamicEssSettings();
     </script>
     
 </body>

@@ -129,6 +129,10 @@ function updateLoadModal(data) {
     document.getElementById('powerPhaseC').textContent = (data.ac_output.l3 / 1000).toFixed(2);
     document.getElementById('total_load').textContent = (data.ac_output.total / 1000).toFixed(2);
     updateLoadIndicator(data.ac_output.total / 1000); 
+   // const totalPower = (data.ac_output.total / 1000).toFixed(2);
+   // if (typeof updatePowerChart === 'function') {
+  //      updatePowerChart(parseFloat(totalPower));
+  //  }
 }
 
 function updateEssAcDisplay(data) {
@@ -157,6 +161,11 @@ function updateEssAcDisplay(data) {
     document.getElementById('outputCurrentL1').textContent = data.output.currents.l1.toFixed(1);
     document.getElementById('outputCurrentL2').textContent = data.output.currents.l2.toFixed(1);
     document.getElementById('outputCurrentL3').textContent = data.output.currents.l3.toFixed(1);
+
+    const totalPower = (data.input.powers.total / 1000).toFixed(2);
+    if (typeof updatePowerChart === 'function') {
+        updatePowerChart(parseFloat(totalPower));
+    }
 }
 
 
@@ -283,6 +292,16 @@ async function fetchEssAdvancedSettings() {
 
         const data = await res.json();
         updateEssAdvancedDisplay(data);
+
+
+            // Устанавливаем начальное значение для ползунка отдачи в сеть
+            const feedInValue = data.ac_power_setpoint_fine || 0;
+            // Обновляем исходное значение только если ползунок не был изменен пользователем
+            if (!isFeedInSliderChanged) {
+                initialFeedInValue = feedInValue;
+                document.getElementById('feedInPowerSlider').value = feedInValue;
+                document.getElementById('feedInSliderValue').textContent = feedInValue;
+            }
     } catch (err) {
         console.error("❗ Ошибка получения ESS расширенных настроек:", err);
     }
@@ -317,9 +336,9 @@ function formatInputSource(code) {
 
 
 
-// Функция сохранения значения
-async function saveAcSetpointFine() {
-    const sliderValue = parseInt(document.getElementById("ac_setpoint_fine_slider").value, 10);
+// Функция сохранения значения отдачи в сеть
+async function saveAcSetpoint() {
+    const sliderValue = parseInt(document.getElementById('feedInPowerSlider').value, 10);
     
     try {
         const res = await fetch('/api/modbus/ess_advanced_settings/setpoint_fine', {
@@ -337,24 +356,27 @@ async function saveAcSetpointFine() {
             throw new Error(error.detail || "Ошибка записи Setpoint Fine");
         }
 
-        const confirmation = document.getElementById('setpoint_confirmation');
-        confirmation.textContent = "✅ Настройки сохранены";
-        confirmation.style.color = "green";
-        confirmation.style.display = "block";
+        // Обновляем исходное значение после успешного сохранения
+        initialFeedInValue = sliderValue;
+        isFeedInSliderChanged = false;
+
+        // Очищаем таймер
+        if (feedInChangeTimeout) {
+            clearTimeout(feedInChangeTimeout);
+            feedInChangeTimeout = null;
+        }
+
+        showFeedInConfirmationMessage("✅ Настройки сохранены", true);
         
         // Обновляем данные на странице
         fetchEssAdvancedSettings();
         
     } catch (err) {
         console.error("❗ Ошибка установки Setpoint Fine:", err);
-        const confirmation = document.getElementById('setpoint_confirmation');
-        confirmation.textContent = "❌ Ошибка сохранения: " + err.message;
-        confirmation.style.color = "red";
-        confirmation.style.display = "block";
+        showFeedInConfirmationMessage("❌ Ошибка сохранения: " + err.message, false);
+        resetFeedInSlider();
     }
 }
-
-
 
 async function toggleGridLimitingStatus(enabled) {
     try {
@@ -461,3 +483,20 @@ async function fetchSolarChargerStatus() {
         console.error('❗ Ошибка при получении данных:', error);
     }
 }
+
+
+
+async function fetchDynamicEssSettings() {
+    try {
+      const response = await fetch('/api/modbus/dynamic_ess_settings');
+      if (!response.ok) throw new Error("Ошибка запроса: " + response.status);
+      const data = await response.json();
+
+      for (const [key, value] of Object.entries(data)) {
+        const cell = document.getElementById(key);
+        if (cell) cell.textContent = value;
+      }
+    } catch (err) {
+      document.getElementById("error").textContent = "❗ Ошибка загрузки данных: " + err.message;
+    }
+  }
