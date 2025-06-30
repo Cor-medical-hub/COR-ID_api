@@ -1741,9 +1741,9 @@ async def create_or_update_report_and_diagnosis(
     
     await db.commit()
     await db.refresh(db_report) 
-    case_db.grossing_status = db_models.Grossing_status.PROCESSING
-    await db.commit()
-    await db.refresh(case_db) 
+    # case_db.grossing_status = db_models.Grossing_status.PROCESSING
+    # await db.commit()
+    # await db.refresh(case_db) 
 
     return await _format_report_response(db=db, db_report=db_report, router=router, case_db=case_db)
 
