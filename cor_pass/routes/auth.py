@@ -339,10 +339,10 @@ async def check_session_status(
     )
     # Временно увеличиваем срок жизни токенов кор-енерджи
     access_token, access_token_jti = await auth_service.create_access_token(
-        data=token_data, expires_delta=100
+        data=token_data, expires_delta=expires_delta
     )
     refresh_token = await auth_service.create_refresh_token(
-        data=token_data, expires_delta=100
+        data=token_data, expires_delta=expires_delta
     )
     # Создаём новую сессию
     device_information = di.get_device_info(request)
@@ -460,10 +460,10 @@ async def confirm_login(
         )
         # Временно увеличиваем срок жизни токенов кор-енерджи
         access_token, access_token_jti = await auth_service.create_access_token(
-            data=token_data, expires_delta=100
+            data=token_data, expires_delta=expires_delta
         )
         refresh_token = await auth_service.create_refresh_token(
-            data=token_data, expires_delta=100
+            data=token_data, expires_delta=expires_delta
         )
 
         # Создаём новую сессию
