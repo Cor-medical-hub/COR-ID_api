@@ -771,7 +771,7 @@ async def get_patient_cases_with_directions(
 
 
 async def get_patient_case_details_for_glass_page(
-    db: AsyncSession, patient_id: str, current_doctor_id: str
+    db: AsyncSession, patient_id: str, current_doctor_id: str, router: APIRouter
 ) -> PatientGlassPageResponse: 
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
@@ -790,10 +790,41 @@ async def get_patient_case_details_for_glass_page(
     ]
 
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
+    report_details = None
 
     if all_cases_db:
         first_case_db = all_cases_db[0]
+        last_case_full_info_result = await db.execute(
+            select(db_models.Case)
+            .where(db_models.Case.id == first_case_db.id) 
+            .options(
+                selectinload(db_models.Case.case_parameters),
+                selectinload(db_models.Case.report).options( 
+                    selectinload(db_models.Report.doctor_diagnoses).options(
+                        selectinload(db_models.DoctorDiagnosis.doctor),
+                        selectinload(db_models.DoctorDiagnosis.signature).options(
+                            selectinload(db_models.ReportSignature.doctor),
+                            selectinload(db_models.ReportSignature.doctor_signature)
+                        )
+                    )
+                ),
+                selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+            )
+        )
+        last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+        patient_db = await get_patient_by_corid(db=db, cor_id=last_case_with_relations.patient_id)
+        referral_db = await get_referral_by_case(db=db, case_id=last_case_with_relations.id)
 
+        report_details = await _format_final_report_response(
+                db=db,
+                db_report=last_case_with_relations.report,
+                db_case_parameters=last_case_with_relations.case_parameters,
+                router=router,
+                patient_db=patient_db,
+                referral_db=referral_db,
+                case_db=last_case_with_relations,
+                current_doctor_id=current_doctor_id
+            )
         samples_result = await db.execute(
             select(db_models.Sample)
             .where(db_models.Sample.case_id == first_case_db.id)
@@ -855,13 +886,16 @@ async def get_patient_case_details_for_glass_page(
     return PatientGlassPageResponse(
         all_cases=all_cases_schematized,
         first_case_details_for_glass=first_case_details_for_glass,
-        case_owner=case_owner
+        case_owner=case_owner,
+        report_details=report_details
     )
+
 
 
 async def get_current_cases_glass_details(
     db: AsyncSession,
     current_doctor_id: str,
+    router: APIRouter,
     skip: int = 0,
     limit: int = 10,
 ) -> PatientGlassPageResponse:
@@ -977,6 +1011,7 @@ async def get_current_cases_glass_details(
 
     current_cases_list: List[CaseModelScheema] = []
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
+    report_details: Optional[FinalReportResponseSchema] = None 
 
     for row in all_current_cases_raw:
         case_id = row.id
@@ -1007,7 +1042,37 @@ async def get_current_cases_glass_details(
     # !!!Детали последнего кейса!!!
     if all_current_cases_raw:
         first_case_db = all_current_cases_raw[0]
+        last_case_full_info_result = await db.execute(
+            select(db_models.Case)
+            .where(db_models.Case.id == first_case_db.id) 
+            .options(
+                selectinload(db_models.Case.case_parameters),
+                selectinload(db_models.Case.report).options( 
+                    selectinload(db_models.Report.doctor_diagnoses).options(
+                        selectinload(db_models.DoctorDiagnosis.doctor),
+                        selectinload(db_models.DoctorDiagnosis.signature).options(
+                            selectinload(db_models.ReportSignature.doctor),
+                            selectinload(db_models.ReportSignature.doctor_signature)
+                        )
+                    )
+                ),
+                selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+            )
+        )
+        last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+        patient_db = await get_patient_by_corid(db=db, cor_id=last_case_with_relations.patient_id)
+        referral_db = await get_referral_by_case(db=db, case_id=last_case_with_relations.id)
 
+        report_details = await _format_final_report_response(
+                db=db,
+                db_report=last_case_with_relations.report,
+                db_case_parameters=last_case_with_relations.case_parameters,
+                router=router,
+                patient_db=patient_db,
+                referral_db=referral_db,
+                case_db=last_case_with_relations,
+                current_doctor_id=current_doctor_id
+            )
         samples_result = await db.execute(
             select(db_models.Sample)
             .where(db_models.Sample.case_id == first_case_db.id)
@@ -1065,12 +1130,13 @@ async def get_current_cases_glass_details(
     return PatientGlassPageResponse(
         all_cases=current_cases_list,
         first_case_details_for_glass=first_case_details_for_glass,
-        case_owner=case_owner
+        case_owner=case_owner,
+        report_details=report_details
     )
        
 
 async def get_single_case_details_for_glass_page(
-    db: AsyncSession, case_id:str, current_doctor_id: str
+    db: AsyncSession, case_id:str, current_doctor_id: str, router: APIRouter
 ) -> SingleCaseGlassPageResponse: 
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
@@ -1086,8 +1152,41 @@ async def get_single_case_details_for_glass_page(
         return None
     
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
+    report_details = None
 
     if case_db:
+        last_case_full_info_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.id == case_db.id) 
+        .options(
+            selectinload(db_models.Case.case_parameters),
+            selectinload(db_models.Case.report).options( 
+                selectinload(db_models.Report.doctor_diagnoses).options(
+                    selectinload(db_models.DoctorDiagnosis.doctor),
+                    selectinload(db_models.DoctorDiagnosis.signature).options(
+                        selectinload(db_models.ReportSignature.doctor),
+                        selectinload(db_models.ReportSignature.doctor_signature)
+                    )
+                )
+            ),
+            selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+        )
+    )
+        last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
+        patient_db = await get_patient_by_corid(db=db, cor_id=last_case_with_relations.patient_id)
+        referral_db = await get_referral_by_case(db=db, case_id=last_case_with_relations.id)
+
+        report_details = await _format_final_report_response(
+                db=db,
+                db_report=last_case_with_relations.report,
+                db_case_parameters=last_case_with_relations.case_parameters,
+                router=router,
+                patient_db=patient_db,
+                referral_db=referral_db,
+                case_db=last_case_with_relations,
+                current_doctor_id=current_doctor_id
+            )
+
         
         samples_result = await db.execute(
             select(db_models.Sample)
@@ -1147,7 +1246,8 @@ async def get_single_case_details_for_glass_page(
     case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
     return SingleCaseGlassPageResponse(
         single_case_for_glass_page=first_case_details_for_glass,
-        case_owner=case_owner
+        case_owner=case_owner,
+        report_details=report_details
     )
 
 
@@ -2740,6 +2840,7 @@ async def get_current_cases_with_directions(
         case_owner=case_owner,
         first_case_direction=first_case_direction_details
     )
+
 
 
 

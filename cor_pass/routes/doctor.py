@@ -370,6 +370,7 @@ async def add_existing_patient_to_doctor(
 
 
 
+# add report
 @router.get(
     "/patients/{patient_id}/glass-details",
     response_model=PatientGlassPageResponse,
@@ -388,11 +389,11 @@ async def get_patient_glass_page_data(
     Возвращает список всех кейсов пациента и все стёкла первого кейса
     """
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
-    glass_page_data = await case_service.get_patient_case_details_for_glass_page(db=db, patient_id=patient_id, current_doctor_id=doctor.doctor_id)
+    glass_page_data = await case_service.get_patient_case_details_for_glass_page(db=db, patient_id=patient_id, current_doctor_id=doctor.doctor_id, router=router)
         
     return glass_page_data
 
-
+# add report
 @router.get(
     "/cases/{case_id}/glass-details",
     response_model=SingleCaseGlassPageResponse,
@@ -411,7 +412,7 @@ async def get_single_case_details_for_glass_page(
     Возвращает стёкла конкретного кейса
     """
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
-    glass_page_data = await case_service.get_single_case_details_for_glass_page(db=db, case_id=case_id, current_doctor_id=doctor.doctor_id)
+    glass_page_data = await case_service.get_single_case_details_for_glass_page(db=db, case_id=case_id, current_doctor_id=doctor.doctor_id, router=router)
         
     return glass_page_data
 
@@ -906,7 +907,7 @@ async def get_current_cases_glass_page_data(
     Возвращает список всех текущих кейсов и все стёкла первого кейса
     """
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
-    glass_page_data = await case_service.get_current_cases_glass_details(db=db, skip=skip, limit=limit, current_doctor_id=doctor.doctor_id)
+    glass_page_data = await case_service.get_current_cases_glass_details(db=db, skip=skip, limit=limit, current_doctor_id=doctor.doctor_id, router=router)
         
     return glass_page_data
 
