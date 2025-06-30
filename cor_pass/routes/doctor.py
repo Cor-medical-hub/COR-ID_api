@@ -141,7 +141,7 @@ async def signup_doctor(
         work_email=doctor.work_email,
         phone_number=doctor.phone_number,
         first_name=doctor.first_name,
-        surname=doctor.surname,
+        middle_name=doctor.middle_name,
         last_name=doctor.last_name,
         scientific_degree=doctor.scientific_degree,
         date_of_last_attestation=doctor.date_of_last_attestation,
