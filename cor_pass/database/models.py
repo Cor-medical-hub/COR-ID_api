@@ -152,6 +152,7 @@ class StainingType(enum.Enum):
 class Grossing_status(enum.Enum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
+    CREATED = "CREATED"
 
 
 class User(Base):
@@ -552,7 +553,7 @@ class Case(Base):
     bank_count = Column(Integer, default=0)
     cassette_count = Column(Integer, default=0)
     glass_count = Column(Integer, default=0)
-    grossing_status = Column(Enum(Grossing_status), default=Grossing_status.PROCESSING)
+    grossing_status = Column(Enum(Grossing_status), default=Grossing_status.CREATED)
     pathohistological_conclusion = Column(Text, nullable=True)
     microdescription = Column(Text, nullable=True)
     general_macrodescription = Column(Text, nullable=True)
