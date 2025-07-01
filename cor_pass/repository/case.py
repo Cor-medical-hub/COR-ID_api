@@ -2090,6 +2090,7 @@ async def _format_final_report_response(
                         ((today.month, today.day) < (patient_db.birth_date.month, patient_db.birth_date.day))
 
     case_details_schema = None
+    doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
     if case_db:
         case_details_schema = CaseModelScheema.model_validate(case_db)
     if db_report:
