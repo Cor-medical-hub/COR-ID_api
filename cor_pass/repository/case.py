@@ -1508,60 +1508,60 @@ async def _format_report_response(
 
 
     doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
-
-    for dd_db in sorted(db_report.doctor_diagnoses, key=lambda x: x.created_at):
-        doctor_data = DoctorResponseForSignature.model_validate(dd_db.doctor) if dd_db.doctor else None
-        
-        signature_data: Optional[ReportSignatureSchema] = None
-        if dd_db.signature:
-            signer_doctor_data = DoctorResponseForSignature.model_validate(dd_db.signature.doctor) if dd_db.signature.doctor else None
+    if db_report:
+        for dd_db in sorted(db_report.doctor_diagnoses, key=lambda x: x.created_at):
+            doctor_data = DoctorResponseForSignature.model_validate(dd_db.doctor) if dd_db.doctor else None
             
-            doctor_sig_response: Optional[DoctorSignatureResponse] = None
-            if dd_db.signature.doctor_signature:
-                signature_url = None
-                if dd_db.signature.doctor_signature.signature_scan_data:
-                    signature_url = router.url_path_for("get_signature_attachment", signature_id=dd_db.signature.doctor_signature.id)
+            signature_data: Optional[ReportSignatureSchema] = None
+            if dd_db.signature:
+                signer_doctor_data = DoctorResponseForSignature.model_validate(dd_db.signature.doctor) if dd_db.signature.doctor else None
                 
-                doctor_sig_response = DoctorSignatureResponse(
-                    id=dd_db.signature.doctor_signature.id,
-                    doctor_id=dd_db.signature.doctor_signature.doctor_id,
-                    signature_name=dd_db.signature.doctor_signature.signature_name,
-                    signature_scan_data=signature_url,
-                    signature_scan_type=dd_db.signature.doctor_signature.signature_scan_type,
-                    is_default=dd_db.signature.doctor_signature.is_default,
-                    created_at=dd_db.signature.doctor_signature.created_at
+                doctor_sig_response: Optional[DoctorSignatureResponse] = None
+                if dd_db.signature.doctor_signature:
+                    signature_url = None
+                    if dd_db.signature.doctor_signature.signature_scan_data:
+                        signature_url = router.url_path_for("get_signature_attachment", signature_id=dd_db.signature.doctor_signature.id)
+                    
+                    doctor_sig_response = DoctorSignatureResponse(
+                        id=dd_db.signature.doctor_signature.id,
+                        doctor_id=dd_db.signature.doctor_signature.doctor_id,
+                        signature_name=dd_db.signature.doctor_signature.signature_name,
+                        signature_scan_data=signature_url,
+                        signature_scan_type=dd_db.signature.doctor_signature.signature_scan_type,
+                        is_default=dd_db.signature.doctor_signature.is_default,
+                        created_at=dd_db.signature.doctor_signature.created_at
+                    )
+                signature_data = ReportSignatureSchema(
+                    id=dd_db.signature.id,
+                    doctor=signer_doctor_data,
+                    signed_at=dd_db.signature.signed_at,
+                    doctor_signature=doctor_sig_response
                 )
-            signature_data = ReportSignatureSchema(
-                id=dd_db.signature.id,
-                doctor=signer_doctor_data,
-                signed_at=dd_db.signature.signed_at,
-                doctor_signature=doctor_sig_response
-            )
 
-        doctor_diagnoses_schematized.append(
-            DoctorDiagnosisSchema(
-                id=dd_db.id,
-                report_id=dd_db.report_id,
-                doctor=doctor_data,
-                created_at=dd_db.created_at,
-                immunohistochemical_profile=dd_db.immunohistochemical_profile,
-                molecular_genetic_profile=dd_db.molecular_genetic_profile,
-                pathomorphological_diagnosis=dd_db.pathomorphological_diagnosis,
-                icd_code=dd_db.icd_code,
-                comment=dd_db.comment,
-                report_macrodescription=dd_db.report_macrodescription,
-                report_microdescription=dd_db.report_microdescription, 
-                signature=signature_data
+            doctor_diagnoses_schematized.append(
+                DoctorDiagnosisSchema(
+                    id=dd_db.id,
+                    report_id=dd_db.report_id,
+                    doctor=doctor_data,
+                    created_at=dd_db.created_at,
+                    immunohistochemical_profile=dd_db.immunohistochemical_profile,
+                    molecular_genetic_profile=dd_db.molecular_genetic_profile,
+                    pathomorphological_diagnosis=dd_db.pathomorphological_diagnosis,
+                    icd_code=dd_db.icd_code,
+                    comment=dd_db.comment,
+                    report_macrodescription=dd_db.report_macrodescription,
+                    report_microdescription=dd_db.report_microdescription, 
+                    signature=signature_data
+                )
             )
-        )
 
     return ReportResponseSchema(
         id=db_report.id,
-        case_id=db_report.case_id,
+        case_id=db_report.case_id if db_report else None,
         case_details=case_db,
         macro_description_from_case_params=macro_desc_from_params,
         microdescription_from_case=case_db.microdescription if case_db else None,
-        doctor_diagnoses=doctor_diagnoses_schematized, 
+        doctor_diagnoses=doctor_diagnoses_schematized if db_report else None, 
         attached_glasses=attached_glasses_schematized
     )
 
@@ -2095,51 +2095,51 @@ async def _format_final_report_response(
     if db_report:
         await db.refresh(db_report, attribute_names=['doctor_diagnoses'])
 
-    doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
-    for dd_db in sorted(db_report.doctor_diagnoses, key=lambda x: x.created_at):
-        doctor_data = DoctorResponseForSignature.model_validate(dd_db.doctor) if dd_db.doctor else None
-        
-        signature_data: Optional[ReportSignatureSchema] = None
-        if dd_db.signature:
-            signer_doctor_data = DoctorResponseForSignature.model_validate(dd_db.signature.doctor) if dd_db.signature.doctor else None
+        doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
+        for dd_db in sorted(db_report.doctor_diagnoses, key=lambda x: x.created_at):
+            doctor_data = DoctorResponseForSignature.model_validate(dd_db.doctor) if dd_db.doctor else None
             
-            doctor_sig_response: Optional[DoctorSignatureResponse] = None
-            if dd_db.signature.doctor_signature:
-                signature_url = None
-                if dd_db.signature.doctor_signature.signature_scan_data:
-                    signature_url = router.url_path_for("get_signature_attachment", signature_id=dd_db.signature.doctor_signature.id)
+            signature_data: Optional[ReportSignatureSchema] = None
+            if dd_db.signature:
+                signer_doctor_data = DoctorResponseForSignature.model_validate(dd_db.signature.doctor) if dd_db.signature.doctor else None
                 
-                doctor_sig_response = DoctorSignatureResponse(
-                    id=dd_db.signature.doctor_signature.id,
-                    doctor_id=dd_db.signature.doctor_signature.doctor_id,
-                    signature_name=dd_db.signature.doctor_signature.signature_name,
-                    signature_scan_data=signature_url,
-                    signature_scan_type=dd_db.signature.doctor_signature.signature_scan_type,
-                    is_default=dd_db.signature.doctor_signature.is_default,
-                    created_at=dd_db.signature.doctor_signature.created_at
+                doctor_sig_response: Optional[DoctorSignatureResponse] = None
+                if dd_db.signature.doctor_signature:
+                    signature_url = None
+                    if dd_db.signature.doctor_signature.signature_scan_data:
+                        signature_url = router.url_path_for("get_signature_attachment", signature_id=dd_db.signature.doctor_signature.id)
+                    
+                    doctor_sig_response = DoctorSignatureResponse(
+                        id=dd_db.signature.doctor_signature.id,
+                        doctor_id=dd_db.signature.doctor_signature.doctor_id,
+                        signature_name=dd_db.signature.doctor_signature.signature_name,
+                        signature_scan_data=signature_url,
+                        signature_scan_type=dd_db.signature.doctor_signature.signature_scan_type,
+                        is_default=dd_db.signature.doctor_signature.is_default,
+                        created_at=dd_db.signature.doctor_signature.created_at
+                    )
+                signature_data = ReportSignatureSchema(
+                    id=dd_db.signature.id,
+                    doctor=signer_doctor_data,
+                    signed_at=dd_db.signature.signed_at,
+                    doctor_signature=doctor_sig_response
                 )
-            signature_data = ReportSignatureSchema(
-                id=dd_db.signature.id,
-                doctor=signer_doctor_data,
-                signed_at=dd_db.signature.signed_at,
-                doctor_signature=doctor_sig_response
-            )
 
-        doctor_diagnoses_schematized.append(
-            DoctorDiagnosisSchema(
-                id=dd_db.id,
-                report_id=dd_db.report_id,
-                doctor=doctor_data,
-                created_at=dd_db.created_at,
-                immunohistochemical_profile=dd_db.immunohistochemical_profile,
-                molecular_genetic_profile=dd_db.molecular_genetic_profile,
-                pathomorphological_diagnosis=dd_db.pathomorphological_diagnosis,
-                icd_code=dd_db.icd_code,
-                comment=dd_db.comment,
-                report_macrodescription=dd_db.report_macrodescription,
-                report_microdescription=dd_db.report_microdescription, 
-                signature=signature_data
-            ))
+            doctor_diagnoses_schematized.append(
+                DoctorDiagnosisSchema(
+                    id=dd_db.id,
+                    report_id=dd_db.report_id,
+                    doctor=doctor_data,
+                    created_at=dd_db.created_at,
+                    immunohistochemical_profile=dd_db.immunohistochemical_profile,
+                    molecular_genetic_profile=dd_db.molecular_genetic_profile,
+                    pathomorphological_diagnosis=dd_db.pathomorphological_diagnosis,
+                    icd_code=dd_db.icd_code,
+                    comment=dd_db.comment,
+                    report_macrodescription=dd_db.report_macrodescription,
+                    report_microdescription=dd_db.report_microdescription, 
+                    signature=signature_data
+                ))
 
     attached_glass_ids = db_report.attached_glass_ids if db_report.attached_glass_ids is not None else []
     attached_glasses_schemas: List[GlassModelScheema] = []
