@@ -792,7 +792,6 @@ async def get_patient_cases_with_directions(
     )
 
 
-# case id
 async def get_patient_case_details_for_glass_page(
     db: AsyncSession, patient_id: str, current_doctor_id: str, router: APIRouter, case_id = Optional[str]
 ) -> PatientGlassPageResponse: 
@@ -938,7 +937,7 @@ async def get_current_cases_glass_details(
     - Сначала кейсы "F"/"U" (по creation_date DESC).
     - Затем кейсы "S" (по creation_date DESC).
     """
-
+    case_id_query = case_id
     cases_fu_subquery = (
         select(
             db_models.Case.id,
@@ -1070,8 +1069,8 @@ async def get_current_cases_glass_details(
     # !!!Детали последнего кейса!!!
     if all_current_cases_raw:
         first_case_db = all_current_cases_raw[0]
-        if case_id:
-            first_case_id = case_id
+        if case_id_query:
+            first_case_id = case_id_query
         else:
             first_case_id = first_case_db.id
         
@@ -1274,7 +1273,8 @@ async def get_single_case_details_for_glass_page(
             creation_date=case_db.creation_date,
             samples=first_case_samples_schematized,
             grossing_status=case_db.grossing_status,
-            patient_cor_id = case_db.patient_id
+            patient_cor_id = case_db.patient_id,
+            microdescription = case_db.microdescription
         )
     case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
     return SingleCaseGlassPageResponse(
@@ -2092,8 +2092,8 @@ async def _format_final_report_response(
     case_details_schema = None
     if case_db:
         case_details_schema = CaseModelScheema.model_validate(case_db)
-
-    await db.refresh(db_report, attribute_names=['doctor_diagnoses'])
+    if db_report:
+        await db.refresh(db_report, attribute_names=['doctor_diagnoses'])
 
     doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
     for dd_db in sorted(db_report.doctor_diagnoses, key=lambda x: x.created_at):
@@ -2266,6 +2266,7 @@ async def get_current_case_details_for_excision_page(
     по последнему кейсу (параметры, макроописание, инфо по семплам).
     Используется для вкладки "Excision" (удаление/макроописание) на странице врача.
     """
+    case_id_query = case_id
     cases_fu_subquery = (
         select(
             db_models.Case.id,
@@ -2398,8 +2399,8 @@ async def get_current_case_details_for_excision_page(
 
     if all_current_cases_raw:
         last_case_db = all_current_cases_raw[0] 
-        if case_id:
-            first_case_id = case_id
+        if case_id_query:
+            first_case_id = case_id_query
         else:
             first_case_id = last_case_db.id
         last_case_full_info_result = await db.execute(
@@ -2476,6 +2477,7 @@ async def get_current_cases_report_page_data(
       и его заключение (если есть). Если заключения нет, оно будет создано.
     - Все стёкла последнего кейса (для выбора, какие прикрепить).
     """
+    case_id_query = case_id
     cases_fu_subquery = (
         select(
             db_models.Case.id,
@@ -2613,8 +2615,8 @@ async def get_current_cases_report_page_data(
 
     if all_current_cases_raw:
         last_case_db_summary = all_current_cases_raw[0] 
-        if case_id:
-            first_case_id = case_id
+        if case_id_query:
+            first_case_id = case_id_query
         else:
             first_case_id = last_case_db_summary.id
 
@@ -2722,6 +2724,7 @@ async def get_current_cases_with_directions(
     все семплы первого кейса, но кассеты и стекла загружаются только для первого семпла.
     Включает ссылки на файлы направлений для первого кейса.
     """
+    case_id_query = case_id
     cases_fu_subquery = (
         select(
             db_models.Case.id,
@@ -2854,8 +2857,8 @@ async def get_current_cases_with_directions(
 
     if all_current_cases_raw:
         first_case_db = all_current_cases_raw[0]
-        if case_id:
-            first_case_id = case_id
+        if case_id_query:
+            first_case_id = case_id_query
         else:
             first_case_id = first_case_db.id
 
@@ -3221,6 +3224,9 @@ async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str)
     
     
     case_db.case_owner = None 
+    case_db.grossing_status = db_models.Grossing_status.CREATED
+    await db.commit()
+    await db.refresh(case_db)
 
     await db.commit()
     await db.refresh(case_db)
