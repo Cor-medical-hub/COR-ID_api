@@ -1275,7 +1275,7 @@ class DoctorDiagnosisSchema(BaseModel):
     class Config:
         from_attributes = True
 class FinalReportResponseSchema(BaseModel):
-    id: str 
+    id: Optional[str] = None
     case_id: str
     case_code: str
     
