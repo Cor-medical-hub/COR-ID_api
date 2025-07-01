@@ -330,6 +330,8 @@
         const hasOwner = caseOwner?.id
         reportOwnerInfoNODE.innerHTML = ""
 
+        console.log(caseOwner, "caseOwner")
+
         if(!caseOwner?.is_case_owner){
             caseMicroDescriptionTextareaNODE.style.pointerEvents = "none"
             caseMicroDescriptionTextareaNODE.nextElementSibling.style.display = "none"
@@ -364,7 +366,9 @@
                     })
                         .then(res => res.json())
                         .then(({case_owner}) => {
-                            setOwnerInfo(case_owner)
+                            currentCaseOwner = case_owner
+                            setCaseEdit()
+                            setOwnerInfo(currentCaseOwner)
                             caseLabelNode.style.color = getCaseColor({grossing_status: "CREATED"})
                             document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "CREATED"})
                         })
@@ -389,6 +393,8 @@
                 })
                     .then(res => res.json())
                     .then(({case_owner}) => {
+                        currentCaseOwner = case_owner;
+                        setCaseEdit()
                         setOwnerInfo(case_owner)
                         caseLabelNode.style.color = getCaseColor({grossing_status: "PROCESSING"})
                         document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "PROCESSING"})
