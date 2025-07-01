@@ -370,7 +370,7 @@ async def add_existing_patient_to_doctor(
 
 
 
-# add case id filter
+
 @router.get(
     "/patients/{patient_id}/glass-details",
     response_model=PatientGlassPageResponse,

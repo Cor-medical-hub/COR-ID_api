@@ -2091,8 +2091,8 @@ async def _format_final_report_response(
     case_details_schema = None
     if case_db:
         case_details_schema = CaseModelScheema.model_validate(case_db)
-
-    await db.refresh(db_report, attribute_names=['doctor_diagnoses'])
+    if db_report:
+        await db.refresh(db_report, attribute_names=['doctor_diagnoses'])
 
     doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
     for dd_db in sorted(db_report.doctor_diagnoses, key=lambda x: x.created_at):
