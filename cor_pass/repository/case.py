@@ -2158,7 +2158,7 @@ async def _format_final_report_response(
     report = await get_report_by_case_id(db=db, case_id=case_db.id, router=router, current_doctor_id=current_doctor_id)
     concatenated_macro_description = report.report_details.concatenated_macro_description
     return FinalReportResponseSchema(
-        id=db_report.id,
+        id=db_report.id if db_report else None,
         case_id=case_db.id,
         case_code=case_db.case_code,
         
