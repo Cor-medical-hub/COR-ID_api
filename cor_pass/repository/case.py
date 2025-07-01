@@ -1273,7 +1273,8 @@ async def get_single_case_details_for_glass_page(
             creation_date=case_db.creation_date,
             samples=first_case_samples_schematized,
             grossing_status=case_db.grossing_status,
-            patient_cor_id = case_db.patient_id
+            patient_cor_id = case_db.patient_id,
+            microdescription = case_db.microdescription
         )
     case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
     return SingleCaseGlassPageResponse(
