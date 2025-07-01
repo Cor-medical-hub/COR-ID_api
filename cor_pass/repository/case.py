@@ -702,8 +702,9 @@ def generate_file_url(file_id: str, case_id: str) -> str:
     return f"/cases/attachments/{file_id}"
 
 
+# case id  - fix
 async def get_patient_cases_with_directions(
-    db: AsyncSession, patient_id: str, current_doctor_id: str
+    db: AsyncSession, patient_id: str, current_doctor_id: str, case_id = Optional[str]
 ) -> PatientCasesWithReferralsResponse: # Указываем тип возвращаемого значения
     """
     Асинхронно получает список всех кейсов пациента и детализацию первого из них:
@@ -725,10 +726,32 @@ async def get_patient_cases_with_directions(
 
     if all_cases_db:
         first_case_db = all_cases_db[0]
+        if case_id:
+            first_case_id = case_id
+        else:
+            first_case_id = first_case_db.id  
         
         referral_db = await db.scalar(
-            select(db_models.Referral).where(db_models.Referral.case_id == first_case_db.id)
+            select(db_models.Referral).where(db_models.Referral.case_id == first_case_id)
         )
+        last_case_full_info_result = await db.execute(
+            select(db_models.Case)
+            .where(db_models.Case.id == first_case_id) 
+            .options(
+                selectinload(db_models.Case.case_parameters),
+                selectinload(db_models.Case.report).options( 
+                    selectinload(db_models.Report.doctor_diagnoses).options(
+                        selectinload(db_models.DoctorDiagnosis.doctor),
+                        selectinload(db_models.DoctorDiagnosis.signature).options(
+                            selectinload(db_models.ReportSignature.doctor),
+                            selectinload(db_models.ReportSignature.doctor_signature)
+                        )
+                    )
+                ),
+                selectinload(db_models.Case.samples).selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
+            )
+        )
+        last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
         if referral_db:
             direction_files_result = await db.execute(
@@ -740,7 +763,7 @@ async def get_patient_cases_with_directions(
 
             attachments_for_response = []
             for file_db in direction_files_db:
-                file_url = generate_file_url(file_db.id, first_case_db.id)
+                file_url = generate_file_url(file_db.id, last_case_with_relations.id)
                 attachments_for_response.append(
                     ReferralFileSchema(
                         id=file_db.id,
@@ -751,27 +774,27 @@ async def get_patient_cases_with_directions(
                 )
             
             first_case_direction_details = FirstCaseReferralDetailsSchema(
-                id=first_case_db.id,
-                case_code=first_case_db.case_code,
-                creation_date=first_case_db.creation_date,
-                pathohistological_conclusion=first_case_db.pathohistological_conclusion,
-                microdescription=first_case_db.microdescription,
+                id=last_case_with_relations.id,
+                case_code=last_case_with_relations.case_code,
+                creation_date=last_case_with_relations.creation_date,
+                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                microdescription=last_case_with_relations.microdescription,
                 attachments=attachments_for_response,
-                grossing_status=first_case_db.grossing_status,
-                patient_cor_id=first_case_db.patient_id
+                grossing_status=last_case_with_relations.grossing_status,
+                patient_cor_id=last_case_with_relations.patient_id
             )
-    case_owner = await get_case_owner(db=db, case_id=first_case_db.id, doctor_id=current_doctor_id)
+    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientCasesWithReferralsResponse(
         all_cases=all_cases,
-        case_details=first_case_db,
+        case_details=last_case_with_relations,
         case_owner=case_owner,
         first_case_direction=first_case_direction_details
     )
 
 
-
+# case id
 async def get_patient_case_details_for_glass_page(
-    db: AsyncSession, patient_id: str, current_doctor_id: str, router: APIRouter
+    db: AsyncSession, patient_id: str, current_doctor_id: str, router: APIRouter, case_id = Optional[str]
 ) -> PatientGlassPageResponse: 
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию (включая все стёкла)
@@ -794,9 +817,13 @@ async def get_patient_case_details_for_glass_page(
 
     if all_cases_db:
         first_case_db = all_cases_db[0]
+        if case_id:
+            first_case_id = case_id
+        else:
+            first_case_id = first_case_db.id  
         last_case_full_info_result = await db.execute(
             select(db_models.Case)
-            .where(db_models.Case.id == first_case_db.id) 
+            .where(db_models.Case.id == first_case_id) 
             .options(
                 selectinload(db_models.Case.case_parameters),
                 selectinload(db_models.Case.report).options( 
@@ -827,7 +854,7 @@ async def get_patient_case_details_for_glass_page(
             )
         samples_result = await db.execute(
             select(db_models.Sample)
-            .where(db_models.Sample.case_id == first_case_db.id)
+            .where(db_models.Sample.case_id == last_case_with_relations.id)
             .options(
                 selectinload(db_models.Sample.cassette).selectinload(db_models.Cassette.glass)
             ) 
@@ -873,16 +900,16 @@ async def get_patient_case_details_for_glass_page(
 
 
         first_case_details_for_glass = FirstCaseGlassDetailsSchema(
-            id=first_case_db.id,
-            case_code=first_case_db.case_code,
-            creation_date=first_case_db.creation_date,
-            pathohistological_conclusion=first_case_db.pathohistological_conclusion,
-            microdescription=first_case_db.microdescription,
+            id=last_case_with_relations.id,
+            case_code=last_case_with_relations.case_code,
+            creation_date=last_case_with_relations.creation_date,
+            pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+            microdescription=last_case_with_relations.microdescription,
             samples=first_case_samples_schematized,
-            grossing_status=first_case_db.grossing_status,
-            patient_cor_id=first_case_db.patient_id
+            grossing_status=last_case_with_relations.grossing_status,
+            patient_cor_id=last_case_with_relations.patient_id
         )
-    case_owner = await get_case_owner(db=db, case_id=first_case_db.id, doctor_id=current_doctor_id)
+    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientGlassPageResponse(
         all_cases=all_cases_schematized,
         first_case_details_for_glass=first_case_details_for_glass,
@@ -1299,9 +1326,9 @@ async def update_case_microdescription(db: AsyncSession, case_id: str, body: Upd
 
 
 
-
+# case id
 async def get_patient_case_details_for_excision_page(
-    db: AsyncSession, patient_id: str, current_doctor_id: str
+    db: AsyncSession, patient_id: str, current_doctor_id: str, case_id = Optional[str]
 ) -> PatientExcisionPageResponse: #
     """
     Асинхронно получает список всех кейсов пациента и полную детализацию
@@ -1323,10 +1350,14 @@ async def get_patient_case_details_for_excision_page(
     last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
 
     if all_cases_db:
-        last_case_db = all_cases_db[0] 
+        last_case_db = all_cases_db[0]
+        if case_id:
+            first_case_id = case_id
+        else:
+            first_case_id = last_case_db.id  
         last_case_full_info_result = await db.execute(
             select(db_models.Case)
-            .where(db_models.Case.id == last_case_db.id)
+            .where(db_models.Case.id == first_case_id)
             .options(
                 selectinload(db_models.Case.case_parameters), 
                 selectinload(db_models.Case.samples) 
@@ -1364,15 +1395,15 @@ async def get_patient_case_details_for_excision_page(
 
 
             last_case_details_for_excision = LastCaseExcisionDetailsSchema(
-                id=last_case_db.id,
-                case_code=last_case_db.case_code,
-                creation_date=last_case_db.creation_date,
-                pathohistological_conclusion=last_case_db.pathohistological_conclusion,
-                microdescription=last_case_db.microdescription,
+                id=last_case_with_relations.id,
+                case_code=last_case_with_relations.case_code,
+                creation_date=last_case_with_relations.creation_date,
+                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                microdescription=last_case_with_relations.microdescription,
                 case_parameters=case_parameters_schematized,
                 samples=samples_for_excision_page,
-                grossing_status=last_case_db.grossing_status,
-                patient_cor_id=last_case_db.patient_id
+                grossing_status=last_case_with_relations.grossing_status,
+                patient_cor_id=last_case_with_relations.patient_id
             )
 
     case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
@@ -1635,9 +1666,9 @@ async def get_report_by_case_id(
     )
     return general_response
 
-
+# case id
 async def get_patient_report_page_data(
-    db: AsyncSession, patient_id: str, router: APIRouter, current_doctor_id: str
+    db: AsyncSession, patient_id: str, router: APIRouter, current_doctor_id: str, case_id = Optional[str]
 ) -> PatientTestReportPageResponse:
     """
     Получает данные для вкладки "Заключение" на странице врача:
@@ -1661,10 +1692,14 @@ async def get_patient_report_page_data(
 
     if all_cases_db:
         last_case_db = all_cases_db[0]
+        if case_id:
+            first_case_id = case_id
+        else:
+            first_case_id = last_case_db.id 
 
         last_case_full_info_result = await db.execute(
             select(db_models.Case)
-            .where(db_models.Case.id == last_case_db.id)
+            .where(db_models.Case.id == first_case_id)
             .options(
                 selectinload(db_models.Case.case_parameters),
                 selectinload(db_models.Case.report).selectinload(db_models.Report.doctor_diagnoses).options(
@@ -1934,9 +1969,9 @@ async def add_diagnosis_signature(
 
 
 
-
+# case id
 async def get_patient_final_report_page_data(
-    db: AsyncSession, patient_id: str, router: APIRouter, current_doctor_id: str
+    db: AsyncSession, patient_id: str, router: APIRouter, current_doctor_id: str, case_id = Optional[str]
 ) -> PatientFinalReportPageResponse:
     """
     Получает данные для вкладки "Заключение" на странице врача:
@@ -1957,11 +1992,15 @@ async def get_patient_final_report_page_data(
     last_case_details: Optional[CaseModelScheema] = None 
 
     if all_cases_db:
-        last_case_db_summary = all_cases_db[0] 
+        last_case_db_summary = all_cases_db[0]
+        if case_id:
+            first_case_id = case_id
+        else:
+            first_case_id = last_case_db_summary.id 
 
         last_case_full_info_result = await db.execute(
             select(db_models.Case)
-            .where(db_models.Case.id == last_case_db_summary.id)
+            .where(db_models.Case.id == first_case_id)
             .options(
                 selectinload(db_models.Case.case_parameters),
                 selectinload(db_models.Case.report).options( 
