@@ -2140,8 +2140,10 @@ async def _format_final_report_response(
                     report_microdescription=dd_db.report_microdescription, 
                     signature=signature_data
                 ))
-
-    attached_glass_ids = db_report.attached_glass_ids if db_report.attached_glass_ids is not None else []
+    if db_report:
+        attached_glass_ids = db_report.attached_glass_ids if db_report.attached_glass_ids is not None else []
+    else:
+        attached_glass_ids = []
     attached_glasses_schemas: List[GlassModelScheema] = []
     glass_stainings = []
     if attached_glass_ids:
