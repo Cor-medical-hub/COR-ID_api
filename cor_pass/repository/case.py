@@ -3224,6 +3224,9 @@ async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str)
     
     
     case_db.case_owner = None 
+    case_db.grossing_status = db_models.Grossing_status.CREATED
+    await db.commit()
+    await db.refresh(case_db)
 
     await db.commit()
     await db.refresh(case_db)
