@@ -103,10 +103,10 @@
 </div>
 
 <script src="./js/general.js"></script>
-<script src="./COR_ID_Js/general_fun.js"></script>
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
-    const myCorId = decodeToken(localStorage.getItem('access_token'))?.corid
+    const INITIAL_CASE_ID = new URLSearchParams(window.location.search).get('caseId')
+    const myCorId = decodeTokenJWT(localStorage.getItem('access_token'))?.corid
 
     let currentUserCorId = PATIENT_COR_ID || null;
     let currentCaseOwner = null;
@@ -120,6 +120,15 @@
     const reportWrapperNODE = document.querySelector('#reportWrapper')
     const caseContentNODE = document.querySelector("#caseItems");
     const caseLabelNode = document.querySelector('#searchCaseId');
+
+    const changeUrlParams = () => {
+        const url = new URL(window.location);
+        const params = new URLSearchParams(url.search);
+
+        params.set('caseId', currentCase?.id);
+
+        window.history.replaceState(null, '', `${url.pathname}?${params}`);
+    }
 
     const setOwnerInfo = (caseOwner) => {
         const caseIsClosed = currentCase?.grossing_status === "COMPLETED";
@@ -151,12 +160,16 @@
                         },
                     })
                         .then(res => res.json())
-                        .then(() => {
-                            currentCaseOwner = null;
+                        .then(({case_owner}) => {
+                            currentCaseOwner = case_owner;
                             activeGlasses = [];
 
                             setReport(currentReport, currentCase, currentCaseOwner);
                             setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+
+
+                            caseLabelNode.style.color = getCaseColor({grossing_status: "CREATED"})
+                            document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "CREATED"})
                         })
                 })
 
@@ -192,6 +205,9 @@
 
                         setReport(currentReport, currentCase, currentCaseOwner);
                         setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+
+                        caseLabelNode.style.color = getCaseColor({grossing_status: "PROCESSING"})
+                        document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "PROCESSING"})
                     })
             })
 
@@ -336,7 +352,7 @@
     }
     const setAllCases = () => {
         const currentRoutePart = PATIENT_COR_ID ? `patients/${PATIENT_COR_ID}` : `current_cases`;
-        fetch(`${API_BASE_URL}/api/doctor/${currentRoutePart}/report-page-data`, {
+        fetch(`${API_BASE_URL}/api/doctor/${currentRoutePart}/report-page-data?case_id=${INITIAL_CASE_ID || ""}`, {
             method: "GET",
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -345,8 +361,10 @@
             .then(res => res.json())
             .then(cases => {
                 const {all_cases, last_case_for_report, report_details, case_owner, all_glasses_for_last_case} = cases;
+                const activeCaseIndex = all_cases.findIndex(({id}) => id === last_case_for_report.id)
+
                 all_cases.forEach((currentCase, index) => {
-                    caseContentNODE.append(caseTemplate(currentCase, !index))
+                    caseContentNODE.append(caseTemplate(currentCase, activeCaseIndex === index))
                 })
 
                 currentCase = last_case_for_report;
@@ -358,6 +376,7 @@
 
                 setReport(currentReport, currentCase, case_owner);
                 setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                changeUrlParams()
 
                 caseLabelNode.innerHTML = currentCase.case_code
                 caseLabelNode.style.color = getCaseColor(currentCase)
@@ -423,6 +442,7 @@
 
                     setReport(report_details, last_case_for_report, case_owner);
                     setReportGlasses(all_glasses_for_last_case, report_details.attached_glasses)
+                    changeUrlParams()
 
                     caseLabelNode.innerHTML = last_case_for_report.case_code
                     caseLabelNode.style.color = getCaseColor(last_case_for_report)

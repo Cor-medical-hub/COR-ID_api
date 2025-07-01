@@ -172,13 +172,13 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="./COR_ID_Js/general_fun.js"></script>
 <script src="./js/general.js"></script>
 <script src="./js/canvasDraw.js"></script>
 <script src="./js/doctorSignModal.js"></script>
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
-    const myCorId = decodeToken(localStorage.getItem('access_token'))?.corid
+    const INITIAL_CASE_ID = new URLSearchParams(window.location.search).get('caseId')
+    const myCorId = decodeTokenJWT(localStorage.getItem('access_token'))?.corid
 
     let currentUserCorId = PATIENT_COR_ID || null;
     let currentCase = null;
@@ -190,6 +190,15 @@
     const caseLabelNode = document.querySelector('#searchCaseId');
     const doctorSignModalBtnNODE = document.querySelector('#doctorSignModalBtn');
     const closeCaseBtnNODE = document.querySelector('#closeCase');
+
+    const changeUrlParams = () => {
+        const url = new URL(window.location);
+        const params = new URLSearchParams(url.search);
+
+        params.set('caseId', currentCase?.id);
+
+        window.history.replaceState(null, '', `${url.pathname}?${params}`);
+    }
 
     const getMyCurrentDiagnosis = (currentReport) => {
         const myReportData = currentReport.doctor_diagnoses.find(({doctor}) => doctor.doctor_id === myCorId)
@@ -279,7 +288,7 @@
                     getMyCurrentDiagnosis(currentReport)
                     showCloseCaseBtn(currentReport, currentCaseOwner)
                     setOwnerInfo(currentCaseOwner)
-
+                    changeUrlParams()
 
                     caseLabelNode.innerHTML = currentCase.case_code
                     caseLabelNode.style.color = getCaseColor(currentCase)
@@ -466,7 +475,7 @@
                     </section>
                     <hr>
                     <section class="text-section">
-                        <p><strong>Мікроскопічний опис:</strong> ${caseOwnerDiagnosis?.report_microdescription || currentCase.microdescription || ""}</p>
+                        <p><strong>Мікроскопічний опис:</strong> ${currentCase.microdescription || ""}</p>
                     </section>
                     <hr>
                     <section class="text-section">
@@ -549,7 +558,7 @@
     }
     const setAllCases = () => {
         const currentRoutePart = PATIENT_COR_ID ? `patients/${PATIENT_COR_ID}` : `current_cases`
-        fetch(`${API_BASE_URL}/api/doctor/${currentRoutePart}/final-report-page-data?skip=0&limit=100000`, {
+        fetch(`${API_BASE_URL}/api/doctor/${currentRoutePart}/final-report-page-data?skip=0&limit=100000&case_id=${INITIAL_CASE_ID || ""}`, {
             method: "GET",
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -558,8 +567,10 @@
             .then(res => res.json())
             .then(cases => {
                 const {all_cases, report_details, case_owner, last_case_details} = cases;
+                const activeCaseIndex = all_cases.findIndex(({id}) => id === last_case_details.id)
+
                 all_cases.forEach((currentCase, index) => {
-                    caseContentNODE.append(caseTemplate(currentCase, !index))
+                    caseContentNODE.append(caseTemplate(currentCase, activeCaseIndex === index))
                 })
 
                 if(!report_details){
@@ -570,10 +581,12 @@
                 currentReport = report_details;
                 currentCaseOwner = case_owner;
                 currentUserCorId = currentCase.patient_id
+
                 setReport(currentReport, currentCaseOwner)
                 getMyCurrentDiagnosis(currentReport)
                 showCloseCaseBtn(currentReport, currentCaseOwner)
                 setOwnerInfo(currentCaseOwner)
+                changeUrlParams()
 
                 caseLabelNode.innerHTML = currentCase.case_code
                 caseLabelNode.style.color = getCaseColor(currentCase)
@@ -623,12 +636,10 @@
                         },
                     })
                         .then(res => res.json())
-                        .then(() => {
-                            currentCaseOwner = null;
-                            activeGlasses = [];
-
-                            setReport(currentReport, currentCase, currentCaseOwner);
-                            setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                        .then(({case_owner}) => {
+                            setOwnerInfo(case_owner)
+                            caseLabelNode.style.color = getCaseColor({grossing_status: "CREATED"})
+                            document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "CREATED"})
                         })
                 })
 
@@ -650,20 +661,10 @@
                     },
                 })
                     .then(res => res.json())
-                    .then(() => {
-                        currentCaseOwner = {
-                            doctor_id: "153348TN1-1994M",
-                            first_name:"Алексей",
-                            id: "009412bd-bc34-4988-8631-9f407f08f41b",
-                            last_name: "Жовтенко",
-                            middle_name: "Александрович",
-                            phone_number: "+380635890210",
-                            work_email: "zhowtenko.oleksiy_work@gmail.com",
-                            is_case_owner: true,
-                        };
-
-                        setReport(currentReport, currentCase, currentCaseOwner);
-                        setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                    .then(({case_owner}) => {
+                        setOwnerInfo(case_owner)
+                        caseLabelNode.style.color = getCaseColor({grossing_status: "PROCESSING"})
+                        document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "PROCESSING"})
                     })
             })
 

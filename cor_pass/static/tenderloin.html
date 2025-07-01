@@ -94,6 +94,7 @@
 <script src="./js/general.js"></script>
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
+    const INITIAL_CASE_ID = new URLSearchParams(window.location.search).get('caseId')
 
     let currentCase = null;
     let currentUserCorId = PATIENT_COR_ID || null;
@@ -103,6 +104,14 @@
     const tenderloinContentNODE = document.querySelector("#tenderloinContent");
     const caseLabelNode = document.querySelector('#searchCaseId');
 
+    const changeUrlParams = () => {
+        const url = new URL(window.location);
+        const params = new URLSearchParams(url.search);
+
+        params.set('caseId', currentCase?.id);
+
+        window.history.replaceState(null, '', `${url.pathname}?${params}`);
+    }
     const caseTemplate = (workCase, isActive) => {
         const caseNewNODE = document.createElement('div');
         caseNewNODE.classList.add('caseItem', 'df', 'aic', 'jcsb', ...(isActive ? ['active'] : []));
@@ -148,6 +157,7 @@
 
                     setTenderloin(case_details_for_excision)
                     setOwnerInfo(case_owner)
+                    changeUrlParams()
 
                     fetch(`${API_BASE_URL}/api/doctor/patients/${case_details_for_excision.patient_cor_id}`, {
                         method: "GET",
@@ -249,12 +259,10 @@
                         },
                     })
                         .then(res => res.json())
-                        .then(() => {
-                            currentCaseOwner = null;
-                            activeGlasses = [];
-
-                            setReport(currentReport, currentCase, currentCaseOwner);
-                            setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                        .then(({case_owner}) => {
+                            setOwnerInfo(case_owner)
+                            caseLabelNode.style.color = getCaseColor({grossing_status: "CREATED"})
+                            document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "CREATED"})
                         })
                 })
 
@@ -276,20 +284,10 @@
                     },
                 })
                     .then(res => res.json())
-                    .then(() => {
-                        currentCaseOwner = {
-                            doctor_id: "153348TN1-1994M",
-                            first_name:"Алексей",
-                            id: "009412bd-bc34-4988-8631-9f407f08f41b",
-                            last_name: "Жовтенко",
-                            middle_name: "Александрович",
-                            phone_number: "+380635890210",
-                            work_email: "zhowtenko.oleksiy_work@gmail.com",
-                            is_case_owner: true,
-                        };
-
-                        setReport(currentReport, currentCase, currentCaseOwner);
-                        setReportGlasses(currentAllGlasses, currentReport.attached_glasses, currentCaseOwner)
+                    .then(({case_owner}) => {
+                        setOwnerInfo(case_owner)
+                        caseLabelNode.style.color = getCaseColor({grossing_status: "PROCESSING"})
+                        document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "PROCESSING"})
                     })
             })
 
@@ -298,7 +296,7 @@
     }
     const setAllCases = () => {
         const currentRoutePart = PATIENT_COR_ID ? `patients/${PATIENT_COR_ID}` : `current_cases`
-        fetch(`${API_BASE_URL}/api/doctor/${currentRoutePart}/excision-details`, {
+        fetch(`${API_BASE_URL}/api/doctor/${currentRoutePart}/excision-details?case_id=${INITIAL_CASE_ID || ""}`, {
             method: "GET",
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -307,8 +305,10 @@
             .then(res => res.json())
             .then(cases => {
                 const {all_cases, case_owner, last_case_details_for_excision} = cases;
+                const activeCaseIndex = all_cases.findIndex(({id}) => id === last_case_details_for_excision.id)
+
                 all_cases.forEach((currentCase, index) => {
-                    caseContentNODE.append(caseTemplate(currentCase, !index))
+                    caseContentNODE.append(caseTemplate(currentCase, activeCaseIndex === index))
                 })
 
                 if(!last_case_details_for_excision){
@@ -319,6 +319,7 @@
                 currentCase = last_case_details_for_excision;
                 setTenderloin(last_case_details_for_excision)
                 setOwnerInfo(case_owner)
+                changeUrlParams()
 
                 caseLabelNode.innerHTML = last_case_details_for_excision.case_code
                 caseLabelNode.style.color = getCaseColor(last_case_details_for_excision)
