@@ -2157,6 +2157,8 @@ async def _format_final_report_response(
     # concatenated_macro_description = f"{db_case_parameters.macro_description}" if db_case_parameters.macro_description else ""
     report = await get_report_by_case_id(db=db, case_id=case_db.id, router=router, current_doctor_id=current_doctor_id)
     concatenated_macro_description = report.report_details.concatenated_macro_description
+    if db_report:
+        report_date_new = doctor_diagnoses_schematized[0].created_at.date() if db_report.doctor_diagnoses else None
     return FinalReportResponseSchema(
         id=db_report.id if db_report else None,
         case_id=case_db.id,
@@ -2164,7 +2166,7 @@ async def _format_final_report_response(
         
         biopsy_date=case_db.creation_date.date(),
         arrival_date=referral_db.issued_at if referral_db else None,
-        report_date=doctor_diagnoses_schematized[0].created_at.date() if db_report.doctor_diagnoses else None,
+        report_date=report_date_new,
 
         patient_cor_id=patient_db.patient_cor_id,
         patient_first_name=patient_first_name,
