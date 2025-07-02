@@ -1666,9 +1666,9 @@ class CaseOwnershipResponse(BaseModel):
 
 
 class BloodPressureMeasurementCreate(BaseModel):
-    systolic_pressure: int = Field(..., gt=0, description="Систолическое (верхнее) давление")
-    diastolic_pressure: int = Field(..., gt=0, description="Диастолическое (нижнее) давление")
-    pulse: int = Field(..., gt=0, description="Пульс")
+    systolic_pressure: Optional[int] = Field(None, gt=0, description="Систолическое (верхнее) давление")
+    diastolic_pressure: Optional[int] = Field(None, gt=0, description="Диастолическое (нижнее) давление")
+    pulse: Optional[int] = Field(None, gt=0, description="Пульс")
     measured_at: datetime = Field(..., description="Дата и время измерения (с устройства)")
 
     @field_validator('systolic_pressure')
@@ -1700,3 +1700,29 @@ class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
 
     class Config:
         from_attributes = True 
+
+
+class BloodPressureMeasures(BaseModel):
+    sistolic: Optional[int] = Field(None, alias="sistolic") 
+    diastolic: Optional[int] = Field(None, alias="diastolic")
+
+
+class IndividualResult(BaseModel):
+    measures: str | BloodPressureMeasures 
+    member: List[str] 
+
+
+class TonometrIncomingData(BaseModel):
+    created_at: datetime
+    member: List[str] 
+    result: List[IndividualResult]
+
+
+class NewBloodPressureMeasurementResponse(BaseModel):
+    id: str
+    systolic_pressure: Optional[int]
+    diastolic_pressure: Optional[int]
+    pulse: Optional[int]
+    measured_at: datetime
+    user_id: str
+    created_at: datetime
