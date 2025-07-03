@@ -127,6 +127,7 @@
 </div>
 
 <script src="./js/general.js"></script>
+<script src="./js/alert.js"></script>
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
     const INITIAL_CASE_ID = new URLSearchParams(window.location.search).get('caseId')
@@ -145,6 +146,7 @@
     const caseLabelNode = document.querySelector('#searchCaseId');
     const caseMicroDescriptionTextareaNODE = document.querySelector('#caseMicroDescription');
     const casePathohistologicalConclusionTextareaNODE = document.querySelector('#casePathohistologicalConclusion');
+
 
 
     const changeUrlParams = () => {
@@ -195,7 +197,7 @@
             })
                 .then(res => res.json())
                 .then(() => {
-                    alert('Мікро опис успішно оновлений')
+                    showSuccessAlert('Мікро опис успішно оновлений')
                 })
         })
     }
@@ -215,7 +217,7 @@
             })
                 .then(res => res.json())
                 .then(() => {
-                    alert('Заключення успішно створенно')
+                    showSuccessAlert('Заключення успішно створенно')
                 })
         })
     }
@@ -263,6 +265,7 @@
                     caseLabelNode.innerHTML = single_case_for_glass_page.case_code
                     caseLabelNode.style.color = getCaseColor(single_case_for_glass_page)
                     caseMicroDescriptionTextareaNODE.value = single_case_for_glass_page.microdescription || ""
+                    caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
 
                     activeGlasses = []
                     activeGlassCountNode.style.display = "none";
@@ -292,18 +295,35 @@
         return caseNewNODE
     }
     const glassTemplate = (currentGlass) => {
+        const fileUrl = currentGlass?.file_url || "/cases/attachments/eb0f5825-f15e-40d2-bd2c-373690995a87"
+        const currentPaint = glassPaintList.find(({id}) => id === currentGlass.staining);
         const glassNewNODE = document.createElement('div');
-        glassNewNODE.classList.add("glassWrapper");
+        glassNewNODE.classList = `glassWrapper ${!fileUrl ? "disabled" : ""}`;
         glassNewNODE.innerHTML = `
             <div class="glassWrapperImg">
-                <img src="./assets/glassPreview.png" alt="glass">
             </div>
             <div class="glassWrapperText">
-                ${currentGlass.cassette_number} L${currentGlass.glass_number}? ${currentGlass.staining}
+                ${currentGlass.cassette_number} L${currentGlass.glass_number}? ${currentPaint?.short || currentGlass.staining}
             </div>
         `;
 
+        getImages(fileUrl)
+            .then(blob => {
+                if(!blob){
+                    return;
+                }
+
+                const imgNODE = document.createElement('img');
+                imgNODE.src = URL.createObjectURL(blob);
+                imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
+                glassNewNODE.querySelector('.glassWrapperImg').append(imgNODE);
+            })
+
         glassNewNODE.addEventListener("click", () => {
+            if(glassNewNODE.classList.contains('disabled')){
+                return;
+            }
+
             const isActiveGlass =  glassNewNODE.classList.contains('active');
             const actionMethod = isActiveGlass ? "remove" : "add"
 
@@ -329,8 +349,6 @@
         const caseIsClosed = currentCase?.grossing_status === "COMPLETED";
         const hasOwner = caseOwner?.id
         reportOwnerInfoNODE.innerHTML = ""
-
-        console.log(caseOwner, "caseOwner")
 
         if(!caseOwner?.is_case_owner){
             caseMicroDescriptionTextareaNODE.style.pointerEvents = "none"
@@ -371,6 +389,8 @@
                             setOwnerInfo(currentCaseOwner)
                             caseLabelNode.style.color = getCaseColor({grossing_status: "CREATED"})
                             document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "CREATED"})
+                            caseMicroDescriptionTextareaNODE.value = ""
+                            caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
                         })
                 })
 
@@ -398,6 +418,8 @@
                         setOwnerInfo(case_owner)
                         caseLabelNode.style.color = getCaseColor({grossing_status: "PROCESSING"})
                         document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "PROCESSING"})
+                        caseMicroDescriptionTextareaNODE.value = ""
+                        caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
                     })
             })
 
@@ -459,6 +481,7 @@
                 caseLabelNode.innerHTML = first_case_details_for_glass.case_code
                 caseLabelNode.style.color = getCaseColor(first_case_details_for_glass)
                 caseMicroDescriptionTextareaNODE.value = first_case_details_for_glass.microdescription || ""
+                caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
 
                 fetch(`${API_BASE_URL}/api/doctor/patients/${first_case_details_for_glass.patient_cor_id}`, {
                     method: "GET",

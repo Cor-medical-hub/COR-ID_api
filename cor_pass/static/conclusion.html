@@ -103,6 +103,7 @@
 </div>
 
 <script src="./js/general.js"></script>
+<script src="./js/alert.js"></script>
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
     const INITIAL_CASE_ID = new URLSearchParams(window.location.search).get('caseId')
@@ -464,22 +465,38 @@
         return caseNewNODE
     }
     const glassTemplate = (currentGlass, activeGlass, caseOwner) => {
+        const fileUrl = currentGlass?.file_url || "/cases/attachments/eb0f5825-f15e-40d2-bd2c-373690995a87"
         const caseIsClosed = currentCase.grossing_status === "COMPLETED";
         const activeGlassIds = activeGlass.map(({id}) => id)
         const glassNewNODE = document.createElement('div');
-        glassNewNODE.classList = `glassWrapper ${activeGlassIds.includes(currentGlass.id) ? "active" : ""}`;
+        glassNewNODE.classList = `glassWrapper ${activeGlassIds.includes(currentGlass.id) ? "active" : ""} ${!fileUrl ? "disabled" : ""}`;
 
         glassNewNODE.innerHTML = `
             <div class="glassWrapperImg">
-                <img src="./assets/glassPreview.png" alt="glass">
             </div>
             <div class="glassWrapperText">
                 ${currentGlass.cassette_number} ??L0 H&E???
             </div>
         `;
 
+        getImages(fileUrl)
+            .then(blob => {
+                if(!blob){
+                    return;
+                }
+
+                const imgNODE = document.createElement('img');
+                imgNODE.src = URL.createObjectURL(blob);
+                imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
+                glassNewNODE.querySelector('.glassWrapperImg').append(imgNODE);
+            })
+
         if (caseOwner?.is_case_owner && !caseIsClosed) {
             glassNewNODE.addEventListener("click", () => {
+                if(glassNewNODE.classList.contains('disabled')){
+                    return;
+                }
+
                 const isActiveGlass = glassNewNODE.classList.contains('active');
                 const actionMethod = isActiveGlass ? "remove" : "add"
 
@@ -526,7 +543,7 @@
             })
                 .then(res => res.json())
                 .then(() => {
-                    alert('Заключення успішно створенно')
+                    showSuccessAlert('Заключення успішно оновленно')
                 })
 
         })
@@ -540,7 +557,6 @@
     const goToTab = () => {
         document.querySelectorAll(".tabs .tab:not(.active)").forEach(elem => {
             elem.addEventListener('click', e => {
-                console.log(currentCase, "currentCase")
                 const element = e.currentTarget;
                 let queryString = []
 

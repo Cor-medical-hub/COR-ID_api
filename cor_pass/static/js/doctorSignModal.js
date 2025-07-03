@@ -45,7 +45,7 @@ const signFileChange = () => {
                             signTemplate(signs[index], blob)
                         })
 
-                        alert('Файли успішно завантажились22!')
+                        showSuccessAlert('Файли успішно завантажились!')
                     })
             })
     });
@@ -73,7 +73,7 @@ const sendSignFileDraw = () => {
                         })
 
 
-                    alert('Файли успішно завантажились!')
+                    showSuccessAlert('Файли успішно завантажились!')
 
 
 
@@ -178,7 +178,7 @@ const signTemplate = (currentSign, currentSignBlob) => {
 
                 wrapperNODE.remove()
                 checkIsActiveSignButton()
-                alert('Підпіс успішно видаленна')
+                showSuccessAlert('Підпіс успішно видаленна')
             })
     })
 
@@ -246,7 +246,7 @@ const signReport = async (currentDiagnosisId) => {
         .then((res) => {
             modalDoctorSignNODE.classList.remove('open')
             initModal()
-            alert('Підписання пройшло успішно')
+            showSuccessAlert('Підписання пройшло успішно')
             return res
         })
 }

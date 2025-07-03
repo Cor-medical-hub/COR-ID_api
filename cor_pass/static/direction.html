@@ -155,7 +155,6 @@
 
                     currentCase = case_details
                     currentUserCorId = case_details.patient_id
-                    console.log(currentUserCorId, "currentUserCorId")
 
                     caseLabelNode.innerHTML = case_details.case_code
                     caseLabelNode.style.color = getCaseColor(case_details)
@@ -360,7 +359,6 @@
     const goToTab = () => {
         document.querySelectorAll(".tabs .tab:not(.active)").forEach(elem => {
             elem.addEventListener('click', e => {
-                console.log(currentCase, "currentCase")
                 const element = e.currentTarget;
                 let queryString = []
 
