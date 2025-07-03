@@ -2214,13 +2214,19 @@ async def _format_final_report_response(
         report_date_new = doctor_diagnoses_schematized[0].created_at.date() if db_report.doctor_diagnoses else None
     else:
         report_date_new = None
+    if referral_db:
+        if referral_db.biomaterial_date:
+            biomaterial_date = referral_db.biomaterial_date.date()
+        else:
+            biomaterial_date = None
+
     return FinalReportResponseSchema(
         id=db_report.id if db_report else None,
         case_id=case_db.id,
         case_code=case_db.case_code,
-        biopsy_date=referral_db.biomaterial_date if referral_db else None,
+        biopsy_date=biomaterial_date if referral_db else None,
         arrival_date=referral_db.issued_at if referral_db else None,
-        report_date=case_db.closing_date if case_db else None,
+        report_date=case_db.closing_date.date() if case_db.closing_date else None,
 
         patient_cor_id=patient_db.patient_cor_id,
         patient_first_name=patient_first_name,
