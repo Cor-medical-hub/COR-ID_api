@@ -2036,6 +2036,7 @@ async def get_patient_final_report_page_data(
     report_details: Optional[ReportResponseSchema] = None
     last_case_details: Optional[CaseModelScheema] = None 
     case_owner: Optional[CaseOwnerResponse] = None
+    last_case_with_relations: Optional[db_models.Case] = None
 
     if all_cases_db:
         last_case_db_summary = all_cases_db[0]
