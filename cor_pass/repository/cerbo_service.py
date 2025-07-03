@@ -14,7 +14,7 @@ from cor_pass.services.logger import logger
 from pymodbus.client import AsyncModbusTcpClient
 from cor_pass.database.db import async_session_maker
 
-COLLECTION_INTERVAL_SECONDS = 3
+COLLECTION_INTERVAL_SECONDS = 2
 
 # Конфигурация Modbus
 MODBUS_IP = "91.203.25.12"
