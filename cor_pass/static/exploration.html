@@ -173,6 +173,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="./js/general.js"></script>
+<script src="./js/alert.js"></script>
 <script src="./js/canvasDraw.js"></script>
 <script src="./js/doctorSignModal.js"></script>
 <script>
@@ -217,8 +218,6 @@
         const hasAllSigns = currentReport?.doctor_diagnoses.every(({signature}) => !!signature);
         const reportIsClose = currentCase?.grossing_status === "COMPLETED";
 
-        console.log(currentCase, "reportIsClose")
-
         if(currentCaseOwner.is_case_owner && hasAllSigns && !reportIsClose){
             closeCaseBtnNODE.classList.add('open')
             return;
@@ -226,22 +225,6 @@
         closeCaseBtnNODE.classList.remove('open')
     }
 
-    const getImages = async (fileUrl) => {
-        if(!fileUrl){
-            return null
-        }
-
-        return fetch(`${API_BASE_URL}/api${fileUrl}`, {
-            method: "GET",
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-            },
-        })
-            .then(response => response.blob())
-            .then(blob => {
-                return blob
-            })
-    }
     const caseTemplate = (workCase, isActive) => {
         const caseNewNODE = document.createElement('div');
         caseNewNODE.classList.add('caseItem', 'df', 'aic', 'jcsb', ...(isActive ? ['active'] : []));
@@ -315,7 +298,7 @@
         const doctorDiagnoses = currentReport.doctor_diagnoses;
         currentReport.attached_glasses = currentReport.attached_glasses.map(data => ({
             ...data,
-            file_url: "/cases/attachments/85ee8e3c-a912-4d2c-aaa1-875eeda0bd34"
+            file_url: "/cases/attachments/eb0f5825-f15e-40d2-bd2c-373690995a87"
         }))
 
         const caseOwnerDiagnosis = doctorDiagnoses.find(({doctor}) => doctor.doctor_id === caseOwner?.doctor_id)
@@ -478,16 +461,22 @@
                         <p><strong>Мікроскопічний опис:</strong> ${currentCase.microdescription || ""}</p>
                     </section>
                     <hr>
+                    ${immunohistochemicalProfile ? (`
                     <section class="text-section">
                         <p><strong>Імуногістохімічний профіль:</strong> ${immunohistochemicalProfile || ""}</p>
                     </section>
+                    `) : ""}
+                    ${molecularGeneticProfile ? (`
                     <section class="text-section">
                         <p><strong>Молекулярно-генетичний профіль:</strong> ${molecularGeneticProfile || ""}</p>
                     </section>
+                    `) : ""}
+                    ${pathomorphologicalDiagnosis ? (`
                     <section class="text-section">
                         <p><strong>Патогістологічний висновок:</strong> ${pathomorphologicalDiagnosis || ""}</p>
                     </section>
-                    <hr>
+                    `) : ""}
+                    ${(immunohistochemicalProfile || molecularGeneticProfile || pathomorphologicalDiagnosis) && `<hr>`}
                     <section class="text-section">
                         <p><strong>Коментар:</strong> ${caseOwnerDiagnosis?.comment || ""}</p>
                     </section>
@@ -547,7 +536,6 @@
                     if(blob){
                         const reader = new FileReader();
                         reader.onload = function(e) {
-                            console.log(e, "e")
                             div.querySelector('.signoff-left').innerHTML += `${blob ? `<img src="${e.target.result}" alt="signature">` : ""}`
                         };
                         reader.readAsDataURL(blob);
@@ -680,7 +668,6 @@
     const goToTab = () => {
         document.querySelectorAll(".tabs .tab:not(.active)").forEach(elem => {
             elem.addEventListener('click', e => {
-                console.log(currentCase, "currentCase")
                 const element = e.currentTarget;
                 let queryString = []
 
@@ -750,8 +737,14 @@
             })
                 .then(res => res.json())
                 .then(() => {
-                    alert('Дослідження закрите успішно!')
+                    currentCase.grossing_status = "COMPLETED"
+                    showSuccessAlert('Дослідження закрите успішно!')
                     closeCaseBtnNODE.classList.remove('open')
+
+                    document.querySelector('#searchCaseId').style.color = getCaseColor({grossing_status: "COMPLETED"})
+                    document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "COMPLETED"})
+
+                    setOwnerInfo(currentCaseOwner)
                 })
         })
     }

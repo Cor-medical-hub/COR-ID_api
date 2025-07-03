@@ -77,6 +77,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 placeholder: "0",
             },
             {
+                label: "Дата забору біоматеріалу",
+                field: "biomaterial_date",
+                elementType: "input",
+                type: "date",
+            },
+            {
+                label: "Медкарта №",
+                field: "medical_card_number",
+                elementType: "input",
+                type: "text",
+                placeholder: "",
+            },
+            {
                 label: "Клінічні дані",
                 field: "clinical_data",
                 elementType: "textarea",
@@ -121,30 +134,25 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 ]
             },
             {
+                label: "Лікуючий лікар ПІБ",
+                field: "attending_doctor",
+                elementType: "input",
+                type: "text",
+                placeholder: "",
+            },
+            {
                 label: "Контакти лікаря",
                 field: "doctor_contacts",
                 elementType: "input",
                 type: "text",
-                defaultValue: "+380"
+                placeholder: "+380"
             },
             {
                 label: "Медична процедура/операція",
                 field: "medical_procedure",
                 elementType: "input",
                 type: "text",
-            },
-            {
-                label: "Фінальний репорт відправити",
-                field: "final_report_delivery",
-                elementType: "input",
-                type: "email",
-                placeholder: "email@example.com"
-            },
-            {
-                label: "Виданий",
-                field: "issued_at",
-                elementType: "input",
-                type: "date",
+                placeholder: ""
             },
         ]
         const formWrapper = document.querySelector("#caseDirection .directorModalLeft")
@@ -187,7 +195,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 formNODE.innerHTML += `
                 <div class="directorModalFormGroup ${data.required ? "required" : ""}">
                     <label htmlFor="container_count">${data.label} ${data.required ? '<span class="req">*</span>' : ''}</label>
-                    <input id="${data.field}" value="${formDataField || data.defaultValue || ""}" type="${data.type}" name="${data.field}" class="input input-box ${data.required ? 'required' : ''}" placeholder="${data.placeholder}"
+                    <input id="${data.field}" value="${formDataField || data.defaultValue || ""}" type="${data.type}" name="${data.field}" class="input input-box ${data.required ? 'required' : ''}" placeholder="${data.placeholder || ""}"
                            min="1">
                 </div>
                 `
@@ -340,18 +348,21 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     body: JSON.stringify({
                         case_id: cases[lastActiveCaseIndex].id,
                         ...formData,
-                        issued_at: formData.issued_at || null
+                        biomaterial_date: formData.biomaterial_date || null
                     })
                 })
                     .then(res => res.json())
                     .then((referralData) => {
-                        alert('Форму збережено!')
+                        if(!referralData.id){
+                            return showErrorAlert('Щось пішло не так');
+                        }
                         currentReferralId = referralData.id;
 
                         if(uploadedFiles.length){
                             Promise.all([...uploadedFiles].map(sendFileRequest))
                                 .then(res => {
-                                    alert('Файли успішно завантажились!')
+                                    showSuccessAlert('Форму збережено!')
+
 
                                     closeModal()
                                 })
@@ -359,11 +370,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
                             return;
                         }
 
+                        showSuccessAlert('Форму збережено!')
                         closeModal()
+                    })
+                    .catch((e) => {
+                        showErrorAlert(e?.message || "Щось пішло не так")
                     })
             }
             else {
-                alert('Заповніть обов"язкові поля!')
+                showErrorAlert('Заповніть обов"язкові поля!')
             }
         })
 
