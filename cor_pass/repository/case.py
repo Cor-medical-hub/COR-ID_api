@@ -737,7 +737,7 @@ async def get_patient_cases_with_directions(
 
     all_cases = [CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db]
     first_case_direction_details: Optional[FirstCaseReferralDetailsSchema] = None
-    last_case_with_relations = None
+    last_case_with_relations: Optional[db_models.Case] = None
     case_owner: Optional[CaseOwnerResponse] = None
 
     if all_cases_db:
@@ -831,6 +831,7 @@ async def get_patient_case_details_for_glass_page(
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
     report_details = None
     case_owner: Optional[CaseOwnerResponse] = None
+    last_case_with_relations: Optional[db_models.Case] = None
 
     if all_cases_db:
         first_case_db = all_cases_db[0]
@@ -1059,6 +1060,7 @@ async def get_current_cases_glass_details(
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
     report_details: Optional[FinalReportResponseSchema] = None 
     case_owner: Optional[CaseOwnerResponse] = None
+    last_case_with_relations: Optional[db_models.Case] = None
 
     for row in all_current_cases_raw:
         case_id = row.id
@@ -1207,6 +1209,7 @@ async def get_single_case_details_for_glass_page(
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
     report_details = None
     case_owner: Optional[CaseOwnerResponse] = None
+    last_case_with_relations: Optional[db_models.Case] = None
 
     if case_db:
         last_case_full_info_result = await db.execute(
