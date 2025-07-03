@@ -140,7 +140,6 @@ const getShortName = (lastName, firstName, middleName) => {
 }
 
 const getCaseColor = (currentCase) => {
-    console.log(currentCase, "currentCase")
     if(currentCase?.grossing_status === "COMPLETED"){
         return "#49AC26"
     }
