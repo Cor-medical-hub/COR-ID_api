@@ -24,6 +24,7 @@ html.layout-page, body.layout-page {
 }
 
 html, body {
+  margin: 0;
   font-family: 'Montserrat', sans-serif;
   font-size: 16px;
   overflow: hidden;
@@ -31,6 +32,9 @@ html, body {
 
 
 
+* {
+  box-sizing: border-box;
+}
 
 .layout {
   display: flex;
@@ -85,11 +89,12 @@ html, body {
 }
 
 .main{
-  flex:1;
+  height: auto;
   padding:20px 20px;
   display:flex;
   flex-direction:column;
   gap:24px;
+  overflow: visible;
 }
 
 .actions {
@@ -211,12 +216,36 @@ html, body {
 .patients_card{
   background:var(--clr-surface);border:1px solid var(--clr-border);
   border-radius:24px;
-  padding:0;box-shadow:0 6px 12px rgba(0,0,0,.03)
+  padding:0;box-shadow:0 6px 12px rgba(0,0,0,.03);
+  display: flex;
+  flex-direction: column;
+  overflow: auto; 
+  flex: none;          
+  overflow-y: auto;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-.table-wrapper{overflow-x:auto}
 
-table{width:100%;border-collapse:collapse;font-size:14px}
+
+.table-wrapper{overflow-x:auto; flex: none; overflow-y: visible; position: relative;}
+
+.patients_card table thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 2;         
+}
+
+.patients_card table tbody td:nth-child(2) {
+  background: transparent !important;
+}
+
+
+table{width:100%;border-collapse:separate;font-size:16px;
+  width: 100%;
+  border-radius: 24px 24px 0 0;
+  overflow: hidden;
+  background: #F7F7FA;}
 
 thead th{
   background:var(--clr-surface);text-align:left;font-weight:600;color:var(--clr-text-light);
@@ -224,13 +253,21 @@ thead th{
   position:sticky;top:0;z-index:1;cursor:pointer
 }
 
-tbody tr{border-bottom:1px solid var(--clr-border)}
+.patients_card table th,
+.patients_card table td {
+  color: #291161 !important;
+}
+
+.patients_card table th:nth-child(2),
+.patients_card table td:nth-child(2) {
+  font-weight: bold !important;
+}
+
+tbody tr{border-bottom:1px solid var(--clr-border);  cursor: pointer;}
 
 tbody tr:hover{background:rgba(0,0,0,.02)}
 
-tbody td{padding:18px 8px;vertical-align:middle;background:var(--clr-surface-alt)}
-
-tbody tr:nth-child(even) td{background:#fafafa}
+tbody td{padding:18px 8px;vertical-align:middle;background:transparent;}
 
 .avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:12px}
 
