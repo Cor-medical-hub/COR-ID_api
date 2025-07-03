@@ -736,8 +736,9 @@ async def get_patient_cases_with_directions(
     
 
     all_cases = [CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db]
-
     first_case_direction_details: Optional[FirstCaseReferralDetailsSchema] = None
+    last_case_with_relations = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if all_cases_db:
         first_case_db = all_cases_db[0]
@@ -798,7 +799,8 @@ async def get_patient_cases_with_directions(
                 grossing_status=last_case_with_relations.grossing_status,
                 patient_cor_id=last_case_with_relations.patient_id
             )
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientCasesWithReferralsResponse(
         all_cases=all_cases,
         case_details=last_case_with_relations,
@@ -828,6 +830,7 @@ async def get_patient_case_details_for_glass_page(
 
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
     report_details = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if all_cases_db:
         first_case_db = all_cases_db[0]
@@ -923,7 +926,8 @@ async def get_patient_case_details_for_glass_page(
             grossing_status=last_case_with_relations.grossing_status,
             patient_cor_id=last_case_with_relations.patient_id
         )
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:    
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientGlassPageResponse(
         all_cases=all_cases_schematized,
         first_case_details_for_glass=first_case_details_for_glass,
@@ -1054,6 +1058,7 @@ async def get_current_cases_glass_details(
     current_cases_list: List[CaseModelScheema] = []
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
     report_details: Optional[FinalReportResponseSchema] = None 
+    case_owner: Optional[CaseOwnerResponse] = None
 
     for row in all_current_cases_raw:
         case_id = row.id
@@ -1173,7 +1178,8 @@ async def get_current_cases_glass_details(
             grossing_status=last_case_with_relations.grossing_status,
             patient_cor_id=last_case_with_relations.patient_id
         )
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:    
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientGlassPageResponse(
         all_cases=current_cases_list,
         first_case_details_for_glass=first_case_details_for_glass,
@@ -1200,6 +1206,7 @@ async def get_single_case_details_for_glass_page(
     
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
     report_details = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if case_db:
         last_case_full_info_result = await db.execute(
@@ -1291,7 +1298,8 @@ async def get_single_case_details_for_glass_page(
             patient_cor_id = case_db.patient_id,
             microdescription = case_db.microdescription
         )
-    case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
+    if case_db:
+        case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
     return SingleCaseGlassPageResponse(
         single_case_for_glass_page=first_case_details_for_glass,
         case_owner=case_owner,
@@ -1374,6 +1382,7 @@ async def get_patient_case_details_for_excision_page(
     ]
 
     last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if all_cases_db:
         last_case_db = all_cases_db[0]
@@ -1431,8 +1440,8 @@ async def get_patient_case_details_for_excision_page(
                 grossing_status=last_case_with_relations.grossing_status,
                 patient_cor_id=last_case_with_relations.patient_id
             )
-
-    case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
+    if last_case_details_for_excision:
+        case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
     return PatientExcisionPageResponse(
         all_cases=all_cases_schematized,
         last_case_details_for_excision=last_case_details_for_excision,
@@ -1448,6 +1457,7 @@ async def get_single_case_details_for_excision_page(
 ) -> SingleCaseExcisionPageResponse: 
 
     last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     last_case_full_info_result = await db.execute(
         select(db_models.Case)
@@ -1494,7 +1504,8 @@ async def get_single_case_details_for_excision_page(
             grossing_status=last_case_with_relations.grossing_status,
             patient_cor_id = last_case_with_relations.patient_id
         )
-    case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
+    if last_case_details_for_excision:    
+        case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
     return SingleCaseExcisionPageResponse(
         case_details_for_excision=last_case_details_for_excision,
         case_owner=case_owner
@@ -1616,6 +1627,7 @@ async def get_report_by_case_id(
     case_db = case_db.scalar_one_or_none()
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
     report_details = None
+    case_owner: Optional[CaseOwnerResponse] = None
     if case_db:
         last_case_for_report = CaseModelScheema.model_validate(case_db)
 
@@ -1683,7 +1695,8 @@ async def get_report_by_case_id(
             samples=all_samples_for_last_case_schematized,
             grossing_status=case_db.grossing_status 
         )
-    case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
+    if case_db:      
+        case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
     general_response = CaseIDReportPageResponse(
         last_case_for_report=case_db,
         case_owner=case_owner, 
@@ -1715,6 +1728,7 @@ async def get_patient_report_page_data(
     report_details: Optional[ReportResponseSchema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
     first_case_details_for_glass: Optional[FirstCaseTestGlassDetailsSchema] = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if all_cases_db:
         last_case_db = all_cases_db[0]
@@ -1807,7 +1821,8 @@ async def get_patient_report_page_data(
                 samples=all_samples_for_last_case_schematized,
                 grossing_status=last_case_with_relations.grossing_status 
             )
-    case_owner = await get_case_owner(db=db, case_id=last_case_for_report.id, doctor_id=current_doctor_id)
+    if last_case_for_report:          
+        case_owner = await get_case_owner(db=db, case_id=last_case_for_report.id, doctor_id=current_doctor_id)
     return PatientTestReportPageResponse(
         all_cases=all_cases_schematized,
         last_case_for_report=last_case_for_report,
@@ -2020,6 +2035,7 @@ async def get_patient_final_report_page_data(
 
     report_details: Optional[ReportResponseSchema] = None
     last_case_details: Optional[CaseModelScheema] = None 
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if all_cases_db:
         last_case_db_summary = all_cases_db[0]
@@ -2069,7 +2085,8 @@ async def get_patient_final_report_page_data(
                 case_db=last_case_with_relations,
                 current_doctor_id=current_doctor_id
             )
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:        
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientFinalReportPageResponse(
         all_cases=all_cases_schematized,
         last_case_details=last_case_details,
@@ -2242,6 +2259,7 @@ async def get_final_report_by_case_id(
     report_details: Optional[ReportResponseSchema] = None
     last_case_details: Optional[CaseModelScheema] = None 
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
+    case_owner: Optional[CaseOwnerResponse] = None
     last_case_full_info_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.id == case_id)
@@ -2283,7 +2301,8 @@ async def get_final_report_by_case_id(
             case_db=last_case_with_relations,
             current_doctor_id = current_doctor_id
         )
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:    
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return CaseFinalReportPageResponse(
         case_details=last_case_details,
         case_owner=case_owner,
@@ -2432,6 +2451,7 @@ async def get_current_case_details_for_excision_page(
         )
 
     last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if all_current_cases_raw:
         last_case_db = all_current_cases_raw[0] 
@@ -2489,8 +2509,8 @@ async def get_current_case_details_for_excision_page(
                 grossing_status=last_case_with_relations.grossing_status,
                 patient_cor_id=last_case_with_relations.patient_id
             )
-
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientExcisionPageResponse(
         all_cases=current_cases_list,
         last_case_details_for_excision=last_case_details_for_excision,
@@ -2617,6 +2637,7 @@ async def get_current_cases_report_page_data(
     all_current_cases_raw = paginated_results.all()
 
     current_cases_list: List[CaseModelScheema] = []
+    
 
     for row in all_current_cases_raw:
         case_id = row.id
@@ -2648,6 +2669,7 @@ async def get_current_cases_report_page_data(
     report_details: Optional[ReportResponseSchema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
     first_case_details_for_glass: Optional[FirstCaseTestGlassDetailsSchema] = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if all_current_cases_raw:
         last_case_db_summary = all_current_cases_raw[0] 
@@ -2738,7 +2760,8 @@ async def get_current_cases_report_page_data(
                 samples=all_samples_for_last_case_schematized,
                 grossing_status=last_case_with_relations.grossing_status
             )
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:        
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientTestReportPageResponse(
         all_cases=current_cases_list,
         last_case_for_report=last_case_for_report,
@@ -2890,6 +2913,7 @@ async def get_current_cases_with_directions(
 
     first_case_direction_details: Optional[FirstCaseReferralDetailsSchema] = None
     case_details = None
+    case_owner: Optional[CaseOwnerResponse] = None
 
     if all_current_cases_raw:
         first_case_db = all_current_cases_raw[0]
@@ -2950,7 +2974,8 @@ async def get_current_cases_with_directions(
                 grossing_status=last_case_with_relations.grossing_status,
                 patient_cor_id = last_case_with_relations.patient_id
             )
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:         
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientCasesWithReferralsResponse(
         all_cases=current_cases_list,
         case_details=last_case_with_relations,
@@ -3077,6 +3102,7 @@ async def get_current_cases_final_report_page_data(
     last_case_details: Optional[CaseModelScheema] = None
     report_details: Optional[FinalReportResponseSchema] = None 
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
+    case_owner: Optional[CaseOwnerResponse] = None
 
     for row in all_current_cases_raw:
         current_cases_list.append(
@@ -3142,7 +3168,8 @@ async def get_current_cases_final_report_page_data(
                 case_db=last_case_with_relations,
                 current_doctor_id=current_doctor_id
             )
-    case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
+    if last_case_with_relations:
+        case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
     return PatientFinalReportPageResponse(
         all_cases=current_cases_list,
         last_case_details=last_case_details,
