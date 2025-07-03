@@ -337,6 +337,12 @@ async def update_case_parameters(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Кейс з ID '{case_id}' не знайдено, неможливо оновити код."
         )
+    
+    if db_case.grossing_status == db_models.Grossing_status.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_406_NOT_ACCEPTABLE,
+            detail=f"Запрещено редактировать закрытый кейс"
+        )
 
     old_urgency = case_parameters_db.urgency
     old_material_type = case_parameters_db.material_type
@@ -546,6 +552,11 @@ async def update_case_code_suffix(db: AsyncSession, case_id: str, new_suffix: st
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Кейс с ID '{case_id}' не найден."
         )
+    if db_case.grossing_status == db_models.Grossing_status.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_406_NOT_ACCEPTABLE,
+            detail=f"Запрещено редактировать закрытый кейс"
+        )
 
     current_code = db_case.case_code
 
@@ -608,8 +619,7 @@ async def update_referral(db: AsyncSession, db_referral: db_models.Referral, ref
         Обновляет существующее направление в базе данных.
         """
         # Обновляем все поля из referral_in
-        for field, value in referral_in.model_dump(exclude_unset=True).items(): # exclude_unset=True для частичного обновления (Pydantic v2)
-        # Для Pydantic v1: referral_in.dict(exclude_unset=True).items()
+        for field, value in referral_in.model_dump(exclude_unset=True).items(): 
             setattr(db_referral, field, value)
         
         await db.commit()
@@ -621,6 +631,11 @@ async def upsert_referral(db: AsyncSession, referral_data: ReferralCreate, case:
     """
     Обновляет направление, если оно существует для данного case_id, иначе создает новое.
     """
+    if case.grossing_status == db_models.Grossing_status.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_406_NOT_ACCEPTABLE,
+            detail=f"Запрещено редактировать закрытый кейс"
+        )
     existing_referral = await db.execute(
         select(db_models.Referral)
         .where(db_models.Referral.case_id == referral_data.case_id)
@@ -702,16 +717,16 @@ def generate_file_url(file_id: str, case_id: str) -> str:
     return f"/cases/attachments/{file_id}"
 
 
-# case id  - fix
+
 async def get_patient_cases_with_directions(
     db: AsyncSession, patient_id: str, current_doctor_id: str, case_id = Optional[str]
-) -> PatientCasesWithReferralsResponse: # Указываем тип возвращаемого значения
+) -> PatientCasesWithReferralsResponse: 
     """
     Асинхронно получает список всех кейсов пациента и детализацию первого из них:
     все семплы первого кейса, но кассеты и стекла загружаются только для первого семпла.
     Включает ссылки на файлы направлений для первого кейса.
     """
-    # 1. Получаем список всех кейсов пациента, отсортированных по дате создания
+
     cases_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.patient_id == patient_id)
@@ -1296,7 +1311,13 @@ async def update_case_pathohistological_conclusion(db: AsyncSession, case_id: st
         select(db_models.Case).where(db_models.Case.id == case_id)
     )
     case_db = result.scalar_one_or_none()
+    
     if case_db:
+        if case_db.grossing_status == db_models.Grossing_status.COMPLETED:
+            raise HTTPException(
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                detail=f"Запрещено редактировать закрытый кейс"
+            )
         case_db.pathohistological_conclusion = body.pathohistological_conclusion
         await db.commit()
         await db.refresh(case_db)
@@ -1313,6 +1334,11 @@ async def update_case_microdescription(db: AsyncSession, case_id: str, body: Upd
     )
     case_db = result.scalar_one_or_none()
     if case_db:
+        if case_db.grossing_status == db_models.Grossing_status.COMPLETED:
+            raise HTTPException(
+                status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                detail=f"Запрещено редактировать закрытый кейс"
+            )
         case_db.microdescription = body.microdescription
         await db.commit()
         await db.refresh(case_db)
@@ -1810,7 +1836,11 @@ async def create_or_update_report_and_diagnosis(
     )
     if not case_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
-
+    if case_db.grossing_status == db_models.Grossing_status.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_406_NOT_ACCEPTABLE,
+            detail=f"Запрещено редактировать закрытый кейс"
+        )
     report_result = await db.execute(
         select(db_models.Report)
         .where(db_models.Report.case_id == case_id)
@@ -3128,6 +3158,11 @@ async def take_case_ownership(db: AsyncSession, case_id: str, doctor_id: str) ->
     case_db = await db.scalar(select(db_models.Case).where(db_models.Case.id == case_id))
     if not case_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
+    if case_db.grossing_status == db_models.Grossing_status.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_406_NOT_ACCEPTABLE,
+            detail=f"Запрещено редактировать закрытый кейс"
+        )
 
     doctor_db = await db.scalar(select(db_models.Doctor).where(db_models.Doctor.doctor_id == doctor_id))
     if not doctor_db:
@@ -3224,7 +3259,11 @@ async def release_case_ownership(db: AsyncSession, case_id: str, doctor_id: str)
     case_db = await db.scalar(select(db_models.Case).where(db_models.Case.id == case_id))
     if not case_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Кейс с ID '{case_id}' не найден.")
-
+    if case_db.grossing_status == db_models.Grossing_status.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_406_NOT_ACCEPTABLE,
+            detail=f"Запрещено редактировать закрытый кейс"
+        )
     if case_db.case_owner != doctor_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Вы не являетесь владельцем этого кейса и не можете его освободить.")
     

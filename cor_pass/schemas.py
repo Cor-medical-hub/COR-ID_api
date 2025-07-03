@@ -635,33 +635,54 @@ class PaginatedPatientsResponse(BaseModel):
     total: int
 
 
+
 class NewPatientRegistration(BaseModel):
     email: EmailStr = Field(
         ..., description="Email пациента (будет использован для создания пользователя)"
     )
-    surname: str = Field(..., description="Фамилия пациента")
-    first_name: str = Field(..., description="Имя пациента")
+    surname: str = Field(..., min_length=1, description="Фамилия пациента")
+    first_name: str = Field(..., min_length=1, description="Имя пациента")
     middle_name: Optional[str] = Field(None, description="Отчество пациента")
-    birth_date: Optional[date] = Field(None, description="Дата рождения пациента")
-    sex: Optional[str] = Field(
-        None,
+    birth_date: date = Field(..., description="Дата рождения пациента")
+    sex: str = Field(
+        ...,
         max_length=1,
         description="Пол пациента, может быть 'M'(мужской) или 'F'(женский)",
     )
     phone_number: Optional[str] = Field(None, description="Номер телефона пациента")
     address: Optional[str] = Field(None, description="Адрес пациента")
+
+    @field_validator("birth_date")
+    @classmethod
+    def validate_birth_date(cls, v: Optional[date]) -> Optional[date]:
+        if v is None:
+            raise ValueError("Необходимо указать дату рождения")
+
+        min_birth_date = date(1900, 1, 1)
+        current_date = date.today() 
+
+        if v < min_birth_date:
+            raise ValueError("Дата рождения не может быть раньше 1 января 1900 года.")
+
+        if v > current_date:
+            raise ValueError("Дата рождения не может быть в будущем.")
+
+        return v
+    
     # photo: Optional[str] = Field(None, description="Фото пациента (base64 или blob)")
     # status: Optional[str] = Field("registered", description="Начальный статус пациента")
 
     @field_validator("sex")
-    def user_sex_must_be_m_or_f(cls, v):
-        if v not in ["M", "F"]:
-            raise ValueError('user_sex must be "M" or "F"')
-        return v
+    @classmethod 
+    def validate_sex_and_normalize(cls, v: str) -> str: 
+        normalized_v = v.upper() 
+        if normalized_v not in ["M", "F"]:
+            raise ValueError('Пол пациента должен быть "M" или "F".')
+        return normalized_v 
 
 
 class ExistingPatientAdd(BaseModel):
-    cor_id: str = Field(..., description="Cor ID существующего пользователя")
+    cor_id: str = Field(..., min_length=10, max_length=18, description="Cor ID существующего пользователя")
 
 
 # Модели для лабораторных исследований
@@ -1443,18 +1464,6 @@ class SingleCaseExcisionPageResponse(BaseModel):
         
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # Тестовые схемы под репорт
 class GlassTestModelScheema(BaseModel):
     id: str
@@ -1489,17 +1498,10 @@ class FirstCaseTestGlassDetailsSchema(BaseModel):
 
 
 
-
-
-
-
-
-
-
 class LabAssistantCreate(BaseModel):
-    first_name: Optional[str] = Field(None, description="Имя лаборанта")
-    middle_name: Optional[str] = Field(None, description="Отчество лаборанта")
-    last_name: Optional[str] = Field(None, description="Фамилия лаборанта")
+    first_name: Optional[str] = Field(None, min_length=1, max_length=20, description="Имя лаборанта")
+    middle_name: Optional[str] = Field(None, min_length=1, max_length=20, description="Отчество лаборанта")
+    last_name: Optional[str] = Field(None, min_length=1, max_length=20, description="Фамилия лаборанта")
 
     class Config:
         from_attributes = True
@@ -1518,9 +1520,9 @@ class LabAssistantResponse(BaseModel):
 
 
 class EnergyManagerCreate(BaseModel):
-    first_name: Optional[str] = Field(None, description="Имя менеджера энергии")
-    middle_name: Optional[str] = Field(None, description="Отчество менеджера энергии")
-    last_name: Optional[str] = Field(None, description="Фамилия менеджера энергии")
+    first_name: Optional[str] = Field(None, min_length=1, max_length=20, description="Имя менеджера энергии")
+    middle_name: Optional[str] = Field(None, min_length=1, max_length=20, description="Отчество менеджера энергии")
+    last_name: Optional[str] = Field(None, min_length=1, max_length=20, description="Фамилия менеджера энергии")
 
     class Config:
         from_attributes = True
@@ -1565,9 +1567,9 @@ class GetAllPatientsResponce(BaseModel):
 
 
 class LawyerCreate(BaseModel):
-    first_name: str = Field(..., description="Имя менеджера энергии")
-    middle_name: str = Field(..., description="Отчество менеджера энергии")
-    last_name: str = Field(..., description="Фамилия менеджера энергии")
+    first_name: str = Field(..., min_length=1, max_length=20, description="Имя менеджера энергии")
+    middle_name: str = Field(..., min_length=1, max_length=20, description="Отчество менеджера энергии")
+    last_name: str = Field(..., min_length=1, max_length=20, description="Фамилия менеджера энергии")
 
     class Config:
         from_attributes = True
@@ -1694,7 +1696,7 @@ class BloodPressureMeasurementCreate(BaseModel):
             raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
         return self 
 
-# Схема для ответа (то, что ваш API будет возвращать)
+
 class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
     id: str = Field(..., description="Уникальный идентификатор измерения")
     user_id: str = Field(..., description="Идентификатор пользователя, которому принадлежит измерение")
