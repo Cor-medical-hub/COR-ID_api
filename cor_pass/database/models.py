@@ -559,6 +559,7 @@ class Case(Base):
     microdescription = Column(Text, nullable=True)
     general_macrodescription = Column(Text, nullable=True)
     case_owner = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=True)
+    closing_date = Column(DateTime, nullable=True)
 
     samples = relationship(
         "Sample", back_populates="case", cascade="all, delete-orphan"
@@ -668,6 +669,7 @@ class Referral(Base):
     medical_procedure = Column(String, nullable=True, comment="Медицинская процедура")
     final_report_delivery = Column(Text, nullable=True, comment="Финальный репорт отправить")
     issued_at = Column(DateTime, nullable=True, comment="Выдано (дата)")
+    biomaterial_date = Column(DateTime, nullable=True, comment="Дата забора биоматериала")
 
     case = relationship("Case", back_populates="referral") 
 

@@ -1085,6 +1085,7 @@ class ReferralAttachmentCreate(BaseModel):
 
 class ReferralCreate(BaseModel):
     case_id: str = Field(..., description="ID связанного кейса")
+    biomaterial_date: Optional[date] = Field(None, description="Дата забора биоматериала")
     research_type: Optional[StudyType] = Field(None, description="Вид исследования")
     container_count: Optional[int] = Field(None, description="Фактическое количество контейнеров")
     medical_card_number: Optional[str] = Field(None, description="Номер медкарты")
@@ -1104,6 +1105,7 @@ class ReferralResponse(BaseModel):
     case_id: str
     case_number: str
     created_at: datetime
+    biomaterial_date: Optional[date]
     research_type: Optional[StudyType]
     container_count: Optional[int]
     medical_card_number: Optional[str]
@@ -1116,7 +1118,7 @@ class ReferralResponse(BaseModel):
     medical_procedure: Optional[str]
     final_report_delivery: Optional[str]
     issued_at: Optional[date]
-    attachments: List[ReferralAttachmentResponse] = [] # Список прикрепленных файлов
+    attachments: List[ReferralAttachmentResponse] = [] 
 
     class Config:
         from_attributes = True
@@ -1125,7 +1127,7 @@ class ReferralResponseForDoctor(BaseModel):
     case_details: Optional[Case]
     case_owner: Optional[CaseOwnerResponse]
     referral_id: Optional[str] = Field(..., description="Referral ID")
-    attachments: Optional[List[ReferralAttachmentResponse]] = [] # Список прикрепленных файлов
+    attachments: Optional[List[ReferralAttachmentResponse]] = []
     
 
     class Config:
