@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import (
     ARRAY,
     Column,
+    Float,
     Integer,
     String,
     ForeignKey,
@@ -882,5 +883,30 @@ class BloodPressureMeasurement(Base):
         Index("idx_bpm_measured_at", "measured_at"),
     )
 
+
+
+class CerboMeasurement(Base):
+    __tablename__ = "cerbo_measurements" 
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    created_at = Column(DateTime, nullable=False, default=func.now(), comment="Дата и время сохранения записи в БД")
+    measured_at = Column(DateTime, nullable=False, comment="Дата и время измерения, полученное с устройства")
+    object_name: Column[str] = Column(String, nullable=True, index=True) 
+
+    # Данные из battery_status
+    general_battery_power: Column[float] = Column(Float, nullable=False)
+
+    # Данные из inverter_power_status
+    inverter_total_ac_output: Column[float] = Column(Float, nullable=False)
+
+    # Данные из ess_ac_status
+    ess_total_input_power: Column[float] = Column(Float, nullable=False)
+
+    # Данные из solarchargers_status
+    solar_total_pv_power: Column[float] = Column(Float, nullable=False)
+
+    def __repr__(self):
+        return (f"<CerboMeasurement(id={self.id}, measured_at='{self.measured_at}', "
+                f"object_name='{self.object_name}', general_battery_power={self.general_battery_power})>")
 
 # Base.metadata.create_all(bind=engine)

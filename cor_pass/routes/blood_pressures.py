@@ -71,7 +71,6 @@ async def get_pb_measurements(
     """
     Возвращает список всех измерений артериального давления и пульса для текущего пользователя.
     """
-    # Запрос измерений для текущего пользователя, сортировка по убыванию даты измерения
     measurements = await get_measurements(db=db, user=current_user)
     return measurements
 
@@ -107,9 +106,9 @@ async def receive_tonometer_data(
             try:
                 pulse_val = int(result_item.measures)
             except ValueError:
-                print(f"Предупреждение: Не удалось преобразовать пульс '{result_item.measures}' в число. Пропускаем это значение.")
+                logger.debug(f"Не удалось преобразовать пульс '{result_item.measures}' в число")
         else:
-            print(f"Предупреждение: Неизвестный формат measures: {type(result_item.measures)}. Пропускаем это измерение.")
+            logger.debug(f"Неизвестный формат measures: {type(result_item.measures)}")
 
     if systolic_pressure_val is None and diastolic_pressure_val is None and pulse_val is None:
         raise HTTPException(

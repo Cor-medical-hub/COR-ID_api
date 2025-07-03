@@ -253,12 +253,10 @@ async def login(
         db=db,
     )
 
-    # Логируем успешный вход
-    logger.info(
+    logger.debug(
         f"Успешный вход пользователя {user.email} с IP {client_ip} и устройства {device_information.get('device_info')}"
     )
 
-    # Возвращаем ответ
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -337,7 +335,6 @@ async def check_session_status(
         if user.email in settings.eternal_accounts
         else None
     )
-    # Временно увеличиваем срок жизни токенов кор-енерджи
     access_token, access_token_jti = await auth_service.create_access_token(
         data=token_data, expires_delta=expires_delta
     )
@@ -577,7 +574,7 @@ async def refresh_token(
     logger.debug(f"Detected existing_sessions: {device_information["device_info"]} - {existing_sessions}")
     is_valid_session = False
     if device_information["device_type"] == "Mobile":
-        logger.debug(">>> Entered Mobile validation block <<<")
+        # logger.debug(">>> Entered Mobile validation block <<<")
         if not existing_sessions:
             logger.debug(
                 f"existing_sessions for mobile device - {existing_sessions}, need master key"
@@ -592,7 +589,7 @@ async def refresh_token(
                     encrypted_data=session.refresh_token,
                     key=await decrypt_user_key(user.unique_cipher_key),
                 )
-                logger.debug(f"Comparing tokens: received={token} vs decrypted_session={session_token}")
+                # logger.debug(f"Comparing tokens: received={token} vs decrypted_session={session_token}")
                 if session_token == token:
                     is_valid_session = True
                     logger.debug(
@@ -613,7 +610,7 @@ async def refresh_token(
                 detail="Invalid refresh token for this device",
             )
     elif device_information["device_type"] == "Mobile CorEnergy":
-        logger.debug(">>> Entered Mobile CorEnergy validation block <<<")
+        # logger.debug(">>> Entered Mobile CorEnergy validation block <<<")
         if not existing_sessions:
             logger.debug(
                 f"Session not found for this device for cor-energy app"
@@ -628,7 +625,7 @@ async def refresh_token(
                     encrypted_data=session.refresh_token,
                     key=await decrypt_user_key(user.unique_cipher_key),
                 )
-                logger.debug(f"Comparing tokens: received={token} vs decrypted_session={session_token}")
+                # logger.debug(f"Comparing tokens: received={token} vs decrypted_session={session_token}")
                 if session_token == token:
                     is_valid_session = True
                     logger.debug(
@@ -647,7 +644,7 @@ async def refresh_token(
                 detail="Invalid refresh token for this device",
             )
     elif device_information["device_type"] == "MobileCorEnergy":
-        logger.debug(">>> Entered Mobile CorEnergy validation block <<<")
+        # logger.debug(">>> Entered Mobile CorEnergy validation block <<<")
         if not existing_sessions:
             logger.debug(
                 f"Session not found for this device for cor-energy app"
@@ -662,7 +659,7 @@ async def refresh_token(
                     encrypted_data=session.refresh_token,
                     key=await decrypt_user_key(user.unique_cipher_key),
                 )
-                logger.debug(f"Comparing tokens: received={token} vs decrypted_session={session_token}")
+                # logger.debug(f"Comparing tokens: received={token} vs decrypted_session={session_token}")
                 if session_token == token:
                     is_valid_session = True
                     logger.debug(
@@ -681,7 +678,7 @@ async def refresh_token(
                 detail="Invalid refresh token for this device",
             )                                
     elif device_information["device_type"] == "Desktop":
-        logger.debug(">>> Entered Desktop validation block <<<")
+        # logger.debug(">>> Entered Desktop validation block <<<")
         is_valid_session = True
     if is_valid_session:
         # Проверка ролей
