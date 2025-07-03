@@ -596,6 +596,7 @@ async def create_referral(db: AsyncSession, referral_in: ReferralCreate, case: d
     db_referral = db_models.Referral(
         case_id=referral_in.case_id,
         case_number=case.case_code,
+        biomaterial_date=referral_in.biomaterial_date,
         research_type=referral_in.research_type,
         container_count=referral_in.container_count,
         medical_card_number=referral_in.medical_card_number,
@@ -2217,9 +2218,9 @@ async def _format_final_report_response(
         id=db_report.id if db_report else None,
         case_id=case_db.id,
         case_code=case_db.case_code,
-        biopsy_date=case_db.creation_date.date(),
+        biopsy_date=referral_db.biomaterial_date if referral_db else None,
         arrival_date=referral_db.issued_at if referral_db else None,
-        report_date=report_date_new,
+        report_date=case_db.closing_date if case_db else None,
 
         patient_cor_id=patient_db.patient_cor_id,
         patient_first_name=patient_first_name,
@@ -3445,6 +3446,7 @@ async def close_case_service(
                 detail=ErrorCode.DIAGNOSIS_NOT_SIGNED_BY_DOCTOR_NAME.format(doctor_full_name=f"{diagnosis.doctor.first_name} {diagnosis.doctor.last_name}" if diagnosis.doctor else "N/A")
             )
     case_to_close.grossing_status = db_models.Grossing_status.COMPLETED
+    case_to_close.closing_date = datetime.now()
     
     db.add(case_to_close)
     await db.commit()
