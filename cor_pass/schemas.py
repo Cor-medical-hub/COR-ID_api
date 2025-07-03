@@ -9,8 +9,10 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing import List, Optional, Union
+from typing import Generic, List, Optional, TypeVar, Union, Tuple
 from datetime import datetime
+
+from sqlalchemy import UUID
 from cor_pass.database import models
 from cor_pass.database.models import (
     AccessLevel,
@@ -1726,3 +1728,74 @@ class NewBloodPressureMeasurementResponse(BaseModel):
     measured_at: datetime
     user_id: str
     created_at: datetime
+
+
+# Модели для опроса инвертора 
+
+class FullDeviceMeasurementCreate(BaseModel):
+    # Общая информация о измерении
+    measured_at: datetime = Field(..., description="Время измерения")
+    object_name: Optional[str] = Field(None, description="ID устройства, если применимо")
+    
+    # агрегированные данные
+    general_battery_power: float = Field(..., description="Общая мощность батареи") # Изменено на float
+    inverter_total_ac_output: float = Field(..., description="Общая выходная мощность AC инвертора") # Изменено на float
+    ess_total_input_power: float = Field(..., description="Общая входная мощность ESS") # Изменено на float
+    solar_total_pv_power: float = Field(..., description="Общая мощность солнечных панелей") # Изменено на float
+
+    class Config:
+        from_attributes = True
+
+class FullDeviceMeasurementResponse(FullDeviceMeasurementCreate):
+    id: str
+    created_at: datetime
+
+
+class CerboMeasurementResponse(BaseModel):
+    id: str = Field(..., description="Уникальный идентификатор записи") 
+    created_at: datetime = Field(..., description="Дата и время сохранения записи в БД")
+    measured_at: datetime = Field(..., description="Дата и время измерения, полученное с устройства")
+    object_name: Optional[str] = Field(None, description="Имя объекта/устройства")
+    general_battery_power: float = Field(..., description="Мощность батареи")
+    inverter_total_ac_output: float = Field(..., description="Общая выходная мощность инвертора AC")
+    ess_total_input_power: float = Field(..., description="Общая входная мощность ESS AC")
+    solar_total_pv_power: float = Field(..., description="Общая мощность солнечных панелей")
+
+    class Config:
+        from_attributes = True
+
+
+T = TypeVar("T")
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T] = Field(..., description="Список элементов на текущей странице")
+    total_count: int = Field(..., description="Общее количество элементов")
+    page: int = Field(..., description="Текущий номер страницы (начиная с 1)")
+    page_size: int = Field(..., description="Количество элементов на странице")
+    total_pages: int = Field(..., description="Общее количество страниц")
+
+
+# Модель данных для управления ESS
+
+class VebusSOCControl(BaseModel):
+    soc_threshold: int 
+
+class EssAdvancedControl(BaseModel):
+    ac_power_setpoint_fine: int = Field(..., ge=-100000, le=100000)
+
+class GridLimitUpdate(BaseModel):
+    enabled: bool  # True → 1, False → 0
+
+class EssModeControl(BaseModel):
+    switch_position: int = Field(..., ge=1, le=4)
+
+
+class EssPowerControl(BaseModel):
+    ess_power_setpoint_l1: Optional[int] = Field(None, ge=-32768, le=32767)
+    ess_power_setpoint_l2: Optional[int] = Field(None, ge=-32768, le=32767)
+    ess_power_setpoint_l3: Optional[int] = Field(None, ge=-32768, le=32767)
+
+class EssFeedInControl(BaseModel):
+    max_feed_in_l1: Optional[int] = None
+    max_feed_in_l2: Optional[int] = None
+    max_feed_in_l3: Optional[int] = None
