@@ -1789,7 +1789,7 @@ class IndividualResult(BaseModel):
 
 class TonometrIncomingData(BaseModel):
     id: str
-    createdDateTime: datetime.datetime = Field(..., alias="createdDateTime") # Используйте datetime.datetime и alias
+    createdDateTime: datetime = Field(..., alias="createdDateTime") # Используйте datetime.datetime и alias
     recordMemberIds: List[str] = Field(..., alias="recordMemberIds")
     results: List[IndividualResult] # Исправлено на results, как в моке
 
