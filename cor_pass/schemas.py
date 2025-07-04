@@ -1799,7 +1799,7 @@ class TonometrIncomingData(BaseModel):
     member: List[str]
 
     # Поле result в вашем JSON соответствует result в модели
-    result: List[IndividualResult]
+    results: List[IndividualResult]
 
 # Модели для опроса инвертора 
 
