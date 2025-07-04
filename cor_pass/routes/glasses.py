@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from cor_pass.schemas import (
+    ChangeGlassStaining,
     DeleteGlassesRequest,
     DeleteGlassesResponse,
     Glass as GlassModelScheema,
@@ -58,4 +59,17 @@ async def delete_glasses_endpoint(
     """Удаляет несколько стекол по их ID."""
     result = await glass_service.delete_glasses(db=db, glass_ids=request_body.glass_ids)
     return result
+
+
+@router.patch(
+    "/{glass_id}/staining",
+    response_model=GlassModelScheema,
+    dependencies=[Depends(doctor_access)],
+)
+async def change_glass_staining(glass_id: str, body: ChangeGlassStaining, db: AsyncSession = Depends(get_db)):
+    """Получаем информацию о стекле по его ID."""
+    db_glass = await glass_service.change_staining(db=db, glass_id=glass_id, body=body)
+    if db_glass is None:
+        raise HTTPException(status_code=404, detail="Glass not found")
+    return db_glass
 

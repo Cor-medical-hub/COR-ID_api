@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from cor_pass.schemas import Glass as GlassModelScheema
+from cor_pass.schemas import ChangeGlassStaining, Glass as GlassModelScheema
 from typing import Any, Dict, List
 from sqlalchemy.orm import selectinload
 from cor_pass.database import models as db_models
@@ -160,3 +160,18 @@ async def delete_glasses(db: AsyncSession, glass_ids: List[str]) -> Dict[str, An
         response["message"] += f" Стекла с ID {', '.join(not_found_ids)} не найдены."
 
     return response
+
+
+async def change_staining(db: AsyncSession, glass_id: int, body: ChangeGlassStaining) -> GlassModelScheema | None:
+    """Асинхронно получает конкретное стекло, связанное с кассетой по её ID и номеру."""
+    result = await db.execute(
+        select(db_models.Glass).where(db_models.Glass.id == glass_id)
+    )
+    glass_db = result.scalar_one_or_none()
+    if glass_db:
+        glass_db.staining = body.staining_type
+        await db.commit()
+        await db.refresh(glass_db)
+        return GlassModelScheema.model_validate(glass_db)
+        # return glass_db
+    return None
