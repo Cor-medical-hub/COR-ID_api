@@ -711,6 +711,12 @@ class GlassCreate(BaseModel):
     )
     num_glasses: int = Field(default=1, description="Количество создаваемых стекол")
 
+class ChangeGlassStaining(BaseModel):
+    staining_type: StainingType = Field(
+        ...,
+        description="Тип окрашивания для стекла",
+        example=StainingType.HE,
+    )
 
 class Glass(GlassBase):
     id: str
