@@ -1699,13 +1699,7 @@ class CaseOwnershipResponse(BaseModel):
 #         return self 
 
 
-# class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
-#     id: str = Field(..., description="Уникальный идентификатор измерения")
-#     user_id: str = Field(..., description="Идентификатор пользователя, которому принадлежит измерение")
-#     created_at: datetime = Field(..., description="Дата и время записи в БД")
 
-#     class Config:
-#         from_attributes = True 
 
 
 # class BloodPressureMeasures(BaseModel):
@@ -1724,14 +1718,14 @@ class CaseOwnershipResponse(BaseModel):
 #     result: List[IndividualResult]
 
 
-# class NewBloodPressureMeasurementResponse(BaseModel):
-#     id: str
-#     systolic_pressure: Optional[int]
-#     diastolic_pressure: Optional[int]
-#     pulse: Optional[int]
-#     measured_at: datetime
-#     user_id: str
-#     created_at: datetime
+class NewBloodPressureMeasurementResponse(BaseModel):
+    id: str
+    systolic_pressure: Optional[int]
+    diastolic_pressure: Optional[int]
+    pulse: Optional[int]
+    measured_at: datetime
+    user_id: str
+    created_at: datetime
 
 class BloodPressureMeasurementCreate(BaseModel):
     systolic_pressure: Optional[int] = Field(None, gt=0, description="Систолическое (верхнее) давление")
@@ -1762,7 +1756,14 @@ class BloodPressureMeasurementCreate(BaseModel):
         # Если одно или оба значения None, валидация пропускается,
         # так как это опциональные поля, и их отсутствие не является ошибкой для этого валидатора.
         return self
-    
+
+class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
+    id: str = Field(..., description="Уникальный идентификатор измерения")
+    user_id: str = Field(..., description="Идентификатор пользователя, которому принадлежит измерение")
+    created_at: datetime = Field(..., description="Дата и время записи в БД")
+
+    class Config:
+        from_attributes = True     
 # Модель для вложенного объекта типа {"value": 120}
 class MeasureValue(BaseModel):
     value: int
