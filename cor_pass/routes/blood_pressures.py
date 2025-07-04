@@ -127,7 +127,7 @@ async def receive_tonometer_data(
             systolic_pressure=systolic_pressure_val,
             diastolic_pressure=diastolic_pressure_val,
             pulse=pulse_val,
-            measured_at=incoming_data.createdDateTime # Используем createdDateTime из TonometrIncomingData
+            measured_at=incoming_data.created_at 
         )
 
         new_measurement = await create_measurement(db=db, body=measurement_data, user=current_user)
