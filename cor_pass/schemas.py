@@ -1792,29 +1792,20 @@ class BloodPressureMeasures(BaseModel):
             raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
         return self
 
-MeasuresValue = Union[BloodPressureMeasures, str]
+MeasuresValue = str # Ожидаем, что measures всегда приходит как строка (например, "134", "85", "\"81\"")
 
+# --- 2. Модель для элементов 'result' ---
 class IndividualResult(BaseModel):
-    # 'measures' теперь может быть объектом или строкой
-    measures: MeasuresValue
-    # 'member' здесь - это список UUID-подобных строк, связанных с этим конкретным результатом
+    measures: MeasuresValue  # Теперь это строка
     member: List[str]
 
 # --- 3. Основная модель для входящего запроса ---
-
 class TonometrIncomingData(BaseModel):
-    # 'created_at' - дата и время измерения
     created_at: datetime
-    
-    # 'member' - список UUID-подобных строк, кто делал измерение на верхнем уровне
     member: List[str]
-    
-    # 'result' - список IndividualResult
-    results: List[IndividualResult]
-    
-    # Поле 'id' отсутствует в вашем новом запросе, поэтому его можно удалить,
-    # или, если оно потенциально может появиться позже, оставить Optional[str] = None
-    # id: Optional[str] = None
+    results_list: List[IndividualResult] = Field(..., alias="results")
+
+
 
 # Модели для опроса инвертора 
 
