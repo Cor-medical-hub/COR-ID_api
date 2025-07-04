@@ -80,13 +80,13 @@ async def get_pb_measurements(
     "/record",
     response_model=NewBloodPressureMeasurementResponse,
     status_code=status.HTTP_201_CREATED,
-    # dependencies=[Depends(auth_service.get_current_user)], # Раскомментируйте, когда зависимости будут доступны
+    # dependencies=[Depends(auth_service.get_current_user)],
     summary="Принять данные измерения давления от тонометра в реальном формате"
 )
 async def receive_tonometer_data(
     incoming_data: TonometrIncomingData,
-    current_user: User = Depends(auth_service.get_current_user), # Раскомментируйте
-    db: AsyncSession = Depends(get_db) # Раскомментируйте
+    current_user: User = Depends(auth_service.get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Принимает и обрабатывает данные артериального давления и пульса от тонометра
@@ -96,32 +96,44 @@ async def receive_tonometer_data(
     diastolic_pressure_val: Optional[int] = None
     pulse_val: Optional[int] = None
 
-    for result_item in incoming_data.results: # <-- Теперь это 'result' (единственное число)
+    for result_item in incoming_data.results:
+        # Проверяем, является ли 'measures' объектом BloodPressureMeasures
         if isinstance(result_item.measures, BloodPressureMeasures):
-            # Это объект давления
+            # Если это измерение давления, присваиваем значения
             systolic_pressure_val = result_item.measures.sistolic
             diastolic_pressure_val = result_item.measures.diastolic
+            logger.debug(f"Найдено давление: Систолическое={systolic_pressure_val}, Диастолическое={diastolic_pressure_val}")
+        # Проверяем, является ли 'measures' строкой
         elif isinstance(result_item.measures, str):
-            # Это строка, вероятно, пульс
             try:
-                pulse_val = int(result_item.measures)
+                # Пытаемся преобразовать строку в число для пульса
+                pulse_candidate = int(result_item.measures)
+                # Предполагаем, что первое строковое значение - это пульс.
+                # Если может быть несколько пульсов, вам нужно решить, какой использовать.
+                # Пока что просто берем первый найденный.
+                if pulse_val is None: # Берем только первый найденный пульс, чтобы не перезаписывать
+                    pulse_val = pulse_candidate
+                    logger.debug(f"Найден пульс: {pulse_val}")
             except ValueError:
-                logger.warning(f"Не удалось преобразовать значение measures '{result_item.measures}' в число (ожидался пульс).")
+                logger.warning(f"Не удалось преобразовать значение measures '{result_item.measures}' в число (ожидался пульс или другие числовые данные).")
         else:
-            logger.warning(f"Неизвестный тип measures: {type(result_item.measures)} с значением {result_item.measures}")
+            logger.warning(f"Неизвестный тип measures: {type(result_item.measures)} с значением {result_item.measures}. Пропускаем.")
 
-    if systolic_pressure_val is None and diastolic_pressure_val is None and pulse_val is None:
+    if systolic_pressure_val is None or diastolic_pressure_val is None:
+
+        logger.error("Систолическое или диастолическое давление не были найдены во входящих данных, но являются обязательными.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Входящие данные не содержат валидных измерений давления или пульса."
+            detail="Входящие данные не содержат валидных измерений давления (систолического/диастолического)."
         )
 
     try:
         measurement_data = BloodPressureMeasurementCreate(
+            # Теперь мы гарантированно имеем значения давления
             systolic_pressure=systolic_pressure_val,
             diastolic_pressure=diastolic_pressure_val,
-            pulse=pulse_val,
-            measured_at=incoming_data.created_at 
+            pulse=pulse_val, # Может быть None, если не найден
+            measured_at=incoming_data.created_at
         )
 
         new_measurement = await create_measurement(db=db, body=measurement_data, user=current_user)
