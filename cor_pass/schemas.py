@@ -1764,41 +1764,23 @@ class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
 
     class Config:
         from_attributes = True     
-# Модель для вложенного объекта типа {"value": 120}
+
 class MeasureValue(BaseModel):
     value: int
 
-# Обновленная модель BloodPressureMeasures
-# Теперь она ожидает вложенные объекты MeasureValue
 class BloodPressureMeasures(BaseModel):
-    # Используем alias, если в JSON приходят "systolic", "diastolic", "pulse"
-    # но в Python-модели вы хотите использовать snake_case или другое имя
     systolic: Optional[MeasureValue] = Field(None, alias="systolic")
     diastolic: Optional[MeasureValue] = Field(None, alias="diastolic")
-    pulse: Optional[MeasureValue] = Field(None, alias="pulse") # Добавлено поле pulse
+    pulse: Optional[MeasureValue] = Field(None, alias="pulse") 
 
-# Обновленная модель IndividualResult
-# measures теперь может быть либо строкой (если это для пульса, как вы изначально хотели),
-# либо BloodPressureMeasures
 class IndividualResult(BaseModel):
-    # В вашем последнем логе measures - это строка "120", а не BloodPressureMeasures
-    measures: str # Если "measures" всегда строка для этого "старого формата"
-    member: List[str] # В JSON это "member", а не "memberIds"
+    measures: str 
+    member: List[str] 
 
 class TonometrIncomingData(BaseModel):
-    # Поле id отсутствует в вашем входящем JSON, но оно обязательно в модели
-    # Если оно необязательно, сделайте его Optional. Иначе, нужно добавить в JSON.
-    # Сейчас оставляем его обязательным, так как оно было в ваших начальных моках.
-    # Если id должен быть на верхнем уровне, то JSON должен включать "id": "record_123"
-    id: Optional[str] = None # В JSON сейчас отсутствует. Если нужно, чтобы оно приходило, надо добавить его в тело запроса.
-
-    # Поле created_at в вашем JSON соответствует created_at в модели
+    id: Optional[str] = None 
     created_at: datetime
-
-    # Поле member в вашем JSON соответствует member в модели
     member: List[str]
-
-    # Поле result в вашем JSON соответствует result в модели
     results: List[IndividualResult]
 
 # Модели для опроса инвертора 
