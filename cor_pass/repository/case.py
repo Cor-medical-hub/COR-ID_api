@@ -2225,7 +2225,7 @@ async def _format_final_report_response(
         case_id=case_db.id,
         case_code=case_db.case_code,
         biopsy_date=biomaterial_date if referral_db else None,
-        arrival_date=case_db.creation_date,
+        arrival_date=case_db.creation_date.date() if case_db else None,
         report_date=case_db.closing_date.date() if case_db.closing_date else None,
 
         patient_cor_id=patient_db.patient_cor_id,
