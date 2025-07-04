@@ -80,7 +80,7 @@ async def get_pb_measurements(
     "/record",
     response_model=NewBloodPressureMeasurementResponse,
     status_code=status.HTTP_201_CREATED,
-    # dependencies=[Depends(auth_service.get_current_user)],
+    dependencies=[Depends(auth_service.get_current_user)],
     summary="Принять данные измерения давления от тонометра в реальном формате"
 )
 async def receive_tonometer_data(
@@ -88,51 +88,60 @@ async def receive_tonometer_data(
     current_user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Принимает и обрабатывает данные артериального давления и пульса от тонометра
-    в специфическом формате устройства, объединяя их в одну запись.
-    """
     systolic_pressure_val: Optional[int] = None
     diastolic_pressure_val: Optional[int] = None
     pulse_val: Optional[int] = None
 
-    for result_item in incoming_data.results:
-        # Проверяем, является ли 'measures' объектом BloodPressureMeasures
-        if isinstance(result_item.measures, BloodPressureMeasures):
-            # Если это измерение давления, присваиваем значения
-            systolic_pressure_val = result_item.measures.sistolic
-            diastolic_pressure_val = result_item.measures.diastolic
-            logger.debug(f"Найдено давление: Систолическое={systolic_pressure_val}, Диастолическое={diastolic_pressure_val}")
-        # Проверяем, является ли 'measures' строкой
-        elif isinstance(result_item.measures, str):
-            try:
-                # Пытаемся преобразовать строку в число для пульса
-                pulse_candidate = int(result_item.measures)
-                # Предполагаем, что первое строковое значение - это пульс.
-                # Если может быть несколько пульсов, вам нужно решить, какой использовать.
-                # Пока что просто берем первый найденный.
-                if pulse_val is None: # Берем только первый найденный пульс, чтобы не перезаписывать
-                    pulse_val = pulse_candidate
-                    logger.debug(f"Найден пульс: {pulse_val}")
-            except ValueError:
-                logger.warning(f"Не удалось преобразовать значение measures '{result_item.measures}' в число (ожидался пульс или другие числовые данные).")
-        else:
-            logger.warning(f"Неизвестный тип measures: {type(result_item.measures)} с значением {result_item.measures}. Пропускаем.")
+    # Проверяем, что в списке results_list есть достаточно элементов
+    if len(incoming_data.results_list) >= 3:
+        try:
+            # Извлекаем систолическое давление (первый элемент, очищаем от кавычек)
+            clean_systolic_str = incoming_data.results_list[0].measures.strip('"')
+            systolic_pressure_val = int(clean_systolic_str)
+            logger.debug(f"Извлечено систолическое давление: {systolic_pressure_val}")
 
-    if systolic_pressure_val is None or diastolic_pressure_val is None:
+            # Извлекаем диастолическое давление (второй элемент, очищаем от кавычек)
+            clean_diastolic_str = incoming_data.results_list[1].measures.strip('"')
+            diastolic_pressure_val = int(clean_diastolic_str)
+            logger.debug(f"Извлечено диастолическое давление: {diastolic_pressure_val}")
 
-        logger.error("Систолическое или диастолическое давление не были найдены во входящих данных, но являются обязательными.")
+            # Извлекаем пульс (третий элемент, очищаем от кавычек)
+            clean_pulse_str = incoming_data.results_list[2].measures.strip('"')
+            pulse_val = int(clean_pulse_str)
+            logger.debug(f"Извлечен пульс: {pulse_val}")
+
+        except ValueError as e:
+            logger.error(f"Ошибка преобразования строковых мер в число: {e}. Проверьте формат данных (measures: \"123\" или \"\\\"123\\\"\").")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Неверный формат числовых значений в measurements (measures должны быть строками-числами)."
+            )
+        except IndexError:
+            # Эта ошибка маловероятна, так как мы уже проверили len >= 3
+            logger.error("Недостаточно элементов в списке результатов для извлечения давления и пульса.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Неполные данные измерений: ожидалось как минимум 3 значения (систолическое, диастолическое, пульс)."
+            )
+    else:
+        logger.error(f"Ожидалось как минимум 3 элемента в 'results', получено {len(incoming_data.results_list)}. Неполные данные.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Входящие данные не содержат валидных измерений давления (систолического/диастолического)."
+            detail="Неполные данные измерений: ожидалось как минимум 3 значения (систолическое, диастолическое, пульс)."
+        )
+
+    if systolic_pressure_val is None or diastolic_pressure_val is None:
+        logger.error("Систолическое или диастолическое давление не были успешно извлечены из входящих данных.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Не удалось извлечь валидные измерения давления (систолического/диастолического) из запроса."
         )
 
     try:
         measurement_data = BloodPressureMeasurementCreate(
-            # Теперь мы гарантированно имеем значения давления
             systolic_pressure=systolic_pressure_val,
             diastolic_pressure=diastolic_pressure_val,
-            pulse=pulse_val, # Может быть None, если не найден
+            pulse=pulse_val, 
             measured_at=incoming_data.created_at
         )
 
