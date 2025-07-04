@@ -1769,19 +1769,52 @@ class MeasureValue(BaseModel):
     value: int
 
 class BloodPressureMeasures(BaseModel):
-    systolic: Optional[MeasureValue] = Field(None, alias="systolic")
-    diastolic: Optional[MeasureValue] = Field(None, alias="diastolic")
-    pulse: Optional[MeasureValue] = Field(None, alias="pulse") 
+    sistolic: int = Field(..., gt=0, description="Систолическое (верхнее) давление")
+    diastolic: int = Field(..., gt=0, description="Диастолическое (нижнее) давление")
+
+    @field_validator('sistolic')
+    @classmethod
+    def validate_systolic_range(cls, v):
+        if not (50 <= v <= 250):
+            raise ValueError("Систолическое давление должно быть в диапазоне от 50 до 250.")
+        return v
+
+    @field_validator('diastolic')
+    @classmethod
+    def validate_diastolic_range(cls, v):
+        if not (30 <= v <= 150):
+            raise ValueError("Диастолическое давление должно быть в диапазоне от 30 до 150.")
+        return v
+
+    @model_validator(mode='after')
+    def check_diastolic_less_than_systolic(self):
+        if self.diastolic >= self.sistolic:
+            raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
+        return self
+
+MeasuresValue = Union[BloodPressureMeasures, str]
 
 class IndividualResult(BaseModel):
-    measures: str 
-    member: List[str] 
+    # 'measures' теперь может быть объектом или строкой
+    measures: MeasuresValue
+    # 'member' здесь - это список UUID-подобных строк, связанных с этим конкретным результатом
+    member: List[str]
+
+# --- 3. Основная модель для входящего запроса ---
 
 class TonometrIncomingData(BaseModel):
-    id: Optional[str] = None 
+    # 'created_at' - дата и время измерения
     created_at: datetime
+    
+    # 'member' - список UUID-подобных строк, кто делал измерение на верхнем уровне
     member: List[str]
+    
+    # 'result' - список IndividualResult
     results: List[IndividualResult]
+    
+    # Поле 'id' отсутствует в вашем новом запросе, поэтому его можно удалить,
+    # или, если оно потенциально может появиться позже, оставить Optional[str] = None
+    # id: Optional[str] = None
 
 # Модели для опроса инвертора 
 
