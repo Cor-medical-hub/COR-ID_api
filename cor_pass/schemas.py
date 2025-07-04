@@ -1781,18 +1781,25 @@ class BloodPressureMeasures(BaseModel):
 # measures теперь может быть либо строкой (если это для пульса, как вы изначально хотели),
 # либо BloodPressureMeasures
 class IndividualResult(BaseModel):
-    # Если measures может быть только BloodPressureMeasures, уберите Union[str, ...]
-    measures: Union[str, BloodPressureMeasures] # Или просто BloodPressureMeasures, если str не используется
-    memberIds: List[str] = Field(..., alias="memberIds") # Исправлено на memberIds, как в моке
-    id: str
-    isDeleted: bool
-    isScalarResult: bool
+    # В вашем последнем логе measures - это строка "120", а не BloodPressureMeasures
+    measures: str # Если "measures" всегда строка для этого "старого формата"
+    member: List[str] # В JSON это "member", а не "memberIds"
 
 class TonometrIncomingData(BaseModel):
-    id: str
-    createdDateTime: datetime = Field(..., alias="createdDateTime") # Используйте datetime.datetime и alias
-    recordMemberIds: List[str] = Field(..., alias="recordMemberIds")
-    results: List[IndividualResult] # Исправлено на results, как в моке
+    # Поле id отсутствует в вашем входящем JSON, но оно обязательно в модели
+    # Если оно необязательно, сделайте его Optional. Иначе, нужно добавить в JSON.
+    # Сейчас оставляем его обязательным, так как оно было в ваших начальных моках.
+    # Если id должен быть на верхнем уровне, то JSON должен включать "id": "record_123"
+    id: str # В JSON сейчас отсутствует. Если нужно, чтобы оно приходило, надо добавить его в тело запроса.
+
+    # Поле created_at в вашем JSON соответствует created_at в модели
+    created_at: datetime
+
+    # Поле member в вашем JSON соответствует member в модели
+    member: List[str]
+
+    # Поле result в вашем JSON соответствует result в модели
+    result: List[IndividualResult]
 
 # Модели для опроса инвертора 
 
