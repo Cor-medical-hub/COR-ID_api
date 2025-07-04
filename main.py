@@ -192,6 +192,7 @@ async def exception_handler(request: Request, exc: Exception):
 @app.exception_handler(ValueError)
 async def validation_exception_handler(request: Request, exc: ValueError):
     return JSONResponse(
+        logger.error("Произошла ошибка валидации", exc_info=exc),
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": "Произошла ошибка валидации", "error": str(exc)} 
     )
