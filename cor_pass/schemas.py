@@ -1671,6 +1671,68 @@ class CaseOwnershipResponse(BaseModel):
     case_owner: Optional[CaseOwnerResponse]
 
 
+# class BloodPressureMeasurementCreate(BaseModel):
+#     systolic_pressure: Optional[int] = Field(None, gt=0, description="Систолическое (верхнее) давление")
+#     diastolic_pressure: Optional[int] = Field(None, gt=0, description="Диастолическое (нижнее) давление")
+#     pulse: Optional[int] = Field(None, gt=0, description="Пульс")
+#     measured_at: datetime = Field(..., description="Дата и время измерения (с устройства)")
+
+#     @field_validator('systolic_pressure')
+#     @classmethod
+#     def validate_systolic_range(cls, v):
+#         if not (50 <= v <= 250):
+#             raise ValueError("Систолическое давление должно быть в диапазоне от 50 до 250.")
+#         return v
+
+#     @field_validator('diastolic_pressure')
+#     @classmethod
+#     def validate_diastolic_range(cls, v):
+#         if not (30 <= v <= 150):
+#             raise ValueError("Диастолическое давление должно быть в диапазоне от 30 до 150.")
+#         return v
+
+
+#     @model_validator(mode='after') 
+#     def check_diastolic_less_than_systolic(self):
+#         if self.diastolic_pressure >= self.systolic_pressure:
+#             raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
+#         return self 
+
+
+# class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
+#     id: str = Field(..., description="Уникальный идентификатор измерения")
+#     user_id: str = Field(..., description="Идентификатор пользователя, которому принадлежит измерение")
+#     created_at: datetime = Field(..., description="Дата и время записи в БД")
+
+#     class Config:
+#         from_attributes = True 
+
+
+# class BloodPressureMeasures(BaseModel):
+#     sistolic: Optional[int] = Field(None, alias="sistolic") 
+#     diastolic: Optional[int] = Field(None, alias="diastolic")
+
+
+# class IndividualResult(BaseModel):
+#     measures: str | BloodPressureMeasures 
+#     member: List[str] 
+
+
+# class TonometrIncomingData(BaseModel):
+#     created_at: datetime
+#     member: List[str] 
+#     result: List[IndividualResult]
+
+
+# class NewBloodPressureMeasurementResponse(BaseModel):
+#     id: str
+#     systolic_pressure: Optional[int]
+#     diastolic_pressure: Optional[int]
+#     pulse: Optional[int]
+#     measured_at: datetime
+#     user_id: str
+#     created_at: datetime
+
 class BloodPressureMeasurementCreate(BaseModel):
     systolic_pressure: Optional[int] = Field(None, gt=0, description="Систолическое (верхнее) давление")
     diastolic_pressure: Optional[int] = Field(None, gt=0, description="Диастолическое (нижнее) давление")
@@ -1680,59 +1742,56 @@ class BloodPressureMeasurementCreate(BaseModel):
     @field_validator('systolic_pressure')
     @classmethod
     def validate_systolic_range(cls, v):
-        if not (50 <= v <= 250):
+        if v is not None and not (50 <= v <= 250): # Проверка на None
             raise ValueError("Систолическое давление должно быть в диапазоне от 50 до 250.")
         return v
 
     @field_validator('diastolic_pressure')
     @classmethod
     def validate_diastolic_range(cls, v):
-        if not (30 <= v <= 150):
+        if v is not None and not (30 <= v <= 150): # Проверка на None
             raise ValueError("Диастолическое давление должно быть в диапазоне от 30 до 150.")
         return v
 
-
-    @model_validator(mode='after') 
+    @model_validator(mode='after')
     def check_diastolic_less_than_systolic(self):
-        if self.diastolic_pressure >= self.systolic_pressure:
-            raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
-        return self 
+        # Проверяем, что оба значения не None, прежде чем сравнивать
+        if self.diastolic_pressure is not None and self.systolic_pressure is not None:
+            if self.diastolic_pressure >= self.systolic_pressure:
+                raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
+        # Если одно или оба значения None, валидация пропускается,
+        # так как это опциональные поля, и их отсутствие не является ошибкой для этого валидатора.
+        return self
+    
+# Модель для вложенного объекта типа {"value": 120}
+class MeasureValue(BaseModel):
+    value: int
 
-
-class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
-    id: str = Field(..., description="Уникальный идентификатор измерения")
-    user_id: str = Field(..., description="Идентификатор пользователя, которому принадлежит измерение")
-    created_at: datetime = Field(..., description="Дата и время записи в БД")
-
-    class Config:
-        from_attributes = True 
-
-
+# Обновленная модель BloodPressureMeasures
+# Теперь она ожидает вложенные объекты MeasureValue
 class BloodPressureMeasures(BaseModel):
-    sistolic: Optional[int] = Field(None, alias="sistolic") 
-    diastolic: Optional[int] = Field(None, alias="diastolic")
+    # Используем alias, если в JSON приходят "systolic", "diastolic", "pulse"
+    # но в Python-модели вы хотите использовать snake_case или другое имя
+    systolic: Optional[MeasureValue] = Field(None, alias="systolic")
+    diastolic: Optional[MeasureValue] = Field(None, alias="diastolic")
+    pulse: Optional[MeasureValue] = Field(None, alias="pulse") # Добавлено поле pulse
 
-
+# Обновленная модель IndividualResult
+# measures теперь может быть либо строкой (если это для пульса, как вы изначально хотели),
+# либо BloodPressureMeasures
 class IndividualResult(BaseModel):
-    measures: str | BloodPressureMeasures 
-    member: List[str] 
-
+    # Если measures может быть только BloodPressureMeasures, уберите Union[str, ...]
+    measures: Union[str, BloodPressureMeasures] # Или просто BloodPressureMeasures, если str не используется
+    memberIds: List[str] = Field(..., alias="memberIds") # Исправлено на memberIds, как в моке
+    id: str
+    isDeleted: bool
+    isScalarResult: bool
 
 class TonometrIncomingData(BaseModel):
-    created_at: datetime
-    member: List[str] 
-    result: List[IndividualResult]
-
-
-class NewBloodPressureMeasurementResponse(BaseModel):
     id: str
-    systolic_pressure: Optional[int]
-    diastolic_pressure: Optional[int]
-    pulse: Optional[int]
-    measured_at: datetime
-    user_id: str
-    created_at: datetime
-
+    createdDateTime: datetime.datetime = Field(..., alias="createdDateTime") # Используйте datetime.datetime и alias
+    recordMemberIds: List[str] = Field(..., alias="recordMemberIds")
+    results: List[IndividualResult] # Исправлено на results, как в моке
 
 # Модели для опроса инвертора 
 
