@@ -1698,10 +1698,6 @@ class CaseOwnershipResponse(BaseModel):
 #             raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
 #         return self 
 
-
-
-
-
 # class BloodPressureMeasures(BaseModel):
 #     sistolic: Optional[int] = Field(None, alias="sistolic") 
 #     diastolic: Optional[int] = Field(None, alias="diastolic")
@@ -1736,25 +1732,22 @@ class BloodPressureMeasurementCreate(BaseModel):
     @field_validator('systolic_pressure')
     @classmethod
     def validate_systolic_range(cls, v):
-        if v is not None and not (50 <= v <= 250): # Проверка на None
+        if v is not None and not (50 <= v <= 250):
             raise ValueError("Систолическое давление должно быть в диапазоне от 50 до 250.")
         return v
 
     @field_validator('diastolic_pressure')
     @classmethod
     def validate_diastolic_range(cls, v):
-        if v is not None and not (30 <= v <= 150): # Проверка на None
+        if v is not None and not (30 <= v <= 150): 
             raise ValueError("Диастолическое давление должно быть в диапазоне от 30 до 150.")
         return v
 
     @model_validator(mode='after')
     def check_diastolic_less_than_systolic(self):
-        # Проверяем, что оба значения не None, прежде чем сравнивать
         if self.diastolic_pressure is not None and self.systolic_pressure is not None:
             if self.diastolic_pressure >= self.systolic_pressure:
                 raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
-        # Если одно или оба значения None, валидация пропускается,
-        # так как это опциональные поля, и их отсутствие не является ошибкой для этого валидатора.
         return self
 
 class BloodPressureMeasurementResponse(BloodPressureMeasurementCreate):
@@ -1792,14 +1785,12 @@ class BloodPressureMeasures(BaseModel):
             raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
         return self
 
-MeasuresValue = str # Ожидаем, что measures всегда приходит как строка (например, "134", "85", "\"81\"")
+MeasuresValue = str 
 
-# --- 2. Модель для элементов 'result' ---
 class IndividualResult(BaseModel):
-    measures: MeasuresValue  # Теперь это строка
+    measures: MeasuresValue  
     member: List[str]
 
-# --- 3. Основная модель для входящего запроса ---
 class TonometrIncomingData(BaseModel):
     created_at: datetime
     member: List[str]
