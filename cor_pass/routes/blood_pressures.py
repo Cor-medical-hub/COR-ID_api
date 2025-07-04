@@ -80,7 +80,7 @@ async def get_pb_measurements(
     "/record",
     response_model=NewBloodPressureMeasurementResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(auth_service.get_current_user)], 
+    dependencies=[Depends(auth_service.get_current_user)],
     summary="Принять данные измерения давления от тонометра в старом формате"
 )
 async def receive_tonometer_data(
@@ -96,19 +96,25 @@ async def receive_tonometer_data(
     diastolic_pressure_val: Optional[int] = None
     pulse_val: Optional[int] = None
 
-    for result_item in incoming_data.result:
+    # Перебираем results, а не result (исправлено в TonometrIncomingData)
+    for result_item in incoming_data.results:
+        # Проверяем, что measures является объектом BloodPressureMeasures
         if isinstance(result_item.measures, BloodPressureMeasures):
-            if result_item.measures.sistolic is not None:
-                systolic_pressure_val = result_item.measures.sistolic
-            if result_item.measures.diastolic is not None:
-                diastolic_pressure_val = result_item.measures.diastolic
+            if result_item.measures.systolic and result_item.measures.systolic.value is not None:
+                systolic_pressure_val = result_item.measures.systolic.value
+            if result_item.measures.diastolic and result_item.measures.diastolic.value is not None:
+                diastolic_pressure_val = result_item.measures.diastolic.value
+            if result_item.measures.pulse and result_item.measures.pulse.value is not None:
+                pulse_val = result_item.measures.pulse.value
         elif isinstance(result_item.measures, str):
             try:
+                # Если measures может быть строкой для пульса
                 pulse_val = int(result_item.measures)
             except ValueError:
                 logger.debug(f"Не удалось преобразовать пульс '{result_item.measures}' в число")
         else:
-            logger.debug(f"Неизвестный формат measures: {type(result_item.measures)}")
+            logger.debug(f"Неизвестный или неподдерживаемый формат measures: {type(result_item.measures)}")
+
 
     if systolic_pressure_val is None and diastolic_pressure_val is None and pulse_val is None:
         raise HTTPException(
@@ -121,7 +127,7 @@ async def receive_tonometer_data(
             systolic_pressure=systolic_pressure_val,
             diastolic_pressure=diastolic_pressure_val,
             pulse=pulse_val,
-            measured_at=incoming_data.created_at 
+            measured_at=incoming_data.createdDateTime # Используем createdDateTime из TonometrIncomingData
         )
 
         new_measurement = await create_measurement(db=db, body=measurement_data, user=current_user)
@@ -136,4 +142,6 @@ async def receive_tonometer_data(
         )
 
     except Exception as e:
+        import traceback
+        logger.error(f"Ошибка при сохранении объединенного измерения: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Не удалось сохранить объединенное измерение: {e}")
