@@ -24,6 +24,7 @@ async def create_glass(
     cassette_id: str,
     staining_type: db_models.StainingType = db_models.StainingType.HE,
     num_glasses: int = 1,
+    printing: bool = False
 ) -> List[GlassModelScheema]:
     """
     Асинхронно создает указанное количество стекол для существующей кассеты,
@@ -71,6 +72,7 @@ async def create_glass(
             cassette_id=db_cassette.id,
             glass_number=next_glass_number,
             staining=staining_type,
+            is_printed=printing
         )
         db.add(db_glass)
         created_glasses.append(db_glass)
@@ -170,6 +172,21 @@ async def change_staining(db: AsyncSession, glass_id: int, body: ChangeGlassStai
     glass_db = result.scalar_one_or_none()
     if glass_db:
         glass_db.staining = body.staining_type
+        await db.commit()
+        await db.refresh(glass_db)
+        return GlassModelScheema.model_validate(glass_db)
+        # return glass_db
+    return None
+
+async def change_printing_status(db: AsyncSession, glass_id: int, printing: bool) -> GlassModelScheema | None:
+    """Асинхронно получает конкретное стекло, связанное с кассетой по её ID и номеру."""
+    result = await db.execute(
+        select(db_models.Glass).where(db_models.Glass.id == glass_id)
+    )
+    glass_db = result.scalar_one_or_none()
+    if glass_db:
+        if printing:
+            glass_db.is_printed = printing
         await db.commit()
         await db.refresh(glass_db)
         return GlassModelScheema.model_validate(glass_db)

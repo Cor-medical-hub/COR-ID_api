@@ -608,6 +608,7 @@ class Cassette(Base):
     )  # Порядковый номер кассеты в рамках конкретной банки
     comment = Column(String(500), nullable=True)
     glass_count = Column(Integer, default=0)
+    is_printed = Column(Boolean, nullable=True, default=False)
     glass = relationship(
         "Glass", back_populates="cassette", cascade="all, delete-orphan"
     )
@@ -623,6 +624,7 @@ class Glass(Base):
     glass_number = Column(Integer)  # Порядковый номер стекла
     staining = Column(Enum(StainingType), nullable=True)
     glass_data = Column(LargeBinary, nullable=True)
+    is_printed = Column(Boolean, nullable=True, default=False)
     cassette = relationship("Cassette", back_populates="glass")
 
 
