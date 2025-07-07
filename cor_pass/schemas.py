@@ -721,6 +721,7 @@ class ChangeGlassStaining(BaseModel):
 class Glass(GlassBase):
     id: str
     cassette_id: str
+    is_printed: Optional[bool]
 
     class Config:
         from_attributes = True
@@ -785,6 +786,7 @@ class Cassette(CassetteBase):
 class Cassette(CassetteBase):
     id: str
     sample_id: str
+    is_printed: Optional[bool]
     glasses: List[Glass] = []
 
     class Config:

@@ -39,6 +39,7 @@ async def create_cassette(
     db: AsyncSession,
     sample_id: str,
     num_cassettes: int = 1,
+    printing: bool = False
 ) -> Dict[str, Any]:
     """
     Асинхронно создает указанное количество кассет для существующего семпла
@@ -59,7 +60,7 @@ async def create_cassette(
             f"{db_sample.sample_number}{db_sample.cassette_count + 1}"
         )
         db_cassette = db_models.Cassette(
-            sample_id=db_sample.id, cassette_number=next_cassette_number
+            sample_id=db_sample.id, cassette_number=next_cassette_number, is_printed = printing
         )
         db.add(db_cassette)
         created_cassettes_db.append(db_cassette)
@@ -73,6 +74,7 @@ async def create_cassette(
             cassette_id=db_cassette.id,
             glass_number=0,
             staining=db_models.StainingType.HE,
+            is_printed=False
         )
         db.add(db_glass)
         db_sample.glass_count += 1
@@ -174,3 +176,21 @@ async def delete_cassettes(
         response["message"] = f"Успешно удалено {deleted_count} кассет."
 
     return response
+
+
+
+async def change_printing_status(
+    db: AsyncSession, cassette_id: str, printing: bool
+) -> Optional[CassetteModelScheema]:
+    """Меняем статус печати кассеты """
+    result = await db.execute(
+        select(db_models.Cassette).where(db_models.Cassette.id == cassette_id)
+    )
+    cassette_db = result.scalar_one_or_none()
+    if cassette_db:
+        if printing:
+            cassette_db.is_printed = printing
+        await db.commit()
+        await db.refresh(cassette_db)
+        return CassetteModelScheema.model_validate(cassette_db)
+    return None
