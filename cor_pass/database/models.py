@@ -560,6 +560,9 @@ class Case(Base):
     general_macrodescription = Column(Text, nullable=True)
     case_owner = Column(String(36), ForeignKey("doctors.doctor_id"), nullable=True)
     closing_date = Column(DateTime, nullable=True)
+    is_printed_cassette = Column(Boolean, nullable=True, default=False)
+    is_printed_glass = Column(Boolean, nullable=True, default=False)
+    is_printed_qr = Column(Boolean, nullable=True, default=False)
 
     samples = relationship(
         "Sample", back_populates="case", cascade="all, delete-orphan"
@@ -590,6 +593,8 @@ class Sample(Base):
     glass_count = Column(Integer, default=0)
     archive = Column(Boolean, default=False)
     macro_description = Column(Text, nullable=True)
+    is_printed_cassette = Column(Boolean, nullable=True, default=False)
+    is_printed_glass = Column(Boolean, nullable=True, default=False)
 
     case = relationship("Case", back_populates="samples")
     cassette = relationship(
