@@ -8,7 +8,7 @@ from cor_pass.schemas import (
     Glass as GlassModelScheema,
     UpdateSampleMacrodescription,
 )
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import selectinload
 from cor_pass.database import models as db_models
@@ -359,6 +359,115 @@ async def delete_samples(db: AsyncSession, samples_ids: List[str]) -> Dict[str, 
     return response
 
 
+
+async def print_all_sample_cassettes(
+    db: AsyncSession, sample_id: str, printing: bool = False
+) -> Optional[SampleModelScheema]:
+    """
+    Устанавливает статус 'is_printed' для всех кассет данного образца
+    и для флага 'is_printed_cassette' образца.
+    Возвращает обновленные данные образца в виде Pydantic-схемы.
+    """
+    sample_result = await db.execute(
+        select(db_models.Sample)
+        .where(db_models.Sample.id == sample_id)
+        .options(
+            selectinload(db_models.Sample.cassette).selectinload(
+                db_models.Cassette.glass
+            )
+        )
+    )
+    sample_db = sample_result.scalar_one_or_none()
+
+    if not sample_db:
+        return None 
+    sample_db.is_printed_cassette = printing
+    cassettes_to_update = list(sample_db.cassette) if sample_db.cassette else []
+
+    for cassette_db in cassettes_to_update:
+        cassette_db.is_printed = printing
+
+    def sort_cassettes(cassette):
+        match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+        if match:
+            letter_part = match.group(1)
+            number_part = int(match.group(2))
+            return (letter_part, number_part)
+        return (cassette.cassette_number, 0) 
+
+
+    sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+
+
+    sample_schema = SampleModelScheema.model_validate(sample_db)
+    sample_schema.cassettes = [] 
+
+    for cassette_db in sorted_cassettes_db:
+        cassette_schema = CassetteModelScheema.model_validate(cassette_db)
+        cassette_schema.glasses = sorted(
+            [GlassModelScheema.model_validate(glass_db) for glass_db in cassette_db.glass],
+            key=lambda glass_s: glass_s.glass_number
+        )
+        sample_schema.cassettes.append(cassette_schema)
+
+    await db.commit()
+    await db.refresh(sample_db) 
+    return sample_schema
+
+
+
+async def print_all_sample_glasses(
+    db: AsyncSession, sample_id: str, printing: bool = False
+) -> Optional[SampleModelScheema]:
+    sample_result = await db.execute(
+        select(db_models.Sample)
+        .where(db_models.Sample.id == sample_id)
+        .options(
+            selectinload(db_models.Sample.cassette).selectinload(
+                db_models.Cassette.glass
+            )
+        )
+    )
+    sample_db = sample_result.scalar_one_or_none()
+
+    if not sample_db:
+        return None
+
+    sample_db.is_printed_glass = printing
+
+    glasses_to_update: List[db_models.Glass] = []
+    for cassette_db in sample_db.cassette:
+        glasses_to_update.extend(cassette_db.glass)
+
+    for glass_db in glasses_to_update:
+        glass_db.is_printed = printing
+
+    def sort_cassettes(cassette):
+        match = re.match(r"([A-Z]+)(\d+)", cassette.cassette_number)
+        if match:
+            letter_part = match.group(1)
+            number_part = int(match.group(2))
+            return (letter_part, number_part)
+        return (cassette.cassette_number, 0)
+
+    sample_schema = SampleModelScheema.model_validate(sample_db)
+    
+    sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
+    sample_schema.cassettes = [] 
+
+    for cassette_db in sorted_cassettes_db:
+        cassette_schema = CassetteModelScheema.model_validate(cassette_db)
+        
+        cassette_schema.glasses = sorted(
+            [GlassModelScheema.model_validate(glass_db) for glass_db in cassette_db.glass],
+            key=lambda glass_s: glass_s.glass_number
+        )
+        sample_schema.cassettes.append(cassette_schema)
+
+    await db.commit()
+    await db.refresh(sample_db) 
+
+    return sample_schema
 
 async def _create_single_sample_with_dependencies(
     db: AsyncSession, case_id: str, sample_char: str

@@ -815,6 +815,8 @@ class Sample(SampleBase):
     id: str
     case_id: str
     macro_description: Optional[str] = None
+    is_printed_cassette: Optional[bool]
+    is_printed_glass: Optional[bool]
     cassettes: List[Cassette] = []
 
     class Config:
@@ -908,6 +910,9 @@ class Case(BaseModel):
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
     grossing_status: Optional[str] = None
+    is_printed_cassette: Optional[bool] 
+    is_printed_glass: Optional[bool] 
+    is_printed_qr: Optional[bool] 
 
     class Config:
         from_attributes = True
@@ -972,8 +977,14 @@ class CaseDetailsResponse(BaseModel):
     glass_count: int
     pathohistological_conclusion: Optional[str] = None
     microdescription: Optional[str] = None
+    is_printed_cassette: Optional[bool] 
+    is_printed_glass: Optional[bool] 
+    is_printed_qr: Optional[bool] 
     samples: List[SampleWithoutCassettesSchema | Sample]
     # case_owner: Optional[DoctorResponseForSignature] = None
+
+    class Config:
+        from_attributes = True
 
 
 
