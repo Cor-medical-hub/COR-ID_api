@@ -361,7 +361,7 @@ async def delete_samples(db: AsyncSession, samples_ids: List[str]) -> Dict[str, 
 
 
 async def print_all_sample_cassettes(
-    db: AsyncSession, sample_id: str, printing: bool = False
+    db: AsyncSession, sample_id: str, printing: bool
 ) -> Optional[SampleModelScheema]:
     """
     Устанавливает статус 'is_printed' для всех кассет данного образца
@@ -417,7 +417,7 @@ async def print_all_sample_cassettes(
 
 
 async def print_all_sample_glasses(
-    db: AsyncSession, sample_id: str, printing: bool = False
+    db: AsyncSession, sample_id: str, printing: bool
 ) -> Optional[SampleModelScheema]:
     sample_result = await db.execute(
         select(db_models.Sample)

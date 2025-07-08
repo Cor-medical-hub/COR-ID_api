@@ -3602,7 +3602,7 @@ async def get_case_owner(db: AsyncSession, case_id: str, doctor_id: str) -> Case
 
 
 async def print_all_case_glasses(
-    db: AsyncSession, case_id: str, printing: bool = False
+    db: AsyncSession, case_id: str, printing: bool
 ) -> Optional[Dict[str, Any]]: 
     """
     Печатает все стёкла кейса, используя жадную загрузку для всех уровней.
@@ -3660,7 +3660,7 @@ async def print_all_case_glasses(
 
 
 async def print_all_case_cassette(
-    db: AsyncSession, case_id: str, printing: bool = False
+    db: AsyncSession, case_id: str, printing: bool
 ) -> Optional[Dict[str, Any]]: 
     """
     Печатает все кассеты кейса, используя жадную загрузку для всех уровней.
@@ -3695,7 +3695,7 @@ async def print_all_case_cassette(
 
 
 async def print_case_qr(
-    db: AsyncSession, case_id: str, printing: bool = False
+    db: AsyncSession, case_id: str, printing: bool
 ) -> Optional[Dict[str, Any]]: 
     """
     Печатает куар кейса

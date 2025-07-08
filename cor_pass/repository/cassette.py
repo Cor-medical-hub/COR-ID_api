@@ -188,8 +188,7 @@ async def change_printing_status(
     )
     cassette_db = result.scalar_one_or_none()
     if cassette_db:
-        if printing:
-            cassette_db.is_printed = printing
+        cassette_db.is_printed = printing
         await db.commit()
         await db.refresh(cassette_db)
         return CassetteModelScheema.model_validate(cassette_db)

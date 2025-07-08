@@ -185,8 +185,7 @@ async def change_printing_status(db: AsyncSession, glass_id: int, printing: bool
     )
     glass_db = result.scalar_one_or_none()
     if glass_db:
-        if printing:
-            glass_db.is_printed = printing
+        glass_db.is_printed = printing
         await db.commit()
         await db.refresh(glass_db)
         return GlassModelScheema.model_validate(glass_db)
