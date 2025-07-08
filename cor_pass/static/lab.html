@@ -194,7 +194,7 @@
                              style="background: #B2AFBA">
                             <img src="./assets/plusCircle.svg" alt="plusCircle">
                         </div>
-                        <div class="actionButton borderLeftNone print" style="background: #B2AFBA"   data-help-text="Додати і роздрукувати касету">
+                        <div class="actionButton borderLeftNone print" style="background: #B2AFBA" id="createCassetteAndPrint"  data-help-text="Додати і роздрукувати касету">
                             <img src="./assets/print.svg" alt="print">
                         </div>
                     </div>
@@ -318,7 +318,6 @@
     }
 </script>
 <script>
-
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
     let cases = []
 
@@ -342,6 +341,85 @@
     const countOfCassetteInputNODE = document.querySelector('#countOfCassette')
 
     const macroDescriptionTextareaNODE = document.querySelector('#sampleMacroDescription')
+
+    const changeGlassPaint = (glassId, glassPaint) => {
+        fetch(`${API_BASE_URL}/api/glasses/${glassId}/staining`, {
+            method: "PATCH",
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                staining_type: glassPaint
+            })
+        })
+            .then(res => res.json())
+            .then(() => {
+                showSuccessAlert(`Окрас скельця успішно зміненно`)
+            })
+    }
+    const getGlassPaintPicker  = (elementNODE, parentWrapperQUERY, btnWrapperQUERY, callback) => {
+        const currentGlassPickerNODE = elementNODE.closest(parentWrapperQUERY).querySelector('.glassPicker');
+
+        if(currentGlassPickerNODE){
+            currentGlassPickerNODE.remove()
+            return;
+        }
+
+        const closeOutOfPopup = (e) => {
+            if(!e.target.closest('.glassPicker') && !e.target.closest(btnWrapperQUERY)){
+                div.remove()
+                document.removeEventListener('click', closeOutOfPopup)
+            }
+        }
+
+        const {top, right, bottom, left}  = elementNODE.getBoundingClientRect();
+        const div = document.createElement('div');
+        let bottomValue = "initial";
+        let topValue = top + elementNODE.clientHeight;
+        let leftValue = left - 7;
+        let heightValue = window.innerHeight - topValue - 30;
+        topValue = `${topValue}px`
+        div.classList = "glassPicker"
+
+        if(heightValue < 250){
+            const bottomOffset = window.innerHeight - bottom;
+            bottomValue = bottomOffset + elementNODE.clientHeight + 15;
+            heightValue = window.innerHeight - bottomValue - 30 - 10
+            bottomValue = `${bottomValue}px`
+            topValue = "initial"
+        }
+
+        div.style.bottom = `${bottomValue}`;
+        div.style.top = `${topValue}`;
+        div.style.left = `${leftValue}px`;
+        div.style.height = `${heightValue}px`
+        elementNODE.closest(parentWrapperQUERY).prepend(div)
+
+
+        glassPaintList.forEach( glassPaint => {
+            const currentPaintId = div.closest(parentWrapperQUERY).dataset.glassPaintId
+            const glassDiv = document.createElement('div');
+            glassDiv.classList = `glassPickerList ${currentPaintId === glassPaint.id ? "active" : ""}`
+            glassDiv.innerHTML = glassPaint.name
+
+            glassDiv.addEventListener('click', (e) => {
+                if(callback){
+                    callback(glassPaint.id)
+                }
+
+                glassDiv.closest(parentWrapperQUERY).setAttribute('data-glass-paint-id', glassPaint.id)
+                elementNODE.querySelector('.glassPaintValue').innerHTML = glassPaint.short
+                div.remove()
+
+                document.removeEventListener('click', closeOutOfPopup)
+            })
+
+            div.append(glassDiv)
+        })
+
+        document.addEventListener('click', closeOutOfPopup)
+    }
 
     const scrollContent = (e, contentNODESelector, arrowsNODESelector, paginationUpDown = true, currentPaginationPage) => {
         const elem = e?.currentTarget;
@@ -549,6 +627,91 @@
 
     }
 
+    const createCassetteHandler = async (data, query = "") => {
+        return fetch(`${API_BASE_URL}/api/cassettes/create${query}`, {
+            method: "POST",
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+            .then(res => res.json())
+            .then(newCassettes => {
+                const currentSamples = cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex];
+
+                cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes = [
+                    ...cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes,
+                    ...newCassettes,
+                ];
+                cases[lastActiveCaseIndex].cassette_count += +countOfCassetteInputNODE.value;
+                cases[lastActiveCaseIndex].glass_count += +countOfCassetteInputNODE.value;
+                cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassette_count += +countOfCassetteInputNODE.value;
+                cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].glass_count += +countOfCassetteInputNODE.value;
+
+                let currentCassettesList = currentSamples.cassettes;
+
+                cassetteContentNODE.innerHTML = "";
+
+                currentCassettesList.forEach((cassette, index) => {
+                    cassetteContentNODE.append(cassetteTemplate(cassette, currentSamples.label, index))
+                })
+
+
+                setPathomorphologyTemplate(lastActiveCaseIndex, lastActiveSpecimenIndex)
+
+                countOfCassetteInputNODE.setAttribute('data-delete-count', currentCassettesList.length - 1)
+
+
+                cassettePageIndex = scrollContent(null, "#cassetteItems", "#cassetteItemsScroll", false, 0)
+                glassPageIndex = scrollContent(null, ".glassItems", "#glassItemsScroll", true, 0)
+                createOrDeleteGlassHandler()
+                changeEntityCountHandler("#cassetteItems .counter input")
+                changeItemCountOnEntity()
+                showSuccessAlert(`Касет${+countOfCassetteInputNODE.value>1 ? "и" : "а"} успішно ствернн${+countOfCassetteInputNODE.value>1 ? "і" : "а"}`)
+
+                countOfCassetteInputNODE.value = 1;
+
+                return newCassettes
+            })
+    }
+    const createGlassHandler = async (elem, cassetteIndex, data, query = "") => {
+        const countOfGlassInput = elem.querySelector('.counterInput')
+
+        fetch(`${API_BASE_URL}/api/glasses/create${query}`, {
+            method: "POST",
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+            .then(res => res.json())
+            .then(newGlasses => {
+                cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes[cassetteIndex].glasses = [
+                    ...cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes[cassetteIndex].glasses,
+                    ...newGlasses,
+                ];
+                cases[lastActiveCaseIndex].glass_count += +countOfGlassInput.value;
+                cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].glass_count += +countOfGlassInput.value;
+
+                const glassContentNODE = elem.nextElementSibling;
+
+                newGlasses.forEach((glass) => {
+                    glassContentNODE.append(glassTemplate(glass))
+                })
+
+                glassContentNODE
+                    .closest('.cassetteColumn')
+                    .querySelector('.counterInput')
+                    .setAttribute('data-delete-count', cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes[cassetteIndex].glasses.length - 1)
+                changeItemCountOnEntity()
+                glassPageIndex = scrollContent(null, ".glassItems", "#glassItemsScroll", true, 0)
+                showSuccessAlert(`Скельц${+countOfGlassInput.value > 1 ? "я" : "е"} успішно ствернн${+countOfGlassInput.value>1 ? "і" : "е"}`)
+                countOfGlassInput.value = 1;
+            })
+    }
+
     //ENTITY HTML TEMPLATES
     const caseTemplate = (currentCase, isActive) => {
         const caseNewNODE = document.createElement('div');
@@ -575,30 +738,79 @@
                             <div class="infoPlate qr">
                                 QR
                             </div>
-                            <div data-help-text="Роздрукувати QR код дослідженням">
-                                <img src="./assets/print.svg" alt="print">
+                            <div class="casePrintQR" data-help-text="Роздрукувати QR код дослідженням">
+                                <img src="./assets/${currentCase.is_printed_qr ? "printActive" : "print"}.svg" alt="print">
                             </div>
                         </div>
                         <div class="df aic fdc">
                             <div class="infoPlate cassette">
                                 ${currentCase.cassette_count}
                             </div>
-                            <div data-help-text="Роздрукувати всі касети дослідження">
-                                <img src="./assets/print.svg" alt="print">
+                            <div class="casePrintCassette" data-help-text="Роздрукувати всі касети дослідження">
+                                <img src="./assets/${currentCase.is_printed_cassette ? "printActive" : "print"}.svg" alt="print">
                             </div>
                         </div>
                         <div class="df aic fdc">
                             <div class="infoPlate glass">
                                 ${currentCase.glass_count}
                             </div>
-                            <div data-help-text="Роздрукувати всі скельця дослідження">
-                                <img src="./assets/print.svg" alt="print">
+                            <div class="casePrintGlass" data-help-text="Роздрукувати всі скельця дослідження">
+                                <img src="./assets/${currentCase.is_printed_glass ? "printActive" : "print"}.svg" alt="print">
                             </div>
                         </div>
                     </div>
         `
 
         helpTextShowHendler(caseNewNODE)
+
+        caseNewNODE.querySelector('.casePrintQR').addEventListener('click', (e) => {
+            const elem = e.currentTarget;
+
+             fetch(`${API_BASE_URL}/api/cases/${currentCase.id}/print_qr?printing=true`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+            })
+                .then(res => res.json())
+                .then(() => {
+                    showSuccessAlert("QR дослідження раздрукованно")
+                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                })
+        })
+        caseNewNODE.querySelector('.casePrintCassette').addEventListener('click', (e) => {
+            const elem = e.currentTarget;
+
+             fetch(`${API_BASE_URL}/api/cases/${currentCase.id}/print_cassettes?printing=true`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+            })
+                .then(res => res.json())
+                .then(() => {
+                    showSuccessAlert("Касети дослідження раздрукованно")
+                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                })
+        })
+        caseNewNODE.querySelector('.casePrintGlass').addEventListener('click', (e) => {
+            const elem = e.currentTarget;
+
+             fetch(`${API_BASE_URL}/api/cases/${currentCase.id}/print_glasses?printing=true`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+            })
+                .then(res => res.json())
+                .then(() => {
+                    showSuccessAlert("Скельця дослідження раздрукованно")
+                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                })
+        })
 
         caseNewNODE.addEventListener("click", () => {
             fetch(`${API_BASE_URL}/api/cases/${currentCase.id}`, {
@@ -638,16 +850,16 @@
                             <div class="infoPlate cassette">
                                 ${currentSpecimen.cassette_count}
                             </div>
-                            <div data-help-text="Роздрукувати всі касети зразка">
-                                <img src="./assets/print.svg" alt="print">
+                            <div class="specimenPrintCassette" data-help-text="Роздрукувати всі касети зразка">
+                                <img src="./assets/${currentSpecimen.is_printed_cassette ? "printActive" : "print"}.svg" alt="print">
                             </div>
                         </div>
                         <div class="df aic fdc">
                             <div class="infoPlate glass">
                                 ${currentSpecimen.glass_count}
                             </div>
-                            <div data-help-text="Роздрукувати всі скельця зразка">
-                                <img src="./assets/print.svg" alt="print">
+                            <div class="specimenPrintGlass" data-help-text="Роздрукувати всі скельця зразка">
+                                <img src="./assets/${currentSpecimen.is_printed_glass ? "printActive" : "print"}.svg" alt="print">
                             </div>
                         </div>
                     </div>
@@ -655,6 +867,39 @@
 
         helpTextShowHendler(specimenNewNODE)
 
+        specimenNewNODE.querySelector('.specimenPrintGlass').addEventListener('click', (e) => {
+            const elem = e.currentTarget;
+
+             fetch(`${API_BASE_URL}/api/samples/${currentSpecimen.id}/print_glasses?printing=true`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+            })
+                .then(res => res.json())
+                .then(() => {
+                    showSuccessAlert("Скельця зразка раздрукованно")
+                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                })
+        })
+
+        specimenNewNODE.querySelector('.specimenPrintCassette').addEventListener('click', (e) => {
+            const elem = e.currentTarget;
+
+            fetch(`${API_BASE_URL}/api/samples/${currentSpecimen.id}/print_cassettes?printing=true`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+            })
+                .then(res => res.json())
+                .then(() => {
+                    showSuccessAlert("Касети зразка раздрукованно")
+                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                })
+        })
 
         specimenNewNODE.addEventListener("click", () => {
             fetch(`${API_BASE_URL}/api/samples/${currentSpecimen.id}`, {
@@ -673,6 +918,7 @@
                     setPathomorphologyTemplate(lastActiveCaseIndex, currentSpecimenIndex)
                 })
         });
+
         specimenNewNODE.querySelector('.specimenItemArchive').addEventListener('click', (e) => {
             e.stopPropagation()
             const samplesIndex = cases[lastActiveCaseIndex].samples.findIndex(({id}) => id === currentSpecimen.id)
@@ -700,8 +946,6 @@
         return specimenNewNODE
     }
     const cassetteTemplate = (currentCassette, label, index) => {
-        const glassesTemplate = currentCassette.glasses.map((glass) => glassTemplate(glass)).join('')
-
         const cassetteColumnNODE = document.createElement('div');
         cassetteColumnNODE.classList.add("cassetteColumn")
         cassetteColumnNODE.innerHTML = `
@@ -713,7 +957,7 @@
                         <div class="cassetteComment" data-help-text="Коментар">
                             <img src="./assets/${currentCassette.comment?.length ? "commentActive" : "comment"}.svg" alt="comment">
                         </div>
-                        <div class="cassettePrint" data-help-text="Друг касети"><img src="./assets/print.svg" alt="print"></div>
+                        <div class="cassettePrint" data-help-text="Друг касети"><img src="./assets/${currentCassette.is_printed ? "printActive" : "print"}.svg" alt="print"></div>
                     </div>
                 </div>
             </div>
@@ -740,15 +984,17 @@
                     <div class="actionButton borderRightNone create" data-help-text="Додати скельце" data-help-text-delete="Видалити скельце" id="createGlass">
                         <img src="./assets/plusCircle.svg" alt="plusCircle">
                     </div>
-                    <div class="actionButton borderLeftNone print"  data-help-text="Додати і роздрукувати скельце">
+                    <div class="actionButton borderLeftNone print" id="createGlassAndPrint"  data-help-text="Додати і роздрукувати скельце">
                         <img src="./assets/print.svg" alt="print">
                     </div>
                 </div>
             </div>
             <div class="glassItems df fdc">
-                ${glassesTemplate}
+
             </div>
         `;
+
+        currentCassette.glasses.forEach((glass) => cassetteColumnNODE.querySelector('.glassItems').append(glassTemplate(glass)))
 
         helpTextShowHendler(cassetteColumnNODE)
 
@@ -762,66 +1008,67 @@
             cassetteCommentModalNODE.querySelector('textarea').value = currentUpdatedCassette.comment
         })
 
-        cassetteColumnNODE.querySelector('.glassMark').addEventListener('click', (e) => {
-            const elem = e.currentTarget;
-            const currentGlassPickerNODE = elem.closest('.glassPlaceholder').querySelector('.glassPicker');
 
-            if(currentGlassPickerNODE){
-                currentGlassPickerNODE.remove()
-                return;
-            }
-
-            const closeOutOfPopup = (e) => {
-                if(!e.target.closest('.glassPicker') && !e.target.closest('.glassMark')){
-                    div.remove()
-                    document.removeEventListener('click', closeOutOfPopup)
-                }
-            }
-            const {top, right, bottom, left}  = elem.getBoundingClientRect();
-            const div = document.createElement('div');
-            const topValue = top + elem.clientHeight;
-            const leftValue = left;
-            const heightValue = window.innerHeight - topValue - 30;
-
-            div.classList = "glassPicker"
-            div.style.top = `${topValue}px`;
-            div.style.left = `${leftValue}px`;
-            div.style.height = `${heightValue}px`
-            elem.closest('.glassPlaceholder').prepend(div)
-
-            glassPaintList.forEach( glassPaint => {
-                const currentPaintId = div.closest('.glassPlaceholder').dataset.glassPaintId
-                const glassDiv = document.createElement('div');
-                glassDiv.classList = `glassPickerList ${currentPaintId === glassPaint.id ? "active" : ""}`
-                glassDiv.innerHTML = glassPaint.name
-
-                glassDiv.addEventListener('click', (e) => {
-                    glassDiv.closest('.glassPlaceholder').setAttribute('data-glass-paint-id', glassPaint.id)
-                    elem.querySelector('.glassPaintValue').innerHTML = glassPaint.short
-                    div.remove()
-                    document.removeEventListener('click', closeOutOfPopup)
-                })
-
-                div.append(glassDiv)
+        cassetteColumnNODE.querySelector('.cassettePrint').addEventListener('click', () => {
+            fetch(`${API_BASE_URL}/api/cassettes/${currentCassette.id}/printed?printed=true`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
             })
+                .then(res => res.json())
+                .then(() => {
+                    showSuccessAlert("Касета відсканованна")
+                    cassetteColumnNODE.querySelector('.cassettePrint img').setAttribute('src', './assets/printActive.svg')
+                })
+        })
 
-            document.addEventListener('click', closeOutOfPopup)
+        cassetteColumnNODE.querySelector('.glassMark').addEventListener('click', (e) => {
+
+            const elem = e.currentTarget;
+
+            getGlassPaintPicker(elem, ".glassPlaceholder", ".glassMark")
         })
 
         return cassetteColumnNODE
     }
     const glassTemplate = (currentGlass) => {
         const currentPrint = glassPaintList.find((glassPaint) => glassPaint.id === currentGlass.staining)
-        return (
-            `<div class="glassItem df aic jcsb">
-                        <div>
-                            ${currentGlass.glass_number} ${currentPrint.short}
-                        </div>
-                        <div>
-                            <img src="./assets/print.svg" alt="print">
-                        </div>
-                    </div>`
-        )
+        const div = document.createElement('div');
+        div.classList = "glassItem df aic jcsb";
+        div.innerHTML = `
+        <div class="glassItemPicker">
+            ${currentGlass.glass_number} <span class="glassPaintValue">${currentPrint.short}</span>
+        </div>
+        <div class="glassItemPaint" style="cursor: pointer">
+            <img src="./assets/${currentGlass.is_printed ? "printActive" : "print"}.svg" alt="print">
+        </div>
+        `;
+
+        div.querySelector('.glassItemPicker').addEventListener('click', (e) => {
+            const elem = e.currentTarget;
+
+            getGlassPaintPicker(elem, ".glassItem", ".glassItemPicker", (glassPaint) => changeGlassPaint(currentGlass?.id, glassPaint))
+        })
+
+        div.querySelector('.glassItemPaint').addEventListener('click', (e) => {
+            fetch(`${API_BASE_URL}/api/glasses/${currentGlass.id}/printed?printing=true`, {
+                method: "PATCH",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+            })
+                .then(res => res.json())
+                .then(() => {
+                    showSuccessAlert("Скельце раздрукованно")
+                    div.querySelector('.glassItemPaint img').setAttribute('src', './assets/printActive.svg')
+                })
+        })
+
+
+        return div
     }
 
     //ENTITY CREATE
@@ -1028,9 +1275,10 @@
     }
     const createOrDeleteCassetteHandler = () => {
         const createCassetteBtn = document.querySelector('#createCassette')
+        const createCassetteAndPrintBtn = document.querySelector('#createCassetteAndPrint')
+
         createCassetteBtn.addEventListener('click', () => {
             const currentSamples = cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex];
-
             const placeholderNODE = createCassetteBtn.closest('.placeholder')
             const isDelete = placeholderNODE.classList.contains('negative')
 
@@ -1084,55 +1332,24 @@
             }
 
             if (!isDelete) {
-                fetch(`${API_BASE_URL}/api/cassettes/create`, {
-                    method: "POST",
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        sample_id: currentSamples.id,
-                        num_cassettes: +countOfCassetteInputNODE.value,
-                        num_glasses_per_cassette: 1,
-                    })
+                createCassetteHandler({
+                    sample_id: currentSamples.id,
+                    num_cassettes: +countOfCassetteInputNODE.value,
+                    num_glasses_per_cassette: 1,
                 })
-                    .then(res => res.json())
-                    .then(newCassettes => {
-                        cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes = [
-                            ...cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes,
-                            ...newCassettes,
-                        ];
-                        cases[lastActiveCaseIndex].cassette_count += +countOfCassetteInputNODE.value;
-                        cases[lastActiveCaseIndex].glass_count += +countOfCassetteInputNODE.value;
-                        cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassette_count += +countOfCassetteInputNODE.value;
-                        cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].glass_count += +countOfCassetteInputNODE.value;
-
-                        let currentCassettesList = currentSamples.cassettes;
-
-                        cassetteContentNODE.innerHTML = "";
-
-                        currentCassettesList.forEach((cassette, index) => {
-                            cassetteContentNODE.append(cassetteTemplate(cassette, currentSamples.label, index))
-                        })
-
-
-                        setPathomorphologyTemplate(lastActiveCaseIndex, lastActiveSpecimenIndex)
-
-                        countOfCassetteInputNODE.setAttribute('data-delete-count', currentCassettesList.length - 1)
-
-
-                        cassettePageIndex = scrollContent(null, "#cassetteItems", "#cassetteItemsScroll", false, 0)
-                        glassPageIndex = scrollContent(null, ".glassItems", "#glassItemsScroll", true, 0)
-                        createOrDeleteGlassHandler()
-                        changeEntityCountHandler("#cassetteItems .counter input")
-                        changeItemCountOnEntity()
-                        showSuccessAlert(`Касет${+countOfCassetteInputNODE.value>1 ? "и" : "а"} успішно ствернн${+countOfCassetteInputNODE.value>1 ? "і" : "а"}`)
-
-                        countOfCassetteInputNODE.value = 1;
-                    })
             }
 
             counterReset()
+        })
+
+        createCassetteAndPrintBtn.addEventListener('click', () => {
+            const currentSamples = cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex];
+
+            createCassetteHandler({
+                sample_id: currentSamples.id,
+                num_cassettes: +countOfCassetteInputNODE.value,
+                num_glasses_per_cassette: 1,
+            }, "?printing=true")
         })
     }
     const createOrDeleteGlassHandler = () => {
@@ -1140,6 +1357,7 @@
 
         createGlassBtns.forEach((elem, index) => {
             const createGlassBtnNODE = elem.querySelector('#createGlass');
+            const createGlassAndPrintBtnNODE = elem.querySelector('#createGlassAndPrint');
 
             createGlassBtnNODE.addEventListener('click', () => {
                 const placeholderNODE = createGlassBtnNODE.closest('.placeholder')
@@ -1190,45 +1408,27 @@
                 }
 
                 if (!isDelete) {
-                    fetch(`${API_BASE_URL}/api/glasses/create`, {
-                        method: "POST",
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            cassette_id: currentCassette.id,
-                            staining_type: placeholderNODE.dataset.glassPaintId,
-                            num_glasses: +countOfGlassInput.value,
-                        })
+                    createGlassHandler(elem, index, {
+                        cassette_id: currentCassette.id,
+                        staining_type: placeholderNODE.dataset.glassPaintId,
+                        num_glasses: +countOfGlassInput.value,
                     })
-                        .then(res => res.json())
-                        .then(newGlasses => {
-                            cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes[index].glasses = [
-                                ...cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes[index].glasses,
-                                ...newGlasses,
-                            ];
-                            cases[lastActiveCaseIndex].glass_count += +countOfGlassInput.value;
-                            cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].glass_count += +countOfGlassInput.value;
-
-                            const glassContentNODE = elem.nextElementSibling;
-
-                            newGlasses.forEach((glass) => {
-                                glassContentNODE.innerHTML += glassTemplate(glass)
-                            })
-
-                            glassContentNODE
-                                .closest('.cassetteColumn')
-                                .querySelector('.counterInput')
-                                .setAttribute('data-delete-count', cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes[index].glasses.length - 1)
-                            changeItemCountOnEntity()
-                            glassPageIndex = scrollContent(null, ".glassItems", "#glassItemsScroll", true, 0)
-                            showSuccessAlert(`Скельц${+countOfGlassInput.value > 1 ? "я" : "е"} успішно ствернн${+countOfGlassInput.value>1 ? "і" : "е"}`)
-                            countOfGlassInput.value = 1;
-                        })
                 }
 
                 counterReset()
+            })
+
+
+            createGlassAndPrintBtnNODE.addEventListener('click', () => {
+                const placeholderNODE = createGlassBtnNODE.closest('.placeholder')
+                const countOfGlassInput = elem.querySelector('.counterInput')
+                const currentCassette = cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes[index];
+
+                createGlassHandler(elem, index, {
+                    cassette_id: currentCassette.id,
+                    staining_type: placeholderNODE.dataset.glassPaintId,
+                    num_glasses: +countOfGlassInput.value,
+                }, "?printing=true")
             })
         })
     }

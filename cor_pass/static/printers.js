@@ -3,15 +3,15 @@ const PRINTER_IP = "192.168.154.209"; // Здесь вы можете задат
 
 
 
-document.getElementById('sendLabelButton').addEventListener('click', async () => {
-    const apiUrl = '/api/print_labels'; 
-    
+document.getElementById('sendLabelButton')?.addEventListener('click', async () => {
+    const apiUrl = '/api/print_labels';
+
     const requestData = {
         labels: [
             {
                 model_id: 8,
                 content: "FF|S24B0460|A|1|L0|H&E|?|TDAJ92Z7-1983M",
-                uuid: Date.now().toString()  
+                uuid: Date.now().toString()
             }
         ]
     };
@@ -128,12 +128,12 @@ async function addDevice() {
         const result = await response.json();
         console.log('Устройство успешно добавлено:', result);
         alert('Устройство успешно добавлено!');
-        
+
         // Закрываем модальное окно и обновляем список устройств
         document.getElementById('addDeviceModal').style.display = 'none';
         // Здесь можно вызвать функцию для обновления списка устройств
         // например: refreshDevicesList();
-        
+
     } catch (error) {
         console.error('Ошибка при добавлении устройства:', error);
         alert('Произошла ошибка при добавлении устройства: ' + error.message);
