@@ -528,6 +528,9 @@ async def get_patient_first_case_details(
             "case_code": first_case_db.case_code,
             "creation_date": first_case_db.creation_date,
             "grossing_status":first_case_db.grossing_status,
+            "is_printed_cassette": first_case_db.is_printed_cassette,
+            "is_printed_glass": first_case_db.is_printed_glass,
+            "is_printed_qr": first_case_db.is_printed_qr,
             "samples": first_case_samples,
         }
 
@@ -928,7 +931,10 @@ async def get_patient_case_details_for_glass_page(
             microdescription=last_case_with_relations.microdescription,
             samples=first_case_samples_schematized,
             grossing_status=last_case_with_relations.grossing_status,
-            patient_cor_id=last_case_with_relations.patient_id
+            patient_cor_id=last_case_with_relations.patient_id,
+            is_printed_cassette=last_case_with_relations.is_printed_cassette,
+            is_printed_glass=last_case_with_relations.is_printed_glass,
+            is_printed_qr=last_case_with_relations.is_printed_qr,
         )
     if last_case_with_relations:    
         case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
@@ -1199,7 +1205,11 @@ async def get_current_cases_glass_details(
             microdescription=last_case_with_relations.microdescription,
             samples=first_case_samples_schematized,
             grossing_status=last_case_with_relations.grossing_status,
-            patient_cor_id=last_case_with_relations.patient_id
+            patient_cor_id=last_case_with_relations.patient_id,
+            is_printed_cassette=last_case_with_relations.is_printed_cassette,
+            is_printed_glass=last_case_with_relations.is_printed_glass,
+            is_printed_qr=last_case_with_relations.is_printed_qr,
+
         )
     if last_case_with_relations:    
         case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
@@ -1320,7 +1330,10 @@ async def get_single_case_details_for_glass_page(
             samples=first_case_samples_schematized,
             grossing_status=case_db.grossing_status,
             patient_cor_id = case_db.patient_id,
-            microdescription = case_db.microdescription
+            microdescription = case_db.microdescription,
+            is_printed_cassette=case_db.is_printed_cassette,
+            is_printed_glass=case_db.is_printed_glass,
+            is_printed_qr=case_db.is_printed_qr,
         )
     if case_db:
         case_owner = await get_case_owner(db=db, case_id=case_db.id, doctor_id=current_doctor_id)
@@ -1458,7 +1471,11 @@ async def get_patient_case_details_for_excision_page(
                 case_parameters=case_parameters_schematized,
                 samples=samples_for_excision_page,
                 grossing_status=last_case_with_relations.grossing_status,
-                patient_cor_id=last_case_with_relations.patient_id
+                patient_cor_id=last_case_with_relations.patient_id,
+                is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                is_printed_glass=last_case_with_relations.is_printed_glass,
+                is_printed_qr=last_case_with_relations.is_printed_qr
+
             )
     if last_case_details_for_excision:
         case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
@@ -1520,7 +1537,11 @@ async def get_single_case_details_for_excision_page(
             case_parameters=case_parameters_schematized,
             samples=samples_for_excision_page,
             grossing_status=last_case_with_relations.grossing_status,
-            patient_cor_id = last_case_with_relations.patient_id
+            patient_cor_id = last_case_with_relations.patient_id,
+            is_printed_cassette=last_case_with_relations.is_printed_cassette,
+            is_printed_glass=last_case_with_relations.is_printed_glass,
+            is_printed_qr=last_case_with_relations.is_printed_qr
+
         )
     if last_case_details_for_excision:    
         case_owner = await get_case_owner(db=db, case_id=last_case_details_for_excision.id, doctor_id=current_doctor_id)
@@ -2543,7 +2564,11 @@ async def get_current_case_details_for_excision_page(
                 case_parameters=case_parameters_schematized,
                 samples=samples_for_excision_page,
                 grossing_status=last_case_with_relations.grossing_status,
-                patient_cor_id=last_case_with_relations.patient_id
+                patient_cor_id=last_case_with_relations.patient_id,
+                is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                is_printed_glass=last_case_with_relations.is_printed_glass,
+                is_printed_qr=last_case_with_relations.is_printed_qr
+
             )
     if last_case_with_relations:
         case_owner = await get_case_owner(db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id)
