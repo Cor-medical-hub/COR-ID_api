@@ -935,6 +935,9 @@ class FirstCaseDetailsSchema(BaseModel):
     id: str
     case_code: str
     creation_date: datetime
+    is_printed_cassette: Optional[bool] 
+    is_printed_glass: Optional[bool] 
+    is_printed_qr: Optional[bool] 
     samples: List[Sample]
 
 
@@ -1399,6 +1402,9 @@ class FirstCaseGlassDetailsSchema(BaseModel):
     general_macrodescription: Optional[str] = None
     grossing_status: Optional[str] = None
     patient_cor_id: Optional[str] = None
+    is_printed_cassette: Optional[bool] 
+    is_printed_glass: Optional[bool] 
+    is_printed_qr: Optional[bool]
 
     samples: List[SampleForGlassPage] 
 
@@ -1458,6 +1464,10 @@ class LastCaseExcisionDetailsSchema(BaseModel):
     case_parameters: Optional[CaseParametersScheema] = None
     grossing_status: Optional[str] = None
     patient_cor_id: Optional[str] = None
+    is_printed_cassette: Optional[bool] 
+    is_printed_glass: Optional[bool] 
+    is_printed_qr: Optional[bool] 
+
 
     samples: List[SampleForExcisionPage]
 
