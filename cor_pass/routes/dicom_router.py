@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse, HTMLResponse
 import os
 import numpy as np
 import pydicom
+import pydicom.config
 import logging
 from openslide import OpenSlide, OpenSlideUnsupportedFormatError
 from skimage.transform import resize
@@ -19,9 +20,22 @@ from skimage.transform import resize
 from collections import Counter
 from cor_pass.services.auth import auth_service
 from cor_pass.database.models import User
+from pydicom import config
+from cor_pass.services.logger import logger
 
-logger = logging.getLogger("svs_logger")
-logging.basicConfig(level=logging.INFO)
+pydicom.config.settings.reading_validation_mode = pydicom.config.RAISE
+# logger = logging.getLogger("svs_logger")
+# logging.basicConfig(level=logging.INFO)
+
+
+SUPPORTED_TRANSFER_SYNTAXES = {
+    '1.2.840.10008.1.2': 'Implicit VR Little Endian',
+    '1.2.840.10008.1.2.1': 'Explicit VR Little Endian',
+    '1.2.840.10008.1.2.2': 'Explicit VR Big Endian',
+    '1.2.840.10008.1.2.4.70': 'JPEG Lossless, Non-Hierarchical, First-Order Prediction',
+    '1.2.840.10008.1.2.4.57': 'JPEG Lossless, Non-Hierarchical',
+    '1.2.840.10008.1.2.4.50': 'JPEG Baseline',
+}
 
 
 router = APIRouter(prefix="/dicom", tags=["DICOM"])
@@ -29,9 +43,25 @@ HTML_FILE = Path(__file__).parents[1] / "static" / "dicom_viewer.html"
 DICOM_ROOT_DIR = "dicom_users_data"
 os.makedirs(DICOM_ROOT_DIR, exist_ok=True)
 
+
+# Проверка доступных декомпрессоров
+def check_dicom_support():
+    logger.debug("\n[INFO] Проверка поддержки DICOM:")
+    logger.debug(f"GDCM доступен: {'gdcm' in pydicom.config.pixel_data_handlers}")
+    logger.debug(f"Pylibjpeg доступен: {'pylibjpeg' in pydicom.config.pixel_data_handlers}")
+    logger.debug(f"OpenJPEG доступен: {'openjpeg' in pydicom.config.pixel_data_handlers}")
+    
+    # Вывод информации о Transfer Syntax
+    logger.debug("\nПоддерживаемые Transfer Syntax:")
+    for uid, name in SUPPORTED_TRANSFER_SYNTAXES.items():
+        handler = pydicom.uid.UID(uid).is_supported
+        logger.debug(f"{name} ({uid}): {'✓' if handler else '✗'}")
+
+
+
 @lru_cache(maxsize=16)
 def load_volume(user_cor_id: str):
-    print("[INFO] Загружаем том из DICOM-файлов...")
+    logger.debug("[INFO] Загружаем том из DICOM-файлов...")
 
     # Чтение всех файлов
     user_dicom_dir = os.path.join(DICOM_ROOT_DIR, user_cor_id)
@@ -47,13 +77,44 @@ def load_volume(user_cor_id: str):
     datasets = []
     for path in dicom_paths:
         try:
-            ds = pydicom.dcmread(path)
-            if hasattr(ds, 'ImagePositionPatient') and hasattr(ds, 'ImageOrientationPatient') and hasattr(ds, 'pixel_array'):
+            # Пробуем разные методы чтения файла
+            ds = None
+            read_attempts = [
+                lambda: pydicom.dcmread(path),  # Стандартное чтение
+                lambda: pydicom.dcmread(path, force=True),  # Принудительное чтение
+                lambda: pydicom.dcmread(path, force=True, defer_size=1024),  # Чтение с ограничением
+            ]
+            
+            for attempt in read_attempts:
+                try:
+                    ds = attempt()
+                    break
+                except:
+                    continue
+
+            if ds is None:
+                logger.debug(f"[WARN] Не удалось прочитать файл {path}")
+                continue
+
+            # Попытка декомпрессии если файл сжат
+            if hasattr(ds, 'file_meta') and hasattr(ds.file_meta, 'TransferSyntaxUID'):
+                if ds.file_meta.TransferSyntaxUID.is_compressed:
+                    try:
+                        ds.decompress()  # Автоматический выбор декомпрессора
+                    except Exception as decompress_error:
+                        print(f"[WARN] Не удалось декомпрессировать {path}: {decompress_error}")
+                        continue
+
+            # Проверка необходимых атрибутов
+            required_attrs = ['ImagePositionPatient', 'ImageOrientationPatient', 'pixel_array']
+            if all(hasattr(ds, attr) for attr in required_attrs):
                 datasets.append((ds, path))
             else:
-                print(f"[WARN] Файл {path} не содержит необходимых DICOM-тегов (ImagePositionPatient, ImageOrientationPatient, pixel_array). Пропущен.")
+                logger.debug(f"[WARN] Файл {path} не содержит необходимых DICOM-тегов. Пропущен.")
+                logger.debug(f"       Найдены теги: {[attr for attr in required_attrs if hasattr(ds, attr)]}")
+                
         except Exception as e:
-            print(f"[WARN] Пропущен файл {path} из-за ошибки чтения: {e}")
+            logger.debug(f"[WARN] Пропущен файл {path} из-за ошибки чтения: {str(e)}")
             continue
 
     if not datasets:
@@ -72,18 +133,30 @@ def load_volume(user_cor_id: str):
 
     for ds, path in datasets:
         try:
+            # Получаем pixel_array с обработкой возможных ошибок
+            if not hasattr(ds, 'pixel_array'):
+                logger.debug(f"[WARN] Файл {path} не содержит pixel_array после декомпрессии")
+                continue
+
             arr = ds.pixel_array.astype(np.float32)
 
+            # Применяем Rescale Slope/Intercept если они есть
             if hasattr(ds, 'RescaleSlope') and hasattr(ds, 'RescaleIntercept'):
-                arr = arr * ds.RescaleSlope + ds.RescaleIntercept
+                try:
+                    slope = float(ds.RescaleSlope) if isinstance(ds.RescaleSlope, (str, pydicom.multival.MultiValue)) else ds.RescaleSlope
+                    intercept = float(ds.RescaleIntercept) if isinstance(ds.RescaleIntercept, (str, pydicom.multival.MultiValue)) else ds.RescaleIntercept
+                    arr = arr * slope + intercept
+                except Exception as e:
+                    print(f"[WARN] Ошибка применения RescaleSlope/Intercept в {path}: {e}")
 
             slices.append(arr)
             shapes.append(arr.shape)
 
             if example_ds is None:
                 example_ds = ds
+                
         except Exception as e:
-            print(f"[ERROR] {os.path.basename(path)}: {e}")
+            logger.debug(f"[ERROR] Ошибка обработки {os.path.basename(path)}: {e}")
             continue
 
     if not slices:
@@ -92,7 +165,7 @@ def load_volume(user_cor_id: str):
     # Приведение всех к одной форме
     shape_counter = Counter(shapes)
     target_shape = shape_counter.most_common(1)[0][0]
-    print(f"[INFO] Приведение всех срезов к форме {target_shape}")
+    logger.debug(f"[INFO] Приведение всех срезов к форме {target_shape}")
 
     resized_slices = [
         resize(slice_, target_shape, preserve_range=True).astype(np.float32)
@@ -101,7 +174,7 @@ def load_volume(user_cor_id: str):
     ]
 
     volume = np.stack(resized_slices)
-    print(f"[INFO] Загружено срезов: {len(volume)}")
+    logger.debug(f"[INFO] Загружено срезов: {len(volume)}")
 
     return volume, example_ds
 
@@ -120,7 +193,7 @@ def apply_window(img, ds):
         img = ((img - img_min) / (img_max - img_min + 1e-5)) * 255
         return img.astype(np.uint8)
     except Exception as e:
-        print(f"[WARN] Ошибка применения Window Center/Width: {e}")
+        logger.debug(f"[WARN] Ошибка применения Window Center/Width: {e}")
         return img.astype(np.uint8)
 
 
@@ -346,3 +419,21 @@ def get_metadata(current_user: User = Depends(auth_service.get_current_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def handle_compressed_dicom(file_path):
+    try:
+        ds = pydicom.dcmread(file_path, force=True)
+        
+        if hasattr(ds, 'file_meta') and ds.file_meta.TransferSyntaxUID.is_compressed:
+            try:
+                ds.decompress('gdcm')  # Сначала пробуем GDCM
+            except:
+                try:
+                    ds.decompress('pylibjpeg')  # Затем pylibjpeg
+                except:
+                    print(f"[WARN] Все методы декомпрессии не сработали для {file_path}")
+                    return None
+                    
+        return ds
+    except Exception as e:
+        print(f"[ERROR] Ошибка обработки сжатого DICOM: {e}")
+        return None
