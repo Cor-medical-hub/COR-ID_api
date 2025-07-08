@@ -196,7 +196,11 @@ async def create_cases_with_initial_data(
             "bank_count": first_case_db.bank_count,
             "cassette_count": first_case_db.cassette_count,
             "glass_count": first_case_db.glass_count,
-            "grossing_status":first_case_db.grossing_status
+            "grossing_status":first_case_db.grossing_status,
+            "is_printed_cassette": first_case_db.is_printed_cassette,
+            "is_printed_glass": first_case_db.is_printed_glass,
+            "is_printed_qr": first_case_db.is_printed_qr,
+
         }
 
     return {"all_cases": all_cases, "first_case_details": first_case_details}
