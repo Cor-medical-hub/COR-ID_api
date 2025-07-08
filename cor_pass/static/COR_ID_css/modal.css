@@ -280,6 +280,16 @@
     border-radius: 12px;
     box-sizing: border-box;
 }
+.additional-fields input[type="email"],
+.additional-fields input[type="text"],
+.additional-fields input[type="date"] {
+  /*  width: 100%; */
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
 
 /* Новый класс form-group-width на основе form-group */
 .form-group-width {
