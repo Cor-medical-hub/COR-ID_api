@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import get_patient_by_corid
-from cor_pass.repository.sample import _create_single_sample_with_dependencies
 from cor_pass.schemas import (
     Case as CaseModelScheema,
     CaseCloseResponse,
@@ -72,6 +71,76 @@ class ErrorCode(str, Enum):
     NO_DIAGNOSES_FOR_REPORT = "NO_DIAGNOSES_FOR_REPORT"
     DIAGNOSIS_NOT_SIGNED_BY_DOCTOR_NAME = "DIAGNOSIS_NOT_SIGNED_BY_DOCTOR_NAME: {doctor_full_name}"
     SIGNATURE_MISMATCH = "SIGNATURE_MISMATCH: Diagnosis by {diagnosis_doctor}, signed by {signature_doctor}" 
+
+async def _create_single_sample_with_dependencies(
+    db: AsyncSession, case_id: str, sample_char: str
+):
+    """
+    Создает один семпл, одну кассету и одно стекло.
+    Возвращает созданный семпл.
+    """
+    db_case = await db.get(db_models.Case, case_id)
+
+
+    db_sample = db_models.Sample(case_id=db_case.id, sample_number=sample_char)
+    db.add(db_sample)
+    db_case.bank_count += 1
+    await db.flush()  
+    await db.refresh(db_sample)
+    await db.refresh(db_case)
+
+
+    db_cassette = db_models.Cassette(
+        sample_id=db_sample.id, cassette_number=f"{sample_char}1"
+    )
+    db.add(db_cassette)
+    db_case.cassette_count += 1
+    db_sample.cassette_count += 1
+    await db.flush() 
+    await db.refresh(db_cassette)
+    await db.refresh(db_case)
+    await db.refresh(db_sample)
+
+
+    db_glass = db_models.Glass(
+        cassette_id=db_cassette.id,
+        glass_number=0,
+        staining=db_models.StainingType.HE,
+    )
+    db.add(db_glass)
+    db_case.glass_count += 1
+    db_sample.glass_count += 1
+    db_cassette.glass_count += 1
+    await db.flush() 
+    await db.refresh(db_glass)
+    await db.refresh(db_case)
+    await db.refresh(db_sample)
+    await db.refresh(db_cassette)
+    await _update_ancestor_statuses_from_cassette(db=db, cassette=db_cassette)
+    await _update_ancestor_statuses_from_glass(db=db, glass=db_glass)
+
+    return db_sample
+
+async def _get_next_sample_char(db: AsyncSession, case_id: str):
+    """Определяет следующий доступный буквенный номер семпла."""
+    samples_result = await db.execute(
+        select(db_models.Sample.sample_number)
+        .where(db_models.Sample.case_id == case_id)
+        .order_by(db_models.Sample.sample_number)
+    )
+    existing_sample_numbers = samples_result.scalars().all()
+
+    if not existing_sample_numbers:
+        return "A"
+
+    last_sample_number = existing_sample_numbers[-1]
+    if last_sample_number in ascii_uppercase:
+        last_index = ascii_uppercase.index(last_sample_number)
+        if last_index < len(ascii_uppercase) - 1:
+            return ascii_uppercase[last_index + 1]
+    
+    return f"Z{len(existing_sample_numbers) + 1}"
+
 
 async def generate_case_code(
     urgency_char: str, year_short: str, sample_type_char: str, next_number: int
@@ -143,6 +212,7 @@ async def create_cases_with_initial_data(
         await db.refresh(db_case)
 
         created_cases_db.append(db_case)
+
             
     if created_cases_db:
         first_case_with_relations = await db.execute(
@@ -215,13 +285,13 @@ async def get_case(db: AsyncSession, case_id: str) -> Optional[Dict[str, Any]]:
     if not case_db:
         return None
 
-    # 2. Получаем семплы первого кейса и связанные с ними кассеты и стекла с сортировкой
+    
     samples_result = await db.execute(
         select(db_models.Sample)
         .where(db_models.Sample.case_id == case_db.id)
         .options(
             selectinload(db_models.Sample.cassette)
-        )  # Предварительно загружаем кассеты
+        ) 
         .order_by(db_models.Sample.sample_number)
     )
     first_case_samples_db = samples_result.scalars().all()
@@ -231,7 +301,7 @@ async def get_case(db: AsyncSession, case_id: str) -> Optional[Dict[str, Any]]:
         sample = SampleModelScheema.model_validate(sample_db).model_dump()
         sample["cassettes"] = []
 
-        # Если это первый семпл, загружаем связанные кассеты и стекла с сортировкой
+       
         if i == 0 and sample_db:
             await db.refresh(sample_db, attribute_names=["cassette"])
 
@@ -479,13 +549,13 @@ async def get_patient_first_case_details(
     if all_cases_db:
         first_case_db = all_cases_db[0]
 
-        # 2. Получаем все семплы первого кейса, отсортированные по номеру
+        
         samples_result = await db.execute(
             select(db_models.Sample)
             .where(db_models.Sample.case_id == first_case_db.id)
             .options(
                 selectinload(db_models.Sample.cassette)
-            )  # Предварительно загружаем кассеты
+            )  
             .order_by(db_models.Sample.sample_number)
         )
         first_case_samples_db = samples_result.scalars().all()
@@ -495,7 +565,7 @@ async def get_patient_first_case_details(
             sample = SampleModelScheema.model_validate(sample_db).model_dump()
             sample["cassettes"] = []
 
-            # Если это первый семпл, загружаем связанные кассеты и стекла с сортировкой
+            
             if i == 0 and sample_db:
                 await db.refresh(sample_db, attribute_names=["cassette"])
 
@@ -508,7 +578,7 @@ async def get_patient_first_case_details(
                     return (
                         cassette.cassette_number,
                         0,
-                    )  # Для случаев, если формат не совпадает
+                    )  
 
                 sorted_cassettes_db = sorted(sample_db.cassette, key=sort_cassettes)
 
@@ -3719,3 +3789,151 @@ async def print_case_qr(
 
     case_response = await get_case(db=db, case_id=case_id)
     return case_response
+
+
+# --- Вспомогательные функции для обновления статусов ---
+
+async def _update_sample_glass_status(db: AsyncSession, sample: db_models.Sample):
+    """
+    Обновляет is_printed_glass для Sample на основе статусов всех его Glass.
+    Статус True, если ВСЕ стекла напечатаны. False, если хотя бы одно не напечатано.
+    """
+    all_glasses_in_sample_result = await db.execute(
+        select(db_models.Glass).where(db_models.Glass.cassette.has(db_models.Cassette.sample_id == sample.id)) 
+    )
+    all_glasses_in_sample = all_glasses_in_sample_result.scalars().all()
+
+    
+    new_sample_glass_status = all(g.is_printed for g in all_glasses_in_sample) if all_glasses_in_sample else True
+
+    if sample.is_printed_glass != new_sample_glass_status:
+        sample.is_printed_glass = new_sample_glass_status
+        db.add(sample)
+
+
+
+async def _update_sample_cassette_status(db: AsyncSession, sample: db_models.Sample):
+    """
+    Обновляет is_printed_cassette для Sample на основе статусов всех его Cassette.
+    Статус True, если ВСЕ кассеты напечатаны. False, если хотя бы одна не напечатана.
+    """
+    all_cassettes_in_sample_result = await db.execute(
+        select(db_models.Cassette).where(db_models.Cassette.sample_id == sample.id)
+    )
+    all_cassettes_in_sample = all_cassettes_in_sample_result.scalars().all()
+
+    
+    new_sample_cassette_status = all(c.is_printed for c in all_cassettes_in_sample) if all_cassettes_in_sample else True
+
+    if sample.is_printed_cassette != new_sample_cassette_status:
+        sample.is_printed_cassette = new_sample_cassette_status
+        db.add(sample)
+
+
+
+async def _update_case_glass_status(db: AsyncSession, case: db_models.Case):
+    """
+    Обновляет is_printed_glass для Case на основе is_printed_glass статусов всех его Sample.
+    Статус True, если is_printed_glass всех семплов True. False, если хотя бы у одного False.
+    """
+    all_samples_in_case_result = await db.execute(
+        select(db_models.Sample).where(db_models.Sample.case_id == case.id)
+    )
+    all_samples_in_case = all_samples_in_case_result.scalars().all()
+
+    new_case_glass_status = all(s.is_printed_glass for s in all_samples_in_case) if all_samples_in_case else True
+
+    if case.is_printed_glass != new_case_glass_status:
+        case.is_printed_glass = new_case_glass_status
+        db.add(case)
+        
+
+
+async def _update_case_cassette_status(db: AsyncSession, case: db_models.Case):
+    """
+    Обновляет is_printed_cassette для Case на основе is_printed_cassette статусов всех его Sample.
+    Статус True, если is_printed_cassette всех семплов True. False, если хотя бы у одного False.
+    """
+    all_samples_in_case_result = await db.execute(
+        select(db_models.Sample).where(db_models.Sample.case_id == case.id)
+    )
+    all_samples_in_case = all_samples_in_case_result.scalars().all()
+
+   
+    new_case_cassette_status = all(s.is_printed_cassette for s in all_samples_in_case) if all_samples_in_case else True
+
+    if case.is_printed_cassette != new_case_cassette_status:
+        case.is_printed_cassette = new_case_cassette_status
+        db.add(case)
+
+
+
+async def _update_ancestor_statuses_from_glass(db: AsyncSession, glass: db_models.Glass):
+    """
+    Основная функция, вызываемая при изменении статуса `is_printed` у Glass.
+    Запускает цепочку обновлений вверх по иерархии: Glass -> Cassette -> Sample -> Case.
+    """
+
+    cassette = await db.get(db_models.Cassette, glass.cassette_id)
+    if not cassette:
+        return
+
+
+    all_glasses_in_cassette_result = await db.execute(
+        select(db_models.Glass).where(db_models.Glass.cassette_id == cassette.id)
+    )
+    all_glasses_in_cassette = all_glasses_in_cassette_result.scalars().all()
+
+    new_cassette_is_printed_status = all(g.is_printed for g in all_glasses_in_cassette) if all_glasses_in_cassette else True
+
+    if cassette.is_printed != new_cassette_is_printed_status:
+        cassette.is_printed = new_cassette_is_printed_status
+        db.add(cassette)
+
+    sample = await db.get(db_models.Sample, cassette.sample_id)
+    if not sample:
+        return
+
+
+    await _update_sample_glass_status(db, sample)
+    
+    await _update_sample_cassette_status(db, sample)
+
+    case = await db.get(db_models.Case, sample.case_id)
+    if not case:
+        return
+
+    await _update_case_glass_status(db, case)
+    
+    await _update_case_cassette_status(db, case)
+
+    await db.commit() 
+    await db.refresh(glass)
+    await db.refresh(cassette)
+    await db.refresh(sample)
+    await db.refresh(case)
+
+async def _update_ancestor_statuses_from_cassette(db: AsyncSession, cassette: db_models.Cassette):
+    """
+    Основная функция, вызываемая при изменении статуса `is_printed` у Cassette.
+    Запускает цепочку обновлений вверх по иерархии: Cassette -> Sample -> Case.
+    """
+    
+    sample = await db.get(db_models.Sample, cassette.sample_id)
+    if not sample:
+        return
+    
+
+    await _update_sample_cassette_status(db, sample)
+
+    case = await db.get(db_models.Case, sample.case_id)
+    if not case:
+       
+        return
+
+    await _update_case_cassette_status(db, case)
+
+    await db.commit() 
+    await db.refresh(cassette)
+    await db.refresh(sample)
+    await db.refresh(case)
