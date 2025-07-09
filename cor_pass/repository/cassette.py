@@ -82,11 +82,13 @@ async def create_cassette(
         db_cassette.glass_count += 1
         await db.commit()
         await db.refresh(db_glass)
+        await repository_cases._update_ancestor_statuses_from_glass(db=db, glass=db_glass)
 
     await db.refresh(db_sample)
     await db.refresh(db_case)
     for cassette in created_cassettes_db:
         await db.refresh(cassette, attribute_names=["glass"])
+        await repository_cases._update_ancestor_statuses_from_cassette(db=db, cassette=cassette)
 
     created_cassettes_with_glasses = []
     for cassette_db in created_cassettes_db:
@@ -130,11 +132,11 @@ async def delete_cassettes(
             .where(db_models.Cassette.id == cassette_id)
             .options(
                 selectinload(db_models.Cassette.glass)
-            )  # Подгружаем связанные стекла
+            )  
         )
         db_cassette = result.scalar_one_or_none()
         if db_cassette:
-            # Получаем текущий семпл
+            
             sample_result = await db.execute(
                 select(db_models.Sample)
                 .where(db_models.Sample.id == db_cassette.sample_id)
@@ -146,13 +148,14 @@ async def delete_cassettes(
 
             db_case = await db.get(db_models.Case, db_sample.case_id)
 
-            # Подсчитываем количество стекол в удаляемой кассете
+            
             num_glasses_to_decrement = len(db_cassette.glass)
+            await repository_cases._update_ancestor_statuses_from_cassette(db=db, cassette=db_cassette)
 
             await db.delete(db_cassette)
             deleted_count += 1
 
-            # Обновляем счётчики
+            
             db_sample.glass_count -= num_glasses_to_decrement
             db_sample.cassette_count -= 1
 
@@ -191,5 +194,6 @@ async def change_printing_status(
         cassette_db.is_printed = printing
         await db.commit()
         await db.refresh(cassette_db)
+        await repository_cases._update_ancestor_statuses_from_cassette(db=db, cassette=cassette_db)
         return CassetteModelScheema.model_validate(cassette_db)
     return None
