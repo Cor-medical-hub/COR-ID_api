@@ -489,9 +489,10 @@ class OTP(Base):
 class Patient(Base):
     __tablename__ = "patients"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    patient_cor_id = Column(
-        String(36), ForeignKey("users.cor_id"), unique=True, nullable=False
-    )
+
+    patient_cor_id = Column(String(250), unique=True, nullable=False) # Теперь пациентский кор айди просто строковое поле
+    user_id = Column(String(36), ForeignKey("users.id"), unique=True, nullable=True) # новый необязательный внешний ключ для юзера
+
     encrypted_surname = Column(LargeBinary, nullable=True)  # Зашифрована фамилия
     encrypted_first_name = Column(LargeBinary, nullable=True)  # Зашифрованное имя
     encrypted_middle_name = Column(
