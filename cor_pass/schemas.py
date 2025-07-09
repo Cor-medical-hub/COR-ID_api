@@ -634,11 +634,28 @@ class PaginatedPatientsResponse(BaseModel):
     items: List[PatientResponce]
     total: int
 
-
+class ExistingPatientRegistration(BaseModel):
+    email: Optional[EmailStr] = Field(
+        None, description="Email пациента (будет использован для создания пользователя)"
+    )
+    birth_date: int = Field(..., description="Дата рождения пациента")
+    sex: str = Field(
+        ...,
+        max_length=1,
+        description="Пол пациента, может быть 'M'(мужской) или 'F'(женский)",
+    )
+    
+    @field_validator("sex")
+    @classmethod 
+    def validate_sex_and_normalize(cls, v: str) -> str: 
+        normalized_v = v.upper() 
+        if normalized_v not in ["M", "F"]:
+            raise ValueError('Пол пациента должен быть "M" или "F".')
+        return normalized_v 
 
 class NewPatientRegistration(BaseModel):
-    email: EmailStr = Field(
-        ..., description="Email пациента (будет использован для создания пользователя)"
+    email: Optional[EmailStr] = Field(
+        None, description="Email пациента (будет использован для создания пользователя)"
     )
     surname: str = Field(..., min_length=1, description="Фамилия пациента")
     first_name: str = Field(..., min_length=1, description="Имя пациента")
@@ -652,6 +669,13 @@ class NewPatientRegistration(BaseModel):
     phone_number: Optional[str] = Field(None, description="Номер телефона пациента")
     address: Optional[str] = Field(None, description="Адрес пациента")
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def clean_email(cls, v: Optional[str]) -> Optional[str]:
+        if v == "":
+            return None
+        return v
+    
     @field_validator("birth_date")
     @classmethod
     def validate_birth_date(cls, v: Optional[date]) -> Optional[date]:
@@ -669,9 +693,6 @@ class NewPatientRegistration(BaseModel):
 
         return v
     
-    # photo: Optional[str] = Field(None, description="Фото пациента (base64 или blob)")
-    # status: Optional[str] = Field("registered", description="Начальный статус пациента")
-
     @field_validator("sex")
     @classmethod 
     def validate_sex_and_normalize(cls, v: str) -> str: 
@@ -684,6 +705,21 @@ class NewPatientRegistration(BaseModel):
 class ExistingPatientAdd(BaseModel):
     cor_id: str = Field(..., min_length=10, max_length=18, description="Cor ID существующего пользователя")
 
+class PatientCreationResponse(BaseModel):
+    id: str
+    patient_cor_id: str
+    user_id: Optional[str] = None
+    encrypted_surname: Optional[bytes]
+    encrypted_first_name: Optional[bytes]
+    encrypted_middle_name: Optional[bytes]
+    birth_date: Optional[date]
+    sex: Optional[str]
+    email: Optional[EmailStr]
+    phone_number: Optional[str]
+    address: Optional[str]
+
+    class Config:
+        from_attributes = True # Для совместимости с SQLAlchemy
 
 # Модели для лабораторных исследований
 
