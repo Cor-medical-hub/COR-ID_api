@@ -342,6 +342,54 @@
 
     const macroDescriptionTextareaNODE = document.querySelector('#sampleMacroDescription')
 
+    const changePrintUI = (elementNODE, value) => {
+        elementNODE.setAttribute('src', `./assets/${value ? "printActive" : "print"}.svg`)
+    }
+    const changePrintInModel = () => {
+        let currentCase = cases[lastActiveCaseIndex]
+        let currentSpecimen = currentCase.samples[lastActiveSpecimenIndex]
+
+        const allCassettesInSpecimenPrinted = currentSpecimen.cassettes.every(({is_printed}) => is_printed)
+        const allGlassesInSpecimenPrinted = currentSpecimen.cassettes.every((cassette) => cassette.glasses.every(({is_printed}) => is_printed))
+
+
+        cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].is_printed_cassette = allCassettesInSpecimenPrinted
+        cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].is_printed_glass = allGlassesInSpecimenPrinted
+
+        currentCase = cases[lastActiveCaseIndex]
+        let allSpecimen = currentCase.samples
+
+        const allCassettesInCasePrinted = allSpecimen.every(({is_printed_cassette}) => is_printed_cassette)
+        const allGlassesInCasePrinted = allSpecimen.every(({is_printed_glass}) => is_printed_glass)
+
+        cases[lastActiveCaseIndex].is_printed_cassette = allCassettesInCasePrinted
+        cases[lastActiveCaseIndex].is_printed_glass = allGlassesInCasePrinted
+
+
+        const activeCaseCassettePrintNODE = document.querySelector('#caseItems .caseItem.active .casePrintCassette img')
+        const activeCaseGlassNODE = document.querySelector('#caseItems .caseItem.active .casePrintGlass img')
+        const activeSpecimenCassettePrintNODE = document.querySelector('#specimenItems .specimenItem.active .specimenPrintCassette img')
+        const activeSpecimenGlassNODE = document.querySelector('#specimenItems .specimenItem.active .specimenPrintGlass img')
+
+        changePrintUI(activeCaseCassettePrintNODE, allCassettesInCasePrinted)
+        changePrintUI(activeCaseGlassNODE, allGlassesInCasePrinted)
+        changePrintUI(activeSpecimenGlassNODE, allGlassesInSpecimenPrinted)
+        changePrintUI(activeSpecimenCassettePrintNODE, allCassettesInSpecimenPrinted)
+
+
+
+        if(allCassettesInSpecimenPrinted){
+            cassetteContentNODE.querySelectorAll('.cassetteItem .cassettePrint img').forEach((elem) => {
+                changePrintUI(elem, true)
+            })
+        }
+        if(allGlassesInSpecimenPrinted){
+            cassetteContentNODE.querySelectorAll('.glassItem .glassItemPaint img').forEach((elem) => {
+                changePrintUI(elem, true)
+            })
+        }
+    }
+
     const changeGlassPaint = (glassId, glassPaint) => {
         fetch(`${API_BASE_URL}/api/glasses/${glassId}/staining`, {
             method: "PATCH",
@@ -671,6 +719,7 @@
                 showSuccessAlert(`Касет${+countOfCassetteInputNODE.value>1 ? "и" : "а"} успішно ствернн${+countOfCassetteInputNODE.value>1 ? "і" : "а"}`)
 
                 countOfCassetteInputNODE.value = 1;
+                changePrintInModel()
 
                 return newCassettes
             })
@@ -709,6 +758,7 @@
                 glassPageIndex = scrollContent(null, ".glassItems", "#glassItemsScroll", true, 0)
                 showSuccessAlert(`Скельц${+countOfGlassInput.value > 1 ? "я" : "е"} успішно ствернн${+countOfGlassInput.value>1 ? "і" : "е"}`)
                 countOfGlassInput.value = 1;
+                changePrintInModel()
             })
     }
 
@@ -776,7 +826,7 @@
                 .then(res => res.json())
                 .then(() => {
                     showSuccessAlert("QR дослідження раздрукованно")
-                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                    changePrintUI(elem.querySelector('img'), true)
                 })
         })
         caseNewNODE.querySelector('.casePrintCassette').addEventListener('click', (e) => {
@@ -791,8 +841,20 @@
             })
                 .then(res => res.json())
                 .then(() => {
+                    cases[lastActiveCaseIndex].samples = (
+                        cases[lastActiveCaseIndex].samples
+                            .map((sample) => ({
+                                ...sample,
+                                cassettes: sample.cassettes.map((cassette) => ({
+                                    ...cassette,
+                                    is_printed: true
+                                }))
+                            }))
+                    )
+
                     showSuccessAlert("Касети дослідження раздрукованно")
-                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                    changePrintInModel();
+                    changePrintUI(elem.querySelector('img'), true)
                 })
         })
         caseNewNODE.querySelector('.casePrintGlass').addEventListener('click', (e) => {
@@ -807,8 +869,23 @@
             })
                 .then(res => res.json())
                 .then(() => {
+                    cases[lastActiveCaseIndex].samples = (
+                        cases[lastActiveCaseIndex].samples
+                            .map((sample) => ({
+                                ...sample,
+                                cassettes: sample.cassettes.map((cassette) => ({
+                                    ...cassette,
+                                    glasses: cassette.glasses.map((glass) => ({
+                                        ...glass,
+                                        is_printed: true
+                                    }))
+                                }))
+                            }))
+                    )
+
                     showSuccessAlert("Скельця дослідження раздрукованно")
-                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                    changePrintInModel();
+                    changePrintUI(elem.querySelector('img'), true)
                 })
         })
 
@@ -879,8 +956,21 @@
             })
                 .then(res => res.json())
                 .then(() => {
+                    cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes = (
+                        cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes
+                            .map((cassette) => ({
+                                ...cassette,
+                                glasses: cassette.glasses.map((glass) => ({
+                                    ...glass,
+                                    is_printed: true
+                                }))
+                            }))
+                    )
+
+
                     showSuccessAlert("Скельця зразка раздрукованно")
-                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                    changePrintInModel();
+                    changePrintUI(elem.querySelector('img'), true)
                 })
         })
 
@@ -896,28 +986,19 @@
             })
                 .then(res => res.json())
                 .then(() => {
+                    cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes = (
+                        cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes
+                            .map((cassette) => ({
+                                ...cassette,
+                                is_printed: true
+                            }))
+                    )
+
                     showSuccessAlert("Касети зразка раздрукованно")
-                    elem.querySelector('img').setAttribute('src', "./assets/printActive.svg")
+                    changePrintInModel();
+                    changePrintUI(elem.querySelector('img'), true)
                 })
         })
-
-        specimenNewNODE.addEventListener("click", () => {
-            fetch(`${API_BASE_URL}/api/samples/${currentSpecimen.id}`, {
-                method: "GET",
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                },
-            })
-                .then(res => res.json())
-                .then(currentSpecimen => {
-                    const currentCase = cases[lastActiveCaseIndex]
-                    const currentSpecimenIndex = currentCase.samples.findIndex(({id}) => id === currentSpecimen.id)
-                    currentCase.samples[currentSpecimenIndex] = currentSpecimen;
-
-
-                    setPathomorphologyTemplate(lastActiveCaseIndex, currentSpecimenIndex)
-                })
-        });
 
         specimenNewNODE.querySelector('.specimenItemArchive').addEventListener('click', (e) => {
             e.stopPropagation()
@@ -942,6 +1023,25 @@
                 })
 
         })
+
+        specimenNewNODE.addEventListener("click", () => {
+            fetch(`${API_BASE_URL}/api/samples/${currentSpecimen.id}`, {
+                method: "GET",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                },
+            })
+                .then(res => res.json())
+                .then(currentSpecimen => {
+                    const currentCase = cases[lastActiveCaseIndex]
+                    const currentSpecimenIndex = currentCase.samples.findIndex(({id}) => id === currentSpecimen.id)
+                    currentCase.samples[currentSpecimenIndex] = currentSpecimen;
+
+
+                    setPathomorphologyTemplate(lastActiveCaseIndex, currentSpecimenIndex)
+                })
+        });
+
 
         return specimenNewNODE
     }
@@ -1008,7 +1108,6 @@
             cassetteCommentModalNODE.querySelector('textarea').value = currentUpdatedCassette.comment
         })
 
-
         cassetteColumnNODE.querySelector('.cassettePrint').addEventListener('click', () => {
             fetch(`${API_BASE_URL}/api/cassettes/${currentCassette.id}/printed?printed=true`, {
                 method: "PATCH",
@@ -1019,8 +1118,18 @@
             })
                 .then(res => res.json())
                 .then(() => {
+                    const currentCase = cases[lastActiveCaseIndex];
+                    const currentSpecimen = currentCase.samples[lastActiveSpecimenIndex];
+                    const currentCassetteIndex = currentSpecimen.cassettes.findIndex(({id}) => id === currentCassette.id )
+
+                    cases[lastActiveCaseIndex]
+                        .samples[lastActiveSpecimenIndex]
+                        .cassettes[currentCassetteIndex]
+                        .is_printed = true;
+
                     showSuccessAlert("Касета відсканованна")
-                    cassetteColumnNODE.querySelector('.cassettePrint img').setAttribute('src', './assets/printActive.svg')
+                    changePrintInModel();
+                    changePrintUI(cassetteColumnNODE.querySelector('.cassettePrint img'), true)
                 })
         })
 
@@ -1062,8 +1171,30 @@
             })
                 .then(res => res.json())
                 .then(() => {
+                    const currentCase = cases[lastActiveCaseIndex];
+                    const currentSpecimen = currentCase.samples[lastActiveSpecimenIndex];
+                    const {currentCassetteIndex, currentGlassIndex} = currentSpecimen.cassettes.reduce((accum, cassette, index) => {
+                        const glassIndex = cassette.glasses.findIndex(({id}) => id === currentGlass.id)
+
+                        if(glassIndex === -1){
+                            return accum
+                        }
+
+                        return {
+                            currentCassetteIndex: index,
+                            currentGlassIndex: glassIndex
+                        }
+                    }, {})
+
+                    cases[lastActiveCaseIndex]
+                        .samples[lastActiveSpecimenIndex]
+                        .cassettes[currentCassetteIndex]
+                        .glasses[currentGlassIndex]
+                        .is_printed = true;
+
                     showSuccessAlert("Скельце раздрукованно")
-                    div.querySelector('.glassItemPaint img').setAttribute('src', './assets/printActive.svg')
+                    changePrintInModel();
+                    changePrintUI(div.querySelector('.glassItemPaint img'), true)
                 })
         })
 
@@ -1223,6 +1354,7 @@
 
                         countOfSpecimenInputNODE.setAttribute('data-delete-count', cases[lastActiveCaseIndex].samples.length - 1)
                         countOfSpecimenInputNODE.value = 1;
+                        changePrintInModel()
                     })
             }
 
@@ -1267,6 +1399,7 @@
 
                         countOfSpecimenInputNODE.setAttribute('data-delete-count', cases[lastActiveCaseIndex].samples.length - 1)
                         countOfSpecimenInputNODE.value = 1;
+                        changePrintInModel()
                     })
             }
 
@@ -1328,6 +1461,7 @@
 
                         countOfCassetteInputNODE.setAttribute('data-delete-count', cases[lastActiveCaseIndex].samples[lastActiveSpecimenIndex].cassettes.length - 1)
                         countOfCassetteInputNODE.value = 1;
+                        changePrintInModel()
                     })
             }
 
@@ -1404,6 +1538,7 @@
                             glassPageIndex = scrollContent(null, ".glassItems", "#glassItemsScroll", true, 0)
                             showSuccessAlert(`Скельц${+countOfGlassInput.value>1 ? "я" : "е"} успішно видаленн${+countOfGlassInput.value>1 ? "і" : "е"}`)
                             countOfGlassInput.value = 1;
+                            changePrintInModel()
                         })
                 }
 
