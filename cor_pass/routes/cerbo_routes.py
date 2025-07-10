@@ -1,11 +1,11 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query,Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 import logging
 import json
-from typing import Optional
-
-from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, decode_signed_16, decode_signed_32, get_device_measurements_paginated, get_modbus_client, register_modbus_error
-from cor_pass.schemas import CerboMeasurementResponse, EssAdvancedControl, GridLimitUpdate, PaginatedResponse, VebusSOCControl
+from typing import List, Optional
+from pydantic import BaseModel 
+from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_schedule, decode_signed_16, decode_signed_32, delete_schedule, get_all_schedules, get_device_measurements_paginated, get_modbus_client, get_schedule_by_id, register_modbus_error, update_schedule
+from cor_pass.schemas import CerboMeasurementResponse, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, PaginatedResponse, VebusSOCControl
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from math import ceil
@@ -17,6 +17,27 @@ error_count = 0
 
 # Создание роутера FastAPI
 router = APIRouter(prefix="/modbus", tags=["Modbus"])
+schedules_storage = {
+    "schedule_enabled": True,
+    "periods": []
+}
+
+
+class SchedulePeriod(BaseModel):
+    id: int
+    startHour: int
+    startMinute: int
+    durationHour: int
+    durationMinute: int
+    feedIn: float
+    batteryLevel: int
+    chargeEnabled: bool
+    active: bool
+
+class ScheduleData(BaseModel):
+    scheduleEnabled: bool
+    periods: list[SchedulePeriod]
+
 
 
 
@@ -566,12 +587,13 @@ async def get_dynamic_ess_settings(request: Request):
 
 
 @router.get("/test_dynamic_ess_registers")
-async def test_dynamic_ess_registers(request: Request):
+async def test_dynamic_ess_registers(
+    request: Request,
+    start: int = Query(..., description="Начальный регистр"),
+    end: int = Query(..., description="Конечный регистр"),
+    unit_id: int = Query(100, description="Slave UID устройства")
+):
     client = request.app.state.modbus_client
-    unit_id = 100
-    start = 5420
-    end = 5429
-
     results = {}
 
     for reg in range(start, end + 1):
@@ -622,3 +644,114 @@ async def read_measurements(
         page_size=page_size,
         total_pages=total_pages
     )
+
+@router.post("/schedule/save")
+async def save_schedule(schedule_data: ScheduleData):
+    """
+    Сохраняет расписание работы системы (может принимать один или несколько периодов).
+    """
+    try:
+        # Обновляем хранилище - добавляем/обновляем полученные периоды
+        schedules_storage["schedule_enabled"] = schedule_data.scheduleEnabled
+        
+        for period in schedule_data.periods:
+            # Находим индекс существующего периода с таким id
+            existing_index = next(
+                (i for i, p in enumerate(schedules_storage["periods"]) 
+                if p["id"] == period.id), 
+                None
+            )
+            
+            if existing_index is not None:
+                # Обновляем существующий период
+                schedules_storage["periods"][existing_index] = period.dict()
+            else:
+                # Добавляем новый период
+                schedules_storage["periods"].append(period.dict())
+        
+        logger.info(f"Период(ы) расписания сохранены. Активно: {schedule_data.scheduleEnabled}")
+        logger.info(f"Количество полученных периодов: {len(schedule_data.periods)}")
+        logger.debug("Детали периодов:", json.dumps([p.dict() for p in schedule_data.periods], indent=2))
+        
+        return {"status": "success", "message": "Период(ы) успешно сохранены"}
+    
+    except Exception as e:
+        logger.error(f"Ошибка сохранения периода(ов): {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Ошибка при сохранении периода(ов)")
+    
+
+
+
+@router.post("/schedules/create", 
+             response_model=EnergeticScheduleResponse, 
+             status_code=status.HTTP_201_CREATED,
+             tags=["Energetic Shedule CRUD"])
+async def create_energetic_schedule(
+    schedule_data: EnergeticScheduleCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    new_schedule = await create_schedule(db, schedule_data)
+    return new_schedule
+
+
+
+@router.get("/schedules/{schedule_id}", 
+            response_model=EnergeticScheduleResponse,
+            tags=["Energetic Shedule CRUD"])
+async def get_energetic_schedule(
+    schedule_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    schedule = await get_schedule_by_id(db, schedule_id)
+    if not schedule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
+    return schedule
+
+@router.get("/schedules/", 
+            response_model=List[EnergeticScheduleResponse],
+            tags=["Energetic Shedule CRUD"])
+async def get_all_energetic_schedules_api(
+    db: AsyncSession = Depends(get_db)
+):
+    schedules = await get_all_schedules(db)
+    response = []
+    for schedule in schedules:
+        schedule = EnergeticScheduleResponse(
+            id=schedule.id,
+            start_time=schedule.start_time,
+            duration=schedule.duration,
+            grid_feed_w=schedule.grid_feed_w,
+            battery_level_percent=schedule.battery_level_percent,
+            charge_battery=schedule.charge_battery,
+            is_active=schedule.is_active,
+            is_manual_mode=schedule.is_manual_mode,
+            end_time=schedule.end_time
+        )
+        response.append(schedule)
+    return response
+
+@router.put("/schedules/{schedule_id}", 
+            response_model=EnergeticScheduleResponse,
+            tags=["Energetic Shedule CRUD"])
+async def update_energetic_schedule_api(
+    schedule_id: str,
+    schedule_data: EnergeticScheduleBase,
+    db: AsyncSession = Depends(get_db)
+):
+    updated_schedule = await update_schedule(db, schedule_id, schedule_data)
+    if not updated_schedule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
+    return updated_schedule
+
+@router.delete("/schedules/{schedule_id}", 
+               status_code=status.HTTP_204_NO_CONTENT,
+               tags=["Energetic Shedule CRUD"])
+async def delete_energetic_schedule_api(
+    schedule_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    deleted = await delete_schedule(db, schedule_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
+    return
+

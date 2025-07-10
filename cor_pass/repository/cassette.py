@@ -86,12 +86,10 @@ async def create_cassette(
 
     await db.refresh(db_sample)
     await db.refresh(db_case)
-    for cassette in created_cassettes_db:
-        await db.refresh(cassette, attribute_names=["glass"])
-        await repository_cases._update_ancestor_statuses_from_cassette(db=db, cassette=cassette)
 
     created_cassettes_with_glasses = []
     for cassette_db in created_cassettes_db:
+        await db.refresh(cassette_db, attribute_names=["glass"])
         cassette_schema = CassetteModelScheema.model_validate(cassette_db)
         cassette_schema.glasses = sorted(
             [GlassModelScheema.model_validate(glass) for glass in cassette_db.glass],
@@ -99,6 +97,7 @@ async def create_cassette(
         )
         created_cassettes_with_glasses.append(cassette_schema.model_dump())
 
+        await repository_cases._update_ancestor_statuses_from_cassette(db=db, cassette=cassette_db)
     return created_cassettes_with_glasses
 
 
