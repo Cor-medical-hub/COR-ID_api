@@ -6,11 +6,12 @@ from pydantic import (
     EmailStr,
     PositiveInt,
     ValidationInfo,
+    computed_field,
     field_validator,
     model_validator,
 )
 from typing import Generic, List, Optional, TypeVar, Union, Tuple
-from datetime import datetime
+from datetime import datetime, time, timedelta
 
 from sqlalchemy import UUID
 from cor_pass.database import models
@@ -1932,3 +1933,57 @@ class EssFeedInControl(BaseModel):
     max_feed_in_l1: Optional[int] = None
     max_feed_in_l2: Optional[int] = None
     max_feed_in_l3: Optional[int] = None
+
+
+
+
+"""
+Модели для расписания
+"""
+class EnergeticScheduleBase(BaseModel):
+    start_time: time = Field(..., description="Время начала работы режима (ЧЧ:ММ)")
+    duration_hours: int = Field(..., ge=0, description="Продолжительность режима в часах")
+    duration_minutes: int = Field(..., ge=0, lt=60, description="Продолжительность режима в минутах (0-59)")
+    grid_feed_w: int = Field(..., ge=0, description="Параметр отдачи в сеть (Вт)")
+    battery_level_percent: int = Field(..., ge=0, le=100, description="Целевой уровень батареи (%)")
+    charge_battery: bool = Field(False, description="Флаг: заряжать батарею в этом режиме")
+    is_manual_mode: bool = Field(False, description="Флаг: находится ли инвертор в ручном режиме")
+    
+    class Config:
+        from_attributes = True
+
+class EnergeticScheduleCreate(EnergeticScheduleBase):
+    pass
+
+class EnergeticScheduleResponse(BaseModel):
+
+    id: str = Field(..., description="Уникальный идентификатор расписания")
+    start_time: time = Field(..., description="Время начала работы режима (ЧЧ:ММ)")
+    grid_feed_w: float = Field(..., ge=0.0, description="Параметр отдачи в сеть (Вт)")
+    battery_level_percent: int = Field(..., ge=0, le=100, description="Целевой уровень батареи (%)")
+    charge_battery: bool = Field(False, description="Флаг: заряжать батарею в этом режиме")
+    is_active: bool = Field(True, description="Флаг: активно ли это расписание")
+    is_manual_mode: bool = Field(False, description="Флаг: находится ли инвертор в ручном режиме")
+    duration: Optional[timedelta] = None 
+    
+    @computed_field
+    @property
+    def formatted_duration(self) -> str:
+        if isinstance(self.duration, timedelta):
+            total_seconds = int(self.duration.total_seconds())
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            
+            parts = []
+            if hours > 0:
+                parts.append(f"{hours}h")
+            if minutes > 0:
+                parts.append(f"{minutes}m")
+            if seconds > 0 or not parts: 
+                parts.append(f"{seconds}s")
+            
+            return " ".join(parts)
+        return "N/A" 
+
+    class Config:
+        from_attributes = True

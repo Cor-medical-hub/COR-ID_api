@@ -20,9 +20,9 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi_limiter import FastAPILimiter
 
 
-from cor_pass.repository.cerbo_service import cerbo_collection_task, close_modbus_client, create_modbus_client
+from cor_pass.repository.cerbo_service import cerbo_collection_task, close_modbus_client, create_modbus_client, energetic_schedule_task
 from cor_pass.routes import auth, person
-from cor_pass.database.db import get_db
+from cor_pass.database.db import get_db, async_session_maker
 from cor_pass.database.redis_db import redis_client
 
 from cor_pass.routes import (
@@ -281,6 +281,7 @@ async def startup():
     await create_modbus_client(app)
     asyncio.create_task(cleanup_auth_sessions())
     asyncio.create_task(cerbo_collection_task(app))
+    asyncio.create_task(energetic_schedule_task(async_session_maker))
     # asyncio.create_task(cerbo_GX.read_modbus_and_cache())
 
 @app.on_event("shutdown")
