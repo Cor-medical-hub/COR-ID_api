@@ -16,7 +16,7 @@ from cor_pass.repository import person as repository_users
 from cor_pass.repository import device as repository_devices
 from cor_pass.config.config import settings
 from cor_pass.services import redis_service
-from cor_pass.services.logger import logger
+from loguru import logger
 from cor_pass.services.websocket_events_manager import websocket_events_manager 
 
 from sqlalchemy.ext.asyncio import AsyncSession

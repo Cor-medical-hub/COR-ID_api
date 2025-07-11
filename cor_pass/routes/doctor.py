@@ -81,7 +81,7 @@ from cor_pass.services.image_validation import validate_image_file
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 router = APIRouter(prefix="/doctor", tags=["Doctor"])
 

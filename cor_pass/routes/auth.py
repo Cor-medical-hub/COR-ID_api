@@ -47,7 +47,7 @@ from cor_pass.services.email import (
 from cor_pass.services.cipher import decrypt_data, decrypt_user_key, encrypt_data
 from cor_pass.config.config import settings
 from cor_pass.services.access import user_access
-from cor_pass.services.logger import logger
+from loguru import logger
 from fastapi import UploadFile
 
 from collections import defaultdict

@@ -1,36 +1,58 @@
 import logging
-from loguru import logger
 import sys
-from cor_pass.config.config import settings
+from loguru import logger
+from cor_pass.config.config import settings 
 
-logger_level = "DEBUG" if settings.debug else "INFO"
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+        logger.opt(depth=6, exception=record.exc_info).log(level, record.getMessage())
 
-logger.remove() 
-# logger.add(
-#     "logs/application.log",   # Путь к файлу логов
-#     rotation="500 MB",    # Размер файла перед ротацией
-#     retention="10 days",  # Хранение логов в течение 10 дней
-#     compression="zip",    # Сжатие старых логов
-#     level=logger_level,   # Уровень логирования
-#     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
-# )
+def setup_logging():
+    logger.remove() # Удаляем все стандартные обработчики Loguru
 
-logger.add(
-    sys.stdout, 
-    level=logger_level,  
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
-)
+    # Определяем базовый уровень логирования из настроек
+    log_level = "DEBUG" if settings.debug else "INFO"
 
+    # Добавляем обработчик Loguru для вывода в stdout
+    logger.add(
+        sys.stdout,
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+        level=log_level
+    )
 
-logger.remove()
-logger.add(sys.stdout, format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}", level="INFO")
+    # Настраиваем корневой логгер Python для перехвата Loguru
+    # Это КРИТИЧНО для перенаправления всех стандартных логов
+    logging.basicConfig(handlers=[InterceptHandler()], level=0)
 
-uvicorn_access_logger = logging.getLogger("uvicorn.access")
-uvicorn_access_logger.handlers = [] 
-uvicorn_access_logger.propagate = False 
+    # Настройка специфических логгеров для Gunicorn и Uvicorn
+    # Убедитесь, что propagate=False, чтобы избежать дублирования
+    # Уровни здесь должны соответствовать желаемому выводу (чаще всего log_level)
 
-handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('%(asctime)s - %(client_addr)s - "%(request_line)s" %(status_code)s', datefmt='%Y-%m-%d %H:%M:%S %z')
-handler.setFormatter(formatter)
-uvicorn_access_logger.addHandler(handler)
-uvicorn_access_logger.setLevel(logging.INFO)
+    # Gunicorn логгеры
+    logging.getLogger("gunicorn").handlers = [InterceptHandler()]
+    logging.getLogger("gunicorn").propagate = False
+    logging.getLogger("gunicorn").setLevel(log_level)
+
+    logging.getLogger("gunicorn.access").handlers = [InterceptHandler()]
+    logging.getLogger("gunicorn.access").propagate = False
+    logging.getLogger("gunicorn.access").setLevel(log_level)
+
+    logging.getLogger("gunicorn.error").handlers = [InterceptHandler()]
+    logging.getLogger("gunicorn.error").propagate = False
+    logging.getLogger("gunicorn.error").setLevel(log_level)
+
+    # Uvicorn логгеры
+    logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
+    logging.getLogger("uvicorn.access").propagate = False
+    logging.getLogger("uvicorn.access").setLevel(log_level)
+
+    logging.getLogger("uvicorn.error").handlers = [InterceptHandler()]
+    logging.getLogger("uvicorn.error").propagate = False
+    logging.getLogger("uvicorn.error").setLevel(log_level)
+
+    # Подавление конкретного предупреждения от passlib, если нужно
+    logging.getLogger("passlib.handlers.bcrypt").setLevel(logging.ERROR) # Или logging.CRITICAL

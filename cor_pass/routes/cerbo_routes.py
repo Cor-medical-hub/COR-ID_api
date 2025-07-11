@@ -9,7 +9,7 @@ from cor_pass.schemas import CerboMeasurementResponse, EnergeticScheduleBase, En
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from math import ceil
-from cor_pass.services.logger import logger
+from loguru import logger
 
 ERROR_THRESHOLD = 9
 error_count = 0

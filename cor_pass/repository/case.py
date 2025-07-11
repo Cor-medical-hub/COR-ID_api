@@ -59,7 +59,7 @@ from cor_pass.database import models as db_models
 import uuid
 from datetime import date, datetime
 from cor_pass.services.cipher import decrypt_data
-from cor_pass.services.logger import logger
+from loguru import logger
 from cor_pass.config.config import settings
 from string import ascii_uppercase
 

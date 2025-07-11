@@ -4,7 +4,6 @@ import os
 import numpy as np
 import pydicom
 import pydicom.config
-import logging
 from openslide import OpenSlide, OpenSlideUnsupportedFormatError
 from skimage.transform import resize
 from PIL import Image
@@ -21,7 +20,7 @@ from collections import Counter
 from cor_pass.services.auth import auth_service
 from cor_pass.database.models import User
 from pydicom import config
-from cor_pass.services.logger import logger
+from loguru import logger
 
 pydicom.config.settings.reading_validation_mode = pydicom.config.RAISE
 # logger = logging.getLogger("svs_logger")
