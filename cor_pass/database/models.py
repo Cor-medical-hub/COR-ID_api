@@ -382,7 +382,8 @@ class UserSession(Base):
     user = relationship("User", back_populates="user_sessions")
 
     # Индексы
-    __table_args__ = (Index("idx_user_sessions_user_id", "user_id"),)
+    __table_args__ = (Index("idx_user_sessions_user_id", "user_id"),
+                      UniqueConstraint('user_id', 'device_info', name='uq_user_device_session'))
 
 
 class CorIdAuthSession(Base):

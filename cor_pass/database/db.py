@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 SQLALCHEMY_DATABASE_URL = settings.sqlalchemy_database_url
 
-POOL_SIZE = 15  
+POOL_SIZE = 10  
 MAX_OVERFLOW = 30 
 
 engine = create_async_engine(

@@ -8,7 +8,6 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from datetime import timedelta, datetime, timezone
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from cor_pass.database.db import get_db
 from cor_pass.database.models import Device, DeviceAccess
