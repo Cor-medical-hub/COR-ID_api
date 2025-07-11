@@ -55,7 +55,7 @@ from cor_pass.routes import (
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
-from cor_pass.services.logger import logger
+from loguru import logger
 from cor_pass.services.auth import auth_service
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -66,63 +66,10 @@ import logging
 
 from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
 
-class InterceptHandler(logging.Handler):
-    def emit(self, record):
-        try:
-            level = logger.level(record.levelname).name
-        except ValueError:
-            level = record.levelno
-        logger.opt(depth=6, exception=record.exc_info).log(level, record.getMessage())
+from cor_pass.services.logger import setup_logging # Импортируем функцию настройки
 
-logger.remove()
-log_level = "DEBUG" if settings.debug else "INFO" 
-logger.add(
-    sys.stdout,
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
-    level=log_level
-)
-
-logging.basicConfig(handlers=[InterceptHandler()], level=0)
-
-uvicorn_error_logger = logging.getLogger("uvicorn.error")
-uvicorn_error_logger.handlers = [InterceptHandler()]
-uvicorn_error_logger.propagate = False
-uvicorn_error_logger.setLevel(log_level)
-
-uvicorn_access_logger = logging.getLogger("uvicorn.access")
-uvicorn_access_logger.handlers = [InterceptHandler()]
-uvicorn_access_logger.propagate = False
-uvicorn_access_logger.setLevel(log_level)
-
-
-gunicorn_access_logger = logging.getLogger("gunicorn.access")
-gunicorn_access_logger.handlers = [InterceptHandler()]
-gunicorn_access_logger.propagate = False 
-gunicorn_access_logger.setLevel(log_level) 
-
-gunicorn_error_logger = logging.getLogger("gunicorn.error")
-gunicorn_error_logger.handlers = [InterceptHandler()]
-gunicorn_error_logger.propagate = False
-gunicorn_error_logger.setLevel(log_level)
-
-logging.getLogger("gunicorn.arbiter").setLevel(log_level)
-logging.getLogger("gunicorn.worker").setLevel(log_level)
-
-passlib_bcrypt_logger = logging.getLogger("passlib.handlers.bcrypt")
-passlib_bcrypt_logger.setLevel(logging.ERROR)
-passlib_bcrypt_logger.propagate = False
-
-warnings.filterwarnings(
-    "ignore",
-    message="^.*error reading bcrypt version.*$",
-    category=UserWarning,
-    module="passlib.handlers.bcrypt"
-)
-warnings.filterwarnings(
-    "ignore",
-    category=UserWarning,
-    module="passlib"
-)
+# Вызываем функцию настройки логирования в самом начале
+setup_logging()
 
 
 

@@ -5,7 +5,7 @@ from cor_pass.database.models import CorIdAuthSession, AuthSessionStatus
 from datetime import datetime, timedelta
 
 from cor_pass.database.db import async_session_maker
-from cor_pass.services.logger import logger
+from loguru import logger
 # Словарь для хранения активных WebSocket-соединений (session_token -> WebSocket)
 active_connections: dict[str, WebSocket] = {}
 

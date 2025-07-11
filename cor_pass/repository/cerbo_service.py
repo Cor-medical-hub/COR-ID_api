@@ -11,7 +11,7 @@ from cor_pass.database.models import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import EnergeticScheduleBase, EnergeticScheduleCreate, FullDeviceMeasurementCreate, FullDeviceMeasurementResponse
-from cor_pass.services.logger import logger
+from loguru import logger
 from pymodbus.client import AsyncModbusTcpClient
 from cor_pass.database.db import async_session_maker
 

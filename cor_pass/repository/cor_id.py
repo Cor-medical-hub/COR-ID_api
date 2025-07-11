@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 import datetime
 from datetime import datetime
 from cor_pass.database.models import User
-from cor_pass.services.logger import logger
+from loguru import logger
 from cor_pass.database.redis_db import redis_client
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.config.config import settings

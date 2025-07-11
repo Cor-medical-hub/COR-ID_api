@@ -27,7 +27,7 @@ from cor_pass.services.email import (
 )
 from cor_pass.config.config import settings
 from cor_pass.services.auth import auth_service
-from cor_pass.services.logger import logger
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
