@@ -16,5 +16,8 @@ touch $SCAN_DIR/$(date +%Y%m%d%H%M).file
 /usr/local/bin/gunicorn main:app \
     --workers 4 \
     --worker-class uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:8000 
+    --bind 0.0.0.0:8000 \
+    --log-level info \
+    --error-logfile - \
+    --access-logfile -
 
