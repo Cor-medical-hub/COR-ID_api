@@ -669,7 +669,6 @@ async def energetic_schedule_task(async_session_maker):
             async with async_session_maker() as db_session:
                 all_schedules = await get_all_schedules(db_session)
                 
-
                 operational_schedules = [s for s in all_schedules if not s.is_manual_mode]
 
                 current_time = current_check_time.time()

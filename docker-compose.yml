@@ -30,6 +30,9 @@ services:
       driver: json-file
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        max-size: "10m"
+        max-file: "3"
+    command: gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level info --error-logfile - --access-logfile -
 
   redis:
     image: redis:alpine
@@ -47,6 +50,7 @@ services:
       - $CORID_POSTGRES_PORT:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    command: postgres -c max_connections=300
 
   prometheus:
     image: prom/prometheus:latest
