@@ -14,7 +14,7 @@ touch $SCAN_DIR/$(date +%Y%m%d%H%M).file
 /usr/local/bin/alembic upgrade head
 
 /usr/local/bin/gunicorn main:app \
-    --workers 1 \
+    --workers 4 \
     --worker-class uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:8000 
 
