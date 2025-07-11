@@ -1,12 +1,14 @@
 import asyncio
+import sys
 import time
+import warnings
 
 
 import uvicorn
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from fastapi import FastAPI, Request, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, Response, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -64,20 +66,54 @@ import logging
 
 from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
 
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
 
-# Создание обработчика для логирования с временными метками
-class CustomFormatter(logging.Formatter):
-    def format(self, record):
-        record.asctime = self.formatTime(record, self.datefmt)
-        return super().format(record)
+        logger.opt(depth=6, exception=record.exc_info).log(level, record.getMessage())
+
+logger.remove()
+
+log_level = "DEBUG" if settings.debug else "INFO"
+
+logger.add(
+    sys.stdout,
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+    level=log_level
+)
+
+logging.basicConfig(handlers=[InterceptHandler()], level=0)
+
+uvicorn_error_logger = logging.getLogger("uvicorn.error")
+uvicorn_error_logger.handlers = [InterceptHandler()] 
+uvicorn_error_logger.propagate = False 
+uvicorn_error_logger.setLevel(log_level)
 
 
-# Настройка логирования
-log_formatter = CustomFormatter("%(asctime)s - %(levelname)s - %(message)s")
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(log_formatter)
+uvicorn_access_logger = logging.getLogger("uvicorn.access")
+uvicorn_access_logger.handlers = [InterceptHandler()] 
+uvicorn_access_logger.propagate = False 
+uvicorn_access_logger.setLevel(log_level) 
 
-logging.basicConfig(handlers=[console_handler], level=logging.INFO)
+passlib_bcrypt_logger = logging.getLogger("passlib.handlers.bcrypt")
+passlib_bcrypt_logger.setLevel(logging.ERROR)
+passlib_bcrypt_logger.propagate = False
+
+warnings.filterwarnings(
+    "ignore",
+    message="^.*error reading bcrypt version.*$",
+    category=UserWarning,
+    module="passlib.handlers.bcrypt"
+)
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    module="passlib"
+)
+
 
 
 all_licenses_info = [
@@ -265,6 +301,36 @@ async def track_active_users(request: Request, call_next):
     return response
 
 
+
+"""
+@app.middleware("http")
+async def track_active_users(request: Request, call_next):
+    response = None 
+    user_token = request.headers.get("Authorization")
+    if user_token:
+        token_parts = user_token.split(" ")
+        if len(token_parts) >= 2:
+            try:
+                decoded_token = jwt.decode(
+                    token_parts[1],
+                    options={"verify_signature": False},
+                    key=auth_service.SECRET_KEY,
+                    algorithms=[auth_service.ALGORITHM],
+                )
+                oid = decoded_token.get("oid")
+                if oid: 
+                    await redis_client.set(oid, time.time())
+                # await redis_client.set(oid, time.time())
+            except JWTError as e:
+                print(f"JWTError in track_active_users: {e}") 
+                return Response("Unauthorized: Invalid token", status_code=status.HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                print(f"An unexpected error in track_active_users: {e}")
+                return Response("Internal Server Error in middleware", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    if response is None: 
+        response = await call_next(request)
+    return response
+"""
 async def custom_identifier(request: Request) -> str:
     return request.client.host
 

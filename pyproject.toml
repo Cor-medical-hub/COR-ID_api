@@ -45,6 +45,7 @@ gdcm = "^1.1"
 pylibjpeg = "^2.0.1"
 pylibjpeg-libjpeg = "^2.3.0"
 pylibjpeg-openjpeg = "^2.4.0"
+gunicorn = "^23.0.0"
 
 
 [build-system]

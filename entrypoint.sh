@@ -13,4 +13,8 @@ touch $SCAN_DIR/$(date +%Y%m%d%H%M).file
 # upgrade DB
 /usr/local/bin/alembic upgrade head
 
-/usr/local/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --log-config log_config.yaml
+/usr/local/bin/gunicorn main:app \
+    --workers 1 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind 0.0.0.0:8000 
+
