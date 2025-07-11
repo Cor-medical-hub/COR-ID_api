@@ -1,0 +1,151 @@
+
+
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" type="text/css" href="/static/COR_ID_css/styles.css">
+    <link rel="stylesheet" type="text/css" href="/static/COR_ID_css/modal.css">
+    <link rel="stylesheet" type="text/css" href="/static/Printing/printers.css">
+    <title>Управление устройствами</title>
+    
+</head>
+<body>
+
+    <div class="main-container"> 
+        <h1>Управление устройствами печати</h1>   
+        <div class="print-container">
+            <button id="devicesBtn">Устройства и принтеры стёкол</button>
+            <button id="testBtn">Тест</button>
+            <button id="addDeviceBtn">Добавить устройство</button>
+        </div>  
+        <div id="printerStatus" class="status-indicator">Статус принтера: проверка...</div>
+    </div>    
+
+
+    <!-- Модальное окно для устройств и принтеров -->
+    <div id="devicesModal" class="modal"  style="display:none;">
+        <div class="modal-header">
+            <div class="modal-buttons">
+              <button class="modal-button close" data-action="close" id="closedevicesModal">✖</button>
+            </div>
+             <h3 style="margin-top:30; color:#291161;font-size: 17px;">Устройства и принтеры стёкол</h3>
+        </div> 
+        <div class="modal-content">
+            <div id="devicesList">
+                <!-- Здесь будет список устройств -->
+                <p>Список устройств загружается...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно для теста -->
+    <div id="testModal" class="modal"   style="display:none;">
+        <div class="modal-header">
+            <div class="modal-buttons">
+              <button class="modal-button close" data-action="close" id="closetestModal">✖</button>
+            </div>
+             <h3 style="margin-top:30; color:#291161;font-size: 17px;">Тест печати</h3>
+        </div> 
+        <div class="modal-content">
+           
+            <div class="form-group">
+                <label for="printerIp">IP принтера:</label>
+                <input type="text" id="printerIp" value="192.168.154.192">
+            </div>
+            <button id="sendLabelButton">Отправить тестовую метку</button>
+            <div id="testResult" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно для добавления устройства -->
+    <div id="addDeviceModal" class="modal"   style="display:none;">
+        <div class="modal-header">
+            <div class="modal-buttons">
+              <button class="modal-button close" data-action="close" id="closeaddDeviceModal">✖</button>
+            </div>
+             <h3 style="margin-top:30; color:#291161;font-size: 17px;">Добавить новое устройство</h3>
+        </div> 
+        <div class="modal-content">      
+            <div class="form-group">
+                <label for="deviceType">Тип устройства:</label>
+                <select id="deviceType" required>
+                    <option value="">Выберите тип</option>
+                    <option value="printer">Принтер</option>
+                    <option value="scanner">Сканер</option>
+                    <option value="other">Другое</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="deviceId">ID устройства (0-65535):</label>
+                <input type="number" id="deviceId" min="0" max="65535" required>
+            </div>
+            <div class="form-group">
+                <label for="deviceIp">IP-адрес:</label>
+                <input type="text" id="deviceIp" required>
+            </div>
+            <div class="form-group">
+                <label for="deviceLocation">Местоположение:</label>
+                <input type="text" id="deviceLocation">
+            </div>
+            <button onclick="addDevice()">Добавить устройство</button>
+            <div id="addDeviceResult" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <script src="/static/Printing/printers.js"></script>
+    <script src="/static/COR_ID_Js/translation.js"></script>   
+    <script src="/static/COR_ID_Js/general_fun.js"></script>  
+    <script>
+        const PRINTER_IP = "192.168.154.192"; // IP-адрес по умолчанию
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Открытие модальных окон
+            document.getElementById('devicesBtn').onclick = function() {
+                document.getElementById('devicesModal').style.display = 'block';
+                loadDevicesList(); 
+            }
+            
+            document.getElementById('testBtn').onclick = function() {
+                document.getElementById('testModal').style.display = 'block';
+            }
+            
+            document.getElementById('addDeviceBtn').onclick = function() {
+                document.getElementById('addDeviceModal').style.display = 'block';
+            }
+            
+            // Закрытие модальных окон при клике на крестик
+            const closeButtons = document.getElementsByClassName('close');
+            for (let i = 0; i < closeButtons.length; i++) {
+                closeButtons[i].onclick = function() {
+                    this.closest('.modal').style.display = 'none';
+                }
+            }
+            
+            // Закрытие модальных окон при клике вне окна
+            window.onclick = function(event) {
+                if (event.target.className === 'modal') {
+                    event.target.style.display = 'none';
+                }
+            }
+            
+                makeModalDraggable('addDeviceModal');
+                makeModalDraggable('devicesModal');
+                makeModalDraggable('testModal');
+            // Инициализация мониторинга принтера
+            startPrinterMonitoring();
+      
+
+        });
+        
+    
+    
+
+            </script>            
+
+</body>
+</html>
