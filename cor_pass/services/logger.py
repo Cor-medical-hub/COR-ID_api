@@ -44,6 +44,7 @@ def setup_logging():
     logging.getLogger("uvicorn.error").handlers = [InterceptHandler()]
     logging.getLogger("uvicorn.error").propagate = False
     logging.getLogger("uvicorn.error").setLevel(log_level)
-
+    
+    logging.getLogger("pymodbus.logging").setLevel(logging.INFO)
 
     logging.getLogger("passlib.handlers.bcrypt").setLevel(logging.ERROR) 
