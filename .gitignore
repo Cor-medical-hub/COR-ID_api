@@ -165,3 +165,8 @@ Dockerfile
 
 # secrets
 corid_env.*
+
+.idea
+.idea/
+.vscode
+.vscode/
