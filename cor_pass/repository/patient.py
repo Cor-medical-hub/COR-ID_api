@@ -189,22 +189,21 @@ async def _create_patient_internal(
     
     decoded_key = base64.b64decode(settings.aes_key)
 
-    # Определяем patient_cor_id
+
     if patient_cor_id_value:
         final_patient_cor_id = patient_cor_id_value
     else:
-        # Если patient_cor_id не передан, генерируем новый уникальный
+
         final_patient_cor_id = await repository_cor_id.create_only_corid(birth=patient_data.birth_date.year, user_sex=patient_data.sex, db=db)
 
-    # Проверяем уникальность patient_cor_id (если он не от пользователя)
-    # Если patient_cor_id_value был передан, предполагаем, что его уникальность уже проверена (например, user.cor_id)
-    if not patient_cor_id_value: # Проверяем только если мы сами его сгенерировали
+
+    if not patient_cor_id_value: 
         existing_patient_with_corid = await db.execute(
             select(Patient).where(Patient.patient_cor_id == final_patient_cor_id)
         )
         if existing_patient_with_corid.scalar_one_or_none():
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, # Conflict, так как ID уже есть
+                status_code=status.HTTP_409_CONFLICT, 
                 detail=f"Сгенерированный patient_cor_id '{final_patient_cor_id}' уже существует. Повторите попытку."
             )
 
@@ -228,9 +227,8 @@ async def _create_patient_internal(
         address=patient_data.address,
     )
     db.add(new_patient)
-    await db.flush() # Flush, чтобы new_patient.id был доступен
+    await db.flush() 
 
-    # Связываем с врачом
     doctor_patient_status = DoctorPatientStatus(
         patient_id=new_patient.id,
         doctor_id=doctor.id,
@@ -238,7 +236,6 @@ async def _create_patient_internal(
     )
     db.add(doctor_patient_status)
 
-    # Связываем с клиникой (если это общий статус для всех пациентов)
     clinic_patient_status = db_PatientClinicStatus(
         patient_id=new_patient.id,
         patient_status_for_clinic=PatientClinicStatus.registered,
@@ -246,9 +243,8 @@ async def _create_patient_internal(
     db.add(clinic_patient_status)
 
     await db.commit()
-    await db.refresh(new_patient) # Обновляем объект, чтобы получить актуальные данные из БД
+    await db.refresh(new_patient) 
 
-    # Отправляем email, если это сценарий с новым пользователем
     if send_email and new_patient.email and temp_password:
         await send_email_code_with_temp_pass(
             email=new_patient.email, temp_pass=temp_password
@@ -326,7 +322,6 @@ async def create_patient_and_user_by_email(
     Создает нового пользователя и связанного с ним пациента.
     Если пользователь с таким email уже существует, выбрасывается HTTPException.
     """
-    # Проверяем, существует ли уже пользователь с таким email
     existing_user_by_email = await repository_person.get_user_by_email(patient_data.email, db)
     if existing_user_by_email:
         raise HTTPException(
@@ -334,37 +329,32 @@ async def create_patient_and_user_by_email(
             detail=f"Пользователь с email '{patient_data.email}' уже зарегистрирован."
         )
 
-    # 1. Создаем нового пользователя
     password_settings = PasswordGeneratorSettings()
     temp_password = generate_password(password_settings)
     hashed_password = auth_service.get_password_hash(temp_password)
 
     user_signup_data = UserModel(
         email=patient_data.email,
-        password=temp_password, # Пароль будет перехэширован внутри create_user
+        password=temp_password,
         birth=patient_data.birth_date.year,
         user_sex=patient_data.sex,
     )
-    user_signup_data.password = hashed_password # Присваиваем хэшированный пароль
+    user_signup_data.password = hashed_password 
 
     new_user = await repository_person.create_user(user_signup_data, db)
-    await db.flush() # Flush, чтобы получить new_user.id и cor_id, если он генерируется
+    await db.flush() 
 
-    # Если cor_id генерируется асинхронно или после flush, убедитесь, что он есть
-    # Это важно, если create_user не гарантирует наличие cor_id сразу
     if not new_user.cor_id:
-        await repository_cor_id.create_new_corid(new_user, db) # Убедимся, что у пользователя есть cor_id
-        await db.refresh(new_user) # Обновим, чтобы получить cor_id
+        await repository_cor_id.create_new_corid(new_user, db) 
+        await db.refresh(new_user) 
 
-    # 2. Создаем пациента, связанного с новым пользователем
-    # Используем данные пациента из NewPatientData, а user_id и patient_cor_id от нового пользователя
     return await _create_patient_internal(
         db=db,
-        patient_data=patient_data, # Данные пациента
+        patient_data=patient_data,
         doctor=doctor,
-        user_id=new_user.id, # Связываем с только что созданным пользователем
-        patient_cor_id_value=new_user.cor_id, # Используем COR ID нового пользователя
-        send_email=True, # Отправляем email с временным паролем
+        user_id=new_user.id, 
+        patient_cor_id_value=new_user.cor_id, 
+        send_email=True, 
         temp_password=temp_password
     )
 
@@ -376,12 +366,11 @@ async def create_standalone_patient(
     Создает пациента без привязки к существующему или новому пользователю.
     Patient_cor_id будет сгенерирован автоматически.
     """
-    # user_id будет None, patient_cor_id_value будет сгенерирован внутри _create_patient_internal
     return await _create_patient_internal(
         db=db,
         patient_data=patient_data,
         doctor=doctor,
         user_id=None,
-        patient_cor_id_value=None, # Будет сгенерирован внутри _create_patient_internal
-        send_email=False # Нет пользователя, нет email для отправки
+        patient_cor_id_value=None, 
+        send_email=False 
     )

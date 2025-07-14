@@ -1,11 +1,6 @@
 import asyncio
-import sys
 import time
-import warnings
-
-
 import uvicorn
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from fastapi import FastAPI, Request, Depends, HTTPException, Response, status, Request
@@ -62,13 +57,10 @@ from fastapi.responses import JSONResponse
 from collections import defaultdict
 from jose import JWTError, jwt
 
-import logging
-
 from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
 
-from cor_pass.services.logger import setup_logging # Импортируем функцию настройки
+from cor_pass.services.logger import setup_logging 
 
-# Вызываем функцию настройки логирования в самом начале
 setup_logging()
 
 
@@ -318,7 +310,6 @@ blocked_ips = {}
 app.include_router(auth.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(records.router, prefix="/api")
-# app.include_router(tags.router, prefix="/api")
 app.include_router(password_generator.router, prefix="/api")
 app.include_router(person.router, prefix="/api")
 app.include_router(cor_id.router, prefix="/api")
@@ -339,7 +330,6 @@ app.include_router(websocket_events.router, prefix="/api")
 app.include_router(lab_assistants.router, prefix="/api")
 app.include_router(cerbo_routes.router, prefix="/api")
 app.include_router(energy_managers.router, prefix="/api")
-# app.include_router(cerbo_router, prefix="/api") # Change router
 app.include_router(blood_pressures.router, prefix="/api")
 
 if __name__ == "__main__":
