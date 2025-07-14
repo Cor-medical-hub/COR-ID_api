@@ -172,6 +172,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="./COR_ID_Js/general_fun.js"></script>
 <script src="./js/general.js"></script>
+<script src="./js/modal.js"></script>
 <script src="./js/alert.js"></script>
 <script src="./js/canvasDraw.js"></script>
 <script src="./js/doctorSignModal.js"></script>
@@ -286,7 +287,7 @@
                             .then(userData => {
                                 document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
                                 document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                                document.querySelector('#userAge').innerHTML =`${userData.age ? `${userData.age}р` : ''}`;
+                                document.querySelector('#userAge').innerHTML =`${(userData.age || "") ? `${userData.age}р` : ''}`;
                             })
                     })
             }
@@ -591,7 +592,7 @@
                         .then(userData => {
                             document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
                             document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                            document.querySelector('#userAge').innerHTML = `${userData.age ? `${userData.age}р` : ''}`;
+                            document.querySelector('#userAge').innerHTML = `${(userData.age || "")  ? `${userData.age}р` : ''}`;
                         })
                 })
         }

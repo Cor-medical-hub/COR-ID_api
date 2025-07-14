@@ -640,7 +640,7 @@
                 .then(userData => {
                     document.querySelector('#userName').innerHTML = `${userData.surname || ""} ${userData.first_name || ""} ${userData.middle_name || ""}`;
                     document.querySelector('#userGender').innerHTML = userData.sex === "M" ? "Чол" : "Жін";
-                    document.querySelector('#userAge').innerHTML = `${userData.age ? `${userData.age}р` : ''}`;
+                    document.querySelector('#userAge').innerHTML = `${(userData.age || "")  ? `${userData.age}р` : ''}`;
 
                     fetch(`${API_BASE_URL}/api/cases/patients/${PATIENT_COR_ID}/overview`, {
                         method: "GET",
