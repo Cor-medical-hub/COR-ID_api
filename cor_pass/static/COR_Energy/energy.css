@@ -357,9 +357,10 @@ footer {
     padding: 20px;
     border-radius: 8px;
     margin: 15px;
-    overflow-x: auto;
+    overflow: auto;
+    max-height: 230px;
+    min-height: 100px;
 }
-
 
 .schedule-controls {
     margin-bottom: 10px;
@@ -584,3 +585,43 @@ footer {
 .timeline-period:hover::after {
     opacity: 1;
 }
+
+
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+.notification.success {
+    background-color: #4CAF50;
+}
+.notification.error {
+    background-color: #f44336;
+}
+.notification.fade-out {
+    opacity: 0;}
+
+
+
+.register-test-container {
+    position: absolute;
+    top: 220px;
+    right: 50px;
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    width: 300px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+

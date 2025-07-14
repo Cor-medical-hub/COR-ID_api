@@ -429,8 +429,8 @@
                     <label><input type="radio" name="mode" value="4" onchange="setMode(this)"> Off</label>
                 </div>
               </div>
-
-              <h3>Тестирование регистров Modbus</h3>
+                <div class="register-test-container">
+                 <h3>Тестирование регистров Modbus</h3>
                     <div class="register-test-form">
                         <div class="control-group">
                             <label for="slave_id">Slave UID:</label>
@@ -446,11 +446,19 @@
                         </div>
                         <button onclick="testRegisters()" class="btn">Тестировать</button>
                     </div>
-                    
-               <!--    <div class="register-results">
-                        <h4>Результаты:</h4>
-                        <div id="register_results_output" style="white-space: pre; font-family: monospace;"></div>
-                    </div>--> 
+
+                    <div class="register-test-form">
+                        <div class="control-group">
+                            <label for="register_to_write">Регистр:</label>
+                            <input type="number" id="register_to_write" min="0" max="65535">
+                        </div>
+                        <div class="control-group">
+                            <label for="register_value">Значение:</label>
+                            <input type="number" id="register_value" min="0" max="65535">
+                        </div>
+                        <button onclick="writeRegister()" class="btn">Записать</button>
+                    </div> 
+                </div>         
 
               <div style="margin: 12px 0;">
                 <label for="gridLimitingSwitch" style="font-weight: bold;">Ограничение отдачи в сеть</label>
@@ -626,10 +634,27 @@
 
           <!--Модальное окно инвертора --> 
         <div id="inverterModal" class="modal" style="display:none;">
-            <div class="modal-content">
-                <span class="close" id="closeInverter">&times;</span>
-                <p>Информация о инверторе</p>
+            <div class="modal-header">
+                <div class="modal-buttons">
+                  <button class="modal-button close" data-action="close" id="closeInverterModal">✖</button>
+                 </div>
+                 <h3 style="margin-top:30; color:#291161;font-size: 17px;">Информация о инверторе</h3>
+            </div> 
+
+            <label for="ChargingCurrent" style="font-weight: bold;">Ток заряда MAX (A)</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="range" id="ChargingCurrentSlider" min="0" max="30000" step="100" value="0" style="width: 250px;">
+                <span id="ChargingSliderValue">0</span>
             </div>
+
+            <label for="InverterPowerSlider" style="font-weight: bold;">Мощность инвертора (Вт)</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="range" id="InverterPowerSlider" min="0" max="300000" step="100" value="0" style="width: 250px;">
+                <span id="InverterSliderValue">0</span>
+            </div>
+            <button id="saveInverterPower" onclick="saveInverterPower()" disabled>Сохранить</button>
+            <div id="InverterConfirmationMessage" style="margin-top: 10px; color: rgb(11, 226, 11); display: none;"></div>
+           
         </div>
 
         <!-- Модальное окно Солнечных панелей -->
@@ -701,7 +726,10 @@
             let feedInChangeTimeout = null;
             let isFeedInSliderChanged = false;
 
-           
+            let initialInverterPowerValue = 0;
+            let inverterChangeTimeout = null;
+            let inverterPowerChanged = false;
+            
             let lastPowerValue = 0;
 
             let currentPage = 1;
@@ -823,6 +851,29 @@ document.getElementById('feedInPowerSlider').addEventListener('input', function(
         showFeedInConfirmationMessage("Изменения не сохранены!!!", false);
     }, 4000);
 });
+
+
+
+document.getElementById('InverterPowerSlider').addEventListener('input', function () {
+    const newValue = this.value;
+    const saveButton = document.getElementById('saveInverterPower');
+    document.getElementById('InverterSliderValue').textContent = newValue;
+
+    inverterPowerChanged = true;
+    saveButton.disabled = false;
+
+    if (inverterChangeTimeout) {
+        clearTimeout(inverterChangeTimeout);
+    }
+
+    inverterChangeTimeout = setTimeout(() => {
+        resetInverterSlider();
+        showInverterConfirmationMessage("Изменения не сохранены!!!", false);
+    }, 4000);
+});
+
+
+
 
 
         </script>

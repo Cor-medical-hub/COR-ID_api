@@ -296,12 +296,20 @@ async function fetchEssAdvancedSettings() {
 
             // Устанавливаем начальное значение для ползунка отдачи в сеть
             const feedInValue = data.ac_power_setpoint_fine || 0;
+            const InverterPowerValue = data.max_discharge_power || 0;
             // Обновляем исходное значение только если ползунок не был изменен пользователем
             if (!isFeedInSliderChanged) {
                 initialFeedInValue = feedInValue;
                 document.getElementById('feedInPowerSlider').value = feedInValue;
                 document.getElementById('feedInSliderValue').textContent = feedInValue;
             }
+            if (!inverterPowerChanged) {
+                initialInverterPowerValue = InverterPowerValue;
+                document.getElementById('InverterPowerSlider').value = InverterPowerValue;
+                document.getElementById('InverterSliderValue').textContent = InverterPowerValue;
+            }
+
+
     } catch (err) {
         console.error("❗ Ошибка получения ESS расширенных настроек:", err);
     }
@@ -321,7 +329,7 @@ function updateEssAdvancedDisplay(data) {
     document.getElementById("charge_voltage").textContent = data.max_charge_voltage + " В";
     document.getElementById("input1_src").textContent = formatInputSource(data.ac_input_1_source);
     document.getElementById("input2_src").textContent = formatInputSource(data.ac_input_2_source);
-
+   // console.log("Ограничение выдачи:",data.grid_limiting_status);
 }
 
 function formatInputSource(code) {
@@ -375,6 +383,34 @@ async function saveAcSetpoint() {
         console.error("❗ Ошибка установки Setpoint Fine:", err);
         showFeedInConfirmationMessage("❌ Ошибка сохранения: " + err.message, false);
         resetFeedInSlider();
+    }
+}
+
+
+async function saveInverterPower() {
+    const value = parseInt(document.getElementById('InverterPowerSlider').value, 10);
+
+    try {
+        const res = await fetch('/api/modbus/ess_advanced_settings/inverter_power', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inverter_power: value })
+        });
+
+        if (!res.ok) throw new Error((await res.json()).detail || "Ошибка записи регистра 2704");
+
+        initialInverterPowerValue = value;
+        isInverterSliderChanged = false;
+        document.getElementById('saveInverterPower').disabled = true;
+
+        if (inverterChangeTimeout) {
+            clearTimeout(inverterChangeTimeout);
+            inverterChangeTimeout = null;
+        }
+
+        showInverterConfirmationMessage("✅ Успешно сохранено", true);
+    } catch (err) {
+        showInverterConfirmationMessage("❌ Ошибка: " + err.message, false);
     }
 }
 
