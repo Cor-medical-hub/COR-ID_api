@@ -11,8 +11,9 @@ const modalConfigs = {
     step3Modal: { width: '460px', height: '690px', top: '20px', left: '300px' },
     step4Modal: { width: '460px', height: '690px', top: '20px', left: '300px' },
     addPatientModal: { width: '460px', height: '700px', top: '15px', left: '300px' },
-    addDeviceModal: { width: '250px', height: '550px', top: '50px', left: '250px' },
-    devicesModal: { width: 'auto', height: '450px', top: '50', left: 'auto' },
+    addDeviceModal: { width: '250px', height: 'auto', top: '50px', left: '250px' },
+    devicesModal: { width: 'auto', height: '450px', top: 'auto' , left: 'auto' },
+    testModal: { width:'250px', height: 'auto', top: 'auto' , left: 'auto' },
     Dicom_upload_modal: { width: '460px', height: 'auto', top: 'auto', left: 'auto' },
     recovery_modal: { width: '250px', height: 'auto', top: 'auto', left: 'auto' },
     rolesModal: { width: '250px', height: 'auto', top: '50px', left: '50px' },
@@ -22,7 +23,8 @@ const modalConfigs = {
     loadSettingsModal: { width: '350px', height: 'auto', top: 'auto', left: 'auto' },
     GridSettingsModal: { width: '350px', height: 'auto', top: 'auto', left: 'auto' },
     SolarPanelModal: { width: '350px', height: '550px', top: '50px', left: 'auto' },
-    RegistersModal: { width: '350px', height: 'auto', top: '50px', left: 'auto' },
+    RegistersModal: { width: '350px', height: '400px', top: '50px', left: 'auto' },
+    inverterModal: { width: '350px', height: 'auto', top: '50px', left: 'auto' },
 };
 
 //Функция получения токена 
