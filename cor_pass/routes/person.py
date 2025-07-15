@@ -630,10 +630,10 @@ async def upsert_user_profile_endpoint(
     """
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    
+    if profile_data.birth_date.year != current_user.birth:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Пользователь указал не верный год рождения (год рождения должен совпадать с указанным ранее в cor-id)")
     db_profile = await person.upsert_user_profile(db, current_user.id, profile_data)
     
-    # Формируем ответ, используя вспомогательную функцию
     return await _create_profile_response(db_profile, current_user, router)
 
 
