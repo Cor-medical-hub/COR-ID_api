@@ -3879,16 +3879,16 @@ async def _update_ancestor_statuses_from_glass(db: AsyncSession, glass: db_model
         return
 
 
-    all_glasses_in_cassette_result = await db.execute(
-        select(db_models.Glass).where(db_models.Glass.cassette_id == cassette.id)
-    )
-    all_glasses_in_cassette = all_glasses_in_cassette_result.scalars().all()
+    # all_glasses_in_cassette_result = await db.execute(
+    #     select(db_models.Glass).where(db_models.Glass.cassette_id == cassette.id)
+    # )
+    # all_glasses_in_cassette = all_glasses_in_cassette_result.scalars().all()
 
-    new_cassette_is_printed_status = all(g.is_printed for g in all_glasses_in_cassette) if all_glasses_in_cassette else True
+    # new_cassette_is_printed_status = all(g.is_printed for g in all_glasses_in_cassette) if all_glasses_in_cassette else True
 
-    if cassette.is_printed != new_cassette_is_printed_status:
-        cassette.is_printed = new_cassette_is_printed_status
-        db.add(cassette)
+    # if cassette.is_printed != new_cassette_is_printed_status:
+    #     cassette.is_printed = new_cassette_is_printed_status
+    #     db.add(cassette)
 
     sample = await db.get(db_models.Sample, cassette.sample_id)
     if not sample:
