@@ -3897,7 +3897,7 @@ async def _update_ancestor_statuses_from_glass(db: AsyncSession, glass: db_model
 
     await _update_sample_glass_status(db, sample)
     
-    await _update_sample_cassette_status(db, sample)
+    # await _update_sample_cassette_status(db, sample)
 
     case = await db.get(db_models.Case, sample.case_id)
     if not case:
@@ -3905,7 +3905,7 @@ async def _update_ancestor_statuses_from_glass(db: AsyncSession, glass: db_model
 
     await _update_case_glass_status(db, case)
     
-    await _update_case_cassette_status(db, case)
+    # await _update_case_cassette_status(db, case)
 
     await db.commit() 
     await db.refresh(glass)
