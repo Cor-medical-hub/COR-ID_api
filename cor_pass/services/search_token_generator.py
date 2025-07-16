@@ -36,17 +36,16 @@ def get_patient_search_tokens(
     if first_name:
         all_tokens.update(generate_ngrams(first_name, n=2))
         all_tokens.update(generate_ngrams(first_name, n=3))
-        all_tokens.add(re.sub(r'[^a-zа-я0-9]', '', first_name.lower()))
     
     if last_name:
         all_tokens.update(generate_ngrams(last_name, n=2))
         all_tokens.update(generate_ngrams(last_name, n=3))
-        all_tokens.add(re.sub(r'[^a-zа-я0-9]', '', last_name.lower()))
+
 
     if middle_name: 
         all_tokens.update(generate_ngrams(middle_name, n=2))
         all_tokens.update(generate_ngrams(middle_name, n=3))
-        all_tokens.add(re.sub(r'[^a-zа-я0-9]', '', middle_name.lower()))
+
     
 
     return " ".join(sorted(list(all_tokens)))
