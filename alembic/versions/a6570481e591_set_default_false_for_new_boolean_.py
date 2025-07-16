@@ -5,6 +5,7 @@ Revises: 37567c675f11
 Create Date: 2025-07-08 10:30:55.990881
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'a6570481e591'
-down_revision: Union[str, None] = '37567c675f11'
+revision: str = "a6570481e591"
+down_revision: Union[str, None] = "37567c675f11"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -21,63 +22,74 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
 
     op.execute(
-        sa.text("""
+        sa.text(
+            """
             UPDATE cases
             SET is_printed_cassette = FALSE
             WHERE is_printed_cassette IS NULL;
-        """)
+        """
+        )
     )
 
     op.execute(
-        sa.text("""
+        sa.text(
+            """
             UPDATE cases
             SET is_printed_glass = FALSE
             WHERE is_printed_glass IS NULL;
-        """)
+        """
+        )
     )
 
     op.execute(
-        sa.text("""
+        sa.text(
+            """
             UPDATE cases
             SET is_printed_qr = FALSE
             WHERE is_printed_qr IS NULL;
-        """)
+        """
+        )
     )
 
-
     op.execute(
-        sa.text("""
+        sa.text(
+            """
             UPDATE samples
             SET is_printed_cassette = FALSE
             WHERE is_printed_cassette IS NULL;
-        """)
+        """
+        )
     )
 
     op.execute(
-        sa.text("""
+        sa.text(
+            """
             UPDATE samples
             SET is_printed_glass = FALSE
             WHERE is_printed_glass IS NULL;
-        """)
+        """
+        )
     )
 
     op.execute(
-        sa.text("""
+        sa.text(
+            """
             UPDATE cassettes
             SET is_printed = FALSE
             WHERE is_printed IS NULL;
-        """)
+        """
+        )
     )
 
     op.execute(
-        sa.text("""
+        sa.text(
+            """
             UPDATE glasses
             SET is_printed = FALSE
             WHERE is_printed IS NULL;
-        """)
+        """
+        )
     )
-
-
 
 
 def downgrade() -> None:
