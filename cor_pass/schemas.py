@@ -9,7 +9,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing import Generic, List, Optional, TypeVar, Union
+from typing import Generic, List, Literal, Optional, TypeVar, Union
 from datetime import datetime, time, timedelta
 
 from cor_pass.database.models import (
@@ -2118,3 +2118,26 @@ class EnergeticScheduleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+class SearchResultPatientOverview(PatientFirstCaseDetailsResponse):
+    search_type: Literal["patient_overview"] = "patient_overview"
+
+class SearchResultCaseDetails(PatientGlassPageResponse): 
+    search_type: Literal["case_details"] = "case_details"
+
+SearchResultUnion = Union[
+    SearchResultPatientOverview,
+    SearchResultCaseDetails
+]
+
+class UnifiedSearchResponse(BaseModel):
+    data: SearchResultUnion = Field(discriminator='search_type')
+
+
+class SearchCaseDetailsSimple(BaseModel):
+    search_type: Literal["case_details"] = "case_details"
+    case_id: str
+    patient_id: str
+

@@ -2,7 +2,7 @@ import base64
 from typing import Optional
 import uuid
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from cor_pass.database.models import (
     Patient,
     DoctorPatientStatus,
@@ -29,6 +29,8 @@ from cor_pass.config.config import settings
 from cor_pass.services.auth import auth_service
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from cor_pass.services.search_token_generator import get_patient_search_tokens
 
 
 async def register_new_patient(
@@ -205,6 +207,8 @@ async def _create_patient_internal(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Сгенерированный patient_cor_id '{final_patient_cor_id}' уже существует. Повторите попытку.",
             )
+        
+    search_tokens_str = get_patient_search_tokens(first_name=patient_data.first_name, last_name=patient_data.surname, middle_name=patient_data.middle_name)
 
     new_patient = Patient(
         id=str(uuid.uuid4()),
@@ -226,6 +230,7 @@ async def _create_patient_internal(
         email=patient_data.email,
         phone_number=patient_data.phone_number,
         address=patient_data.address,
+        search_tokens=search_tokens_str
     )
     db.add(new_patient)
     await db.flush()
@@ -381,3 +386,30 @@ async def create_standalone_patient(
         patient_cor_id_value=None,
         send_email=False,
     )
+
+
+async def find_patient(
+    db: AsyncSession, search_ngrams_joined: str,
+) -> Patient:
+
+    search_ngrams = search_ngrams_joined.split(' ') 
+    
+
+    conditions = []
+    for ngram in search_ngrams:
+
+        conditions.append(Patient.search_tokens.ilike(f"%{ngram}%"))
+    
+
+    if conditions:
+        patient_query = (
+            select(Patient)
+            .where(or_(*conditions)) 
+            .limit(1) 
+        )
+        pat_exec = await db.execute(patient_query)
+        found_patient = pat_exec.scalar_one_or_none()
+        return found_patient
+    else:
+
+        return None

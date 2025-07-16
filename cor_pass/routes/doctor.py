@@ -46,6 +46,7 @@ from cor_pass.repository.patient import (
     create_patient_and_user_by_email,
     create_patient_linked_to_user,
     create_standalone_patient,
+    find_patient,
     register_new_patient,
 )
 from cor_pass.schemas import (
@@ -58,6 +59,7 @@ from cor_pass.schemas import (
     GetAllPatientsResponce,
     PatientCreationResponse,
     PatientFinalReportPageResponse,
+    PatientFirstCaseDetailsResponse,
     PatientTestReportPageResponse,
     ReportAndDiagnosisUpdateSchema,
     ReportResponseSchema,
@@ -77,9 +79,12 @@ from cor_pass.schemas import (
     ReferralAttachmentResponse,
     ReferralResponse,
     ReferralResponseForDoctor,
+    SearchResultCaseDetails,
+    SearchResultPatientOverview,
     SignReportRequest,
     SingleCaseExcisionPageResponse,
     SingleCaseGlassPageResponse,
+    UnifiedSearchResponse,
     UpdateMicrodescription,
     UpdatePathohistologicalConclusion,
 )
@@ -95,6 +100,8 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from loguru import logger
+
+from cor_pass.services.search_token_generator import generate_ngrams
 
 router = APIRouter(prefix="/doctor", tags=["Doctor"])
 
@@ -235,7 +242,6 @@ async def get_doctor_patients(
     sort_order: Optional[str] = Query("desc", description="Сортировка (asc или desc)"),
     skip: int = Query(1, ge=1, description="Страницы (1-based index)"),
     limit: int = Query(10, ge=1, le=100, description="К-ство на страницу"),
-    search_query: Optional[str] = Query(None, description="Поиск по имени или фамилии"),
 ):
     doctor = None
     if current_doctor:
@@ -274,8 +280,7 @@ async def get_doctor_patients(
         sort_by=sort_by,
         sort_order=sort_order,
         skip=skip,
-        limit=limit,
-        search_query=search_query,
+        limit=limit
     )
     return response
 
@@ -1071,3 +1076,67 @@ async def close_case_endpoint(
     return await case_service.close_case_service(
         db=db, case_id=case_id, current_doctor=doctor
     )
+
+
+
+@router.get(
+    "/",
+    response_model=UnifiedSearchResponse,
+    dependencies=[Depends(doctor_access)],
+    summary="Поиск пациента по ФИО или коду кейса",
+    description="Поиск может выполняться по ФИО пациента (возвращает get_patient_first_case_details) "
+                "или по коду кейса (возвращает get_patient_case_details_for_glass_page). "
+)
+async def unified_search(
+    query: str = Query(..., min_length=2, description="ФИО или код кейса"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user),
+):
+    doctor = await get_doctor(doctor_id=current_user.cor_id, db=db)
+    if not doctor:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found")
+
+    case_db = await case_service.get_single_case(db=db, case_id=query)
+    if case_db:
+        # Если найден кейс, получаем детали для него
+        patient_id_from_case = str(case_db.patient_id)
+
+        case_details_response = await case_service.get_patient_case_details_for_glass_page(
+            db=db,
+            patient_id=patient_id_from_case,
+            current_doctor_id=doctor.doctor_id,
+            router=router,
+            case_id=str(case_db.id),
+        )
+        if case_details_response is None:
+            raise HTTPException(status_code=404, detail="Case details not found for this code.")
+        
+        return UnifiedSearchResponse(
+            data=SearchResultCaseDetails(**case_details_response.model_dump())
+        )
+
+    # 2. Если по case_code не найдено, пытаемся найти пациента по ФИО
+
+    search_ngrams = generate_ngrams(query, n=2)
+    search_ngrams.extend(generate_ngrams(query, n=3))
+    logger.debug(f"search_ngrams.extend - {search_ngrams}")
+    search_ngrams_joined = " ".join(sorted(list(set(search_ngrams))))
+    logger.debug(f"search_ngrams_joined - {search_ngrams_joined}")
+
+    found_patient = await find_patient(db=db, search_ngrams_joined=search_ngrams_joined)
+    logger.debug(f"found_patient - {found_patient}")
+
+    if found_patient:
+        patient_overview_response = await case_service.get_patient_first_case_details(
+            db=db, patient_id=found_patient.patient_cor_id
+        )
+        patient_response = PatientFirstCaseDetailsResponse(**patient_overview_response)
+        logger.debug(f"patient_overview_response - {patient_overview_response}")
+        if patient_overview_response is None:
+            raise HTTPException(status_code=404, detail="Patient overview not found.")
+
+        return UnifiedSearchResponse(
+            data=SearchResultPatientOverview(**patient_overview_response)
+        )
+            
+    raise HTTPException(status_code=404, detail="Patient or Case not found.")

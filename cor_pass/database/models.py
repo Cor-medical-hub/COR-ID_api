@@ -99,6 +99,7 @@ class MaterialType(enum.Enum):
     S = "Second Opinion"
     A = "Autopsy"
     EM = "Electron Microscopy"
+    OTHER = "Другое"
 
 
 # Типы срочности для параметров кейса
@@ -124,6 +125,10 @@ class StudyType(enum.Enum):
     HISTOPATHOLOGY = "патогистология"
     IMMUNOHISTOCHEMISTRY = "иммуногистохимия"
     FISH_CISH = "FISH/CISH"
+    CB = "Cellblock"
+    S = "Second Opinion"
+    A = "Autopsy"
+    EM = "Electron Microscopy"
 
 
 # Типы окрашивания для стёкол
@@ -522,6 +527,8 @@ class Patient(Base):
     user = relationship("User", back_populates="patient")
     doctor_statuses = relationship("DoctorPatientStatus", back_populates="patient")
     clinic_statuses = relationship("PatientClinicStatusModel", back_populates="patient")
+
+    search_tokens = Column(Text, default="", nullable=False)
 
     def __repr__(self):
         return f"<Patient(id='{self.id}', patient_cor_id='{self.patient_cor_id}')>"
@@ -1030,7 +1037,7 @@ class EnergeticSchedule(Base):
         nullable=False,
         default=False,
         comment="Флаг: заряжать батарею в этом режиме",
-    )
+    ) # убрать
 
     # Статусы расписания
     is_active = Column(
@@ -1045,6 +1052,12 @@ class EnergeticSchedule(Base):
         default=False,
         comment="Флаг: находится ли инвертор в ручном режиме",
     )
+    # charge_battery = Column(
+    #     int,
+    #     nullable=False,
+    #     default=300,
+    #     comment="заряжать батарею в этом режиме с каким то током",
+    # )
 
     def __repr__(self):
         return (

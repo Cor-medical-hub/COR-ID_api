@@ -285,8 +285,7 @@ async def get_patients_with_optional_status(
     sort_by: Optional[str] = "change_date",
     sort_order: Optional[str] = "desc",
     skip: int = 1,
-    limit: int = 30,
-    search_query: Optional[str] = None,
+    limit: int = 30
 ) -> Tuple[List, int]:
     query = (
         select(DoctorPatientStatus, Patient, PatientClinicStatusModel)
