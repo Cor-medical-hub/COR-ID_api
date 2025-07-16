@@ -388,28 +388,76 @@ async def create_standalone_patient(
     )
 
 
+# async def find_patient(
+#     db: AsyncSession, search_ngrams_joined: str,
+# ) -> Patient:
+
+#     search_ngrams = search_ngrams_joined.split(' ') 
+    
+
+#     conditions = []
+#     for ngram in search_ngrams:
+
+#         conditions.append(Patient.search_tokens.ilike(f"%{ngram}%"))
+    
+
+#     if conditions:
+#         patient_query = (
+#             select(Patient)
+#             .where(or_(*conditions)) 
+#             .limit(1) 
+#         )
+#         pat_exec = await db.execute(patient_query)
+#         found_patient = pat_exec.scalar_one_or_none()
+#         return found_patient
+#     else:
+
+#         return None
+    
 async def find_patient(
     db: AsyncSession, search_ngrams_joined: str,
-) -> Patient:
-
+) -> Patient | None: 
+    
     search_ngrams = search_ngrams_joined.split(' ') 
     
+    if not search_ngrams:
+        return None 
 
     conditions = []
     for ngram in search_ngrams:
-
         conditions.append(Patient.search_tokens.ilike(f"%{ngram}%"))
+
+    patient_query = (
+        select(Patient)
+        .where(or_(*conditions))
+    )
     
+    logger.debug(f"Generated Candidate SQL Query: {patient_query.compile(compile_kwargs={'literal_binds': True})}")
+    pat_exec = await db.execute(patient_query)
+    candidate_patients = pat_exec.scalars().all() 
+    
+    if not candidate_patients:
+        return None 
 
-    if conditions:
-        patient_query = (
-            select(Patient)
-            .where(or_(*conditions)) 
-            .limit(1) 
-        )
-        pat_exec = await db.execute(patient_query)
-        found_patient = pat_exec.scalar_one_or_none()
-        return found_patient
-    else:
+    patient_scores = []
+    for patient in candidate_patients:
+        score = 0
+        patient_tokens = patient.search_tokens.split(' ') if patient.search_tokens else []
+        
+        for search_ngram in search_ngrams:
 
+
+            if search_ngram in patient.search_tokens: 
+                score += 1
+            
+        patient_scores.append((patient, score))
+
+    patient_scores.sort(key=lambda x: x[1], reverse=True)
+
+
+    most_relevant_patient = patient_scores[0][0] 
+    
+    if patient_scores[0][1] == 0:
         return None
+        
+    return most_relevant_patient
