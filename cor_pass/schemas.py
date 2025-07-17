@@ -2061,7 +2061,7 @@ class EnergeticScheduleBase(BaseModel):
     duration_minutes: int = Field(
         ..., ge=0, lt=60, description="Продолжительность режима в минутах (0-59)"
     )
-    grid_feed_w: int = Field(..., ge=0, description="Параметр отдачи в сеть (Вт)")
+    grid_feed_w: int = Field(..., ge=-100000, le=100000, description="Параметр отдачи в сеть (Вт)")
     battery_level_percent: int = Field(
         ..., ge=0, le=100, description="Целевой уровень батареи (%)"
     )
@@ -2082,7 +2082,7 @@ class EnergeticScheduleResponse(BaseModel):
 
     id: str = Field(..., description="Уникальный идентификатор расписания")
     start_time: time = Field(..., description="Время начала работы режима (ЧЧ:ММ)")
-    grid_feed_w: float = Field(..., ge=0.0, description="Параметр отдачи в сеть (Вт)")
+    grid_feed_w: float = Field(..., ge=-100000, le=100000, description="Параметр отдачи в сеть (Вт)")
     battery_level_percent: int = Field(
         ..., ge=0, le=100, description="Целевой уровень батареи (%)"
     )
