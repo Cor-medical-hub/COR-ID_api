@@ -497,6 +497,13 @@ async def get_single_case(db: AsyncSession, case_id: str) -> db_models.Case | No
     return result.scalar_one_or_none()
 
 
+async def get_single_case_by_case_code(db: AsyncSession, case_code: str) -> db_models.Case | None:
+    """Асинхронно получает информацию о кейсе по его case_code, включая связанные банки."""
+    result = await db.execute(
+        select(db_models.Case).where(db_models.Case.case_code == case_code)
+    )
+    return result.scalar_one_or_none()
+
 async def delete_cases(db: AsyncSession, case_ids: List[str]) -> Dict[str, Any]:
     """Асинхронно удаляет кейс."""
     deleted_count = 0

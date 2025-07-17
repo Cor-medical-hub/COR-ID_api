@@ -387,33 +387,6 @@ async def create_standalone_patient(
         send_email=False,
     )
 
-
-# async def find_patient(
-#     db: AsyncSession, search_ngrams_joined: str,
-# ) -> Patient:
-
-#     search_ngrams = search_ngrams_joined.split(' ') 
-    
-
-#     conditions = []
-#     for ngram in search_ngrams:
-
-#         conditions.append(Patient.search_tokens.ilike(f"%{ngram}%"))
-    
-
-#     if conditions:
-#         patient_query = (
-#             select(Patient)
-#             .where(or_(*conditions)) 
-#             .limit(1) 
-#         )
-#         pat_exec = await db.execute(patient_query)
-#         found_patient = pat_exec.scalar_one_or_none()
-#         return found_patient
-#     else:
-
-#         return None
-    
 async def find_patient(
     db: AsyncSession, search_ngrams_joined: str,
 ) -> Patient | None: 
@@ -461,3 +434,11 @@ async def find_patient(
         return None
         
     return most_relevant_patient
+
+
+async def get_single_patient_by_corid(db: AsyncSession, cor_id: str)-> Patient | None:
+
+    stmt_patient = select(Patient).where(Patient.patient_cor_id == cor_id)
+    result_patient = await db.execute(stmt_patient)
+    existing_patient = result_patient.scalar_one_or_none()
+    return existing_patient
