@@ -1,9 +1,8 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from typing import List, Optional
-from pydantic import BaseModel 
 from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_schedule, decode_signed_16, decode_signed_32, delete_schedule, get_all_schedules, get_device_measurements_paginated, get_modbus_client, get_schedule_by_id, register_modbus_error, update_schedule
-from cor_pass.schemas import CerboMeasurementResponse, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, PaginatedResponse, VebusSOCControl
+from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from math import ceil
@@ -15,45 +14,11 @@ error_count = 0
 
 # Создание роутера FastAPI
 router = APIRouter(prefix="/modbus", tags=["Modbus"])
-schedules_storage = {
-    "schedule_enabled": True,
-    "periods": []
-}
-
-
-class SchedulePeriod(BaseModel):
-    id: int
-    startHour: int
-    startMinute: int
-    durationHour: int
-    durationMinute: int
-    feedIn: float
-    batteryLevel: int
-    chargeEnabled: bool
-    active: bool
-
-class ScheduleData(BaseModel):
-    scheduleEnabled: bool
-    periods: list[SchedulePeriod]
-
-
-class RegisterWriteRequest(BaseModel):
-    slave_id: int
-    register: int
-    value: int
-
-
-class InverterPowerPayload(BaseModel):
-    inverter_power: float
-
-class DVCCMaxChargeCurrentRequest(BaseModel):
-    current_limit: int  # -1 или положительное значение до 32767
 
 
 @router.get("/error_count")
 async def get_error_count():
     """Возвращает текущее количество ошибок Modbus"""
-    global error_count
     return {"error_count": error_count}
 
 # Получение статуса батареи
@@ -121,6 +86,7 @@ async def get_inverter_power_status(request: Request):
             value = decode_signed_32(res.registers[0], res.registers[1])
             result[name] = value
            # logging.info(f"✅ {name}: {value} Вт")
+        global error_count
         error_count = 0
         return {
             "dc_power": result["dc_power"],

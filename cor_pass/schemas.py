@@ -2120,6 +2120,23 @@ class EnergeticScheduleResponse(BaseModel):
         from_attributes = True
 
 
+class RegisterWriteRequest(BaseModel):
+    slave_id: int
+    register: int
+    value: int
+
+
+class InverterPowerPayload(BaseModel):
+    inverter_power: float
+
+class DVCCMaxChargeCurrentRequest(BaseModel):
+    current_limit: int = Field(
+        ..., ge=-1, le=32767, description="DVCCMaxChargeCurrent (-1 или положительное значение до 32767)"
+    )
+
+
+
+
 
 class SearchResultPatientOverview(PatientFirstCaseDetailsResponse):
     search_type: Literal["patient_overview"] = "patient_overview"
