@@ -16,11 +16,8 @@ from typing import List, Optional
 
 from cor_pass.database.db import get_db
 from cor_pass.database.models import (
-    Doctor,
-    MaterialType,
     PatientClinicStatus,
     PatientStatus,
-    UrgencyType,
     User,
 )
 from cor_pass.repository.doctor import (
@@ -28,9 +25,7 @@ from cor_pass.repository.doctor import (
     create_doctor_service,
     create_doctor_signature,
     delete_doctor_signature,
-    get_doctor_patients_with_status,
     get_doctor_signatures,
-    get_doctor_single_patient_with_status,
     get_doctor_single_patient_without_doctor_status,
     get_patients_with_optional_status,
     get_signature_data,
@@ -42,13 +37,12 @@ from cor_pass.repository.doctor import (
 )
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import (
-    add_existing_patient,
     create_patient_and_user_by_email,
     create_patient_linked_to_user,
     create_standalone_patient,
     find_patient,
-    get_single_patient_by_corid,
-    register_new_patient,
+    get_single_patient_by_corid
+
 )
 from cor_pass.schemas import (
     CaseCloseResponse,
@@ -56,15 +50,12 @@ from cor_pass.schemas import (
     CaseFinalReportPageResponse,
     CaseIDReportPageResponse,
     ExistingPatientRegistration,
-    FinalReportResponseSchema,
     GetAllPatientsResponce,
     PatientCreationResponse,
     PatientFinalReportPageResponse,
-    PatientFirstCaseDetailsResponse,
     PatientTestReportPageResponse,
     ReportAndDiagnosisUpdateSchema,
     ReportResponseSchema,
-    ReportUpdateSchema,
     DoctorCreate,
     DoctorCreateResponse,
     DoctorSignatureResponse,
@@ -73,12 +64,10 @@ from cor_pass.schemas import (
     NewPatientRegistration,
     PathohistologicalConclusionResponse,
     PatientCasesWithReferralsResponse,
-    PatientReportPageResponse,
     PatientDecryptedResponce,
     PatientExcisionPageResponse,
     PatientGlassPageResponse,
     ReferralAttachmentResponse,
-    ReferralResponse,
     ReferralResponseForDoctor,
     SearchResultCaseDetails,
     SearchResultPatientOverview,
@@ -93,11 +82,10 @@ from cor_pass.routes.cases import router as cases_router
 from cor_pass.repository import case as case_service
 from cor_pass.repository import person as repository_person
 from cor_pass.services.auth import auth_service
-from cor_pass.services.access import user_access, doctor_access
+from cor_pass.services.access import user_access, doctor_access, lab_assistant_or_doctor_access
 from cor_pass.services.auth import auth_service
 from cor_pass.services.document_validation import validate_document_file
 from cor_pass.services.image_validation import validate_image_file
-import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from loguru import logger
@@ -1105,7 +1093,7 @@ async def _get_and_return_patient_overview(db: AsyncSession, patient_cor_id: str
 @router.get(
     "/search",
     response_model=UnifiedSearchResponse,
-    dependencies=[Depends(doctor_access)],
+    dependencies=[Depends(lab_assistant_or_doctor_access)],
     summary="Поиск пациента по ФИО или коду кейса",
     description="Поиск может выполняться по ФИО пациента или cor-id (возвращает get_patient_first_case_details) "
                 "или по коду кейса / id кейса (возвращает get_patient_case_details_for_glass_page). "
