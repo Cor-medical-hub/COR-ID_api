@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime, timedelta
 from uuid import uuid4
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from sqlalchemy import UUID, delete, func, select, update
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -739,13 +739,118 @@ async def update_schedule_is_active_status(
     await db.commit()
 
 
+async def ensure_modbus_connected(app: FastAPI):
+    modbus_client = app.state.modbus_client
+    if not modbus_client or not modbus_client.connected:
+        logger.critical("Modbus client not connected. Attempting to reconnect...")
+        try:
+            if modbus_client is None:
+                modbus_client = AsyncModbusTcpClient(host=MODBUS_IP, port=MODBUS_PORT)
+                app.state.modbus_client = modbus_client
+            await modbus_client.connect()
+            logger.debug("Modbus client reconnected.")
+        except Exception as e:
+            logger.error(f"Failed to reconnect Modbus client: {e}. Skipping this cycle.", exc_info=True)
+            raise 
+    return modbus_client 
+
+
+async def send_grid_feed_w_command(app: FastAPI, grid_feed_w: int):
+    modbus_client = await ensure_modbus_connected(app)
+    if modbus_client is None: 
+        return {"status": "error", "message": "Modbus client not available"}
+    try:
+        slave = INVERTER_ID
+        # Преобразуем значение для записи в регистр
+        register_value = int(grid_feed_w / 100)
+        
+        # Преобразование отрицательных чисел в формат Modbus (дополнительный код)
+        if register_value < 0:
+            register_value = (1 << 16) + register_value  # Преобразование в 16-битное представление
+            
+        # Проверяем, что значение вписывается в int16
+        if register_value < 0 or register_value > 65535:
+            raise HTTPException(status_code=400, detail="Значение выходит за допустимые пределы")
+        
+        # Записываем значение в регистр 2703
+        await modbus_client.write_register(
+            address=2703,
+            value=register_value,
+            slave=slave
+        )
+        global error_count
+        error_count = 0  
+        logger.debug(f"✅ Установлено AC Power Setpoint Fine: {grid_feed_w} W (регистр 2703 = {register_value})")
+        return {"status": "ok", "value": grid_feed_w}
+    except Exception as e:
+        logger.error(
+            f" Unhandled error during periodic data collection: {e}",
+            exc_info=True,
+        )
+
+
+
+
+async def send_vebus_soc_command(app: FastAPI, battery_level_percent: int):
+    modbus_client = await ensure_modbus_connected(app)
+    if modbus_client is None: 
+        return {"status": "error", "message": "Modbus client not available"}
+    try:
+        scaled_value = int(battery_level_percent * 10)
+        await modbus_client.write_register(
+            address=2901,  # адрес регистра VE.Bus SoC
+            value=scaled_value,
+            slave =INVERTER_ID
+        )
+        global error_count
+        error_count = 0
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(
+            f" Unhandled error during periodic data collection: {e}",
+            exc_info=True,
+        )
+
+
+
+async def send_dvcc_max_charge_current_command(app: FastAPI, charge_battery_value: int):
+    modbus_client = await ensure_modbus_connected(app)
+    if modbus_client is None: 
+        return {"status": "error", "message": "Modbus client not available"}
+        
+    try:
+        slave = INVERTER_ID
+        value = charge_battery_value
+        # Проверка границ значений int16
+        if not -32768 <= value <= 32767:
+            raise HTTPException(status_code=400, detail="Значение выходит за пределы int16")
+        # Преобразуем в формат Modbus (uint16) для передачи
+        if value < 0:
+            register_value = (1 << 16) + value  # преобразуем -1 в 0xFFFF
+        else:
+            register_value = value
+        # Запись в регистр
+        await modbus_client.write_register(address=2705, value=register_value, slave=slave)
+
+        logger.debug(f"✅ Установлен DVCC max charge current: {value} A (регистр 2705 = {register_value})")
+        return {"status": "ok", "value": value}
+    except Exception as e:
+        logger.error(
+            f" Unhandled error during periodic data collection: {e}",
+            exc_info=True,
+        )
+
+
 async def set_inverter_parameters(
-    grid_feed_w: int, battery_level_percent: int, charge_battery_value: int
+    grid_feed_w: int, battery_level_percent: int, charge_battery_value: int, app: FastAPI
 ):
     logger.debug(f"\n--- Тестовая отправка параметров на инвертор ---")
+    await send_grid_feed_w_command(app=app, grid_feed_w=grid_feed_w)
     logger.debug(f"Отдача в сеть: {grid_feed_w} Вт")
     logger.debug(f"Целевой уровень батареи: {battery_level_percent}%")
+    await send_vebus_soc_command(app=app, battery_level_percent=battery_level_percent)
     logger.debug(f"Зарядка батареи: {charge_battery_value}")
+    await send_dvcc_max_charge_current_command(app=app, charge_battery_value=charge_battery_value)
     logger.debug("--------------------------------------")
 
 
@@ -758,7 +863,7 @@ DEFAULT_battery_level_percent = 30
 DEFAULT_charge_battery_value = 300
 
 
-async def energetic_schedule_task(async_session_maker):
+async def energetic_schedule_task(async_session_maker, app):
     """
     Фоновая задача для проверки и применения энергетического расписания.
     """
@@ -785,6 +890,7 @@ async def energetic_schedule_task(async_session_maker):
                             grid_feed_w=DEFAULT_grid_feed_kw,
                             battery_level_percent=DEFAULT_battery_level_percent,
                             charge_battery_value=DEFAULT_charge_battery_value,
+                            app=app
                         )
                         await update_schedule_is_active_status(
                             db=db_session,
@@ -837,6 +943,7 @@ async def energetic_schedule_task(async_session_maker):
                             grid_feed_w=active_auto_schedule_for_now.grid_feed_w,
                             battery_level_percent=active_auto_schedule_for_now.battery_level_percent,
                             charge_battery_value=active_auto_schedule_for_now.charge_battery_value,
+                            app=app
                         )
                         await update_schedule_is_active_status(
                             db=db_session,
@@ -861,6 +968,7 @@ async def energetic_schedule_task(async_session_maker):
                             grid_feed_w=DEFAULT_grid_feed_kw,
                             battery_level_percent=DEFAULT_battery_level_percent,
                             charge_battery_value=DEFAULT_charge_battery_value,
+                            app=app
                         )
                         await update_schedule_is_active_status(
                             db=db_session,
