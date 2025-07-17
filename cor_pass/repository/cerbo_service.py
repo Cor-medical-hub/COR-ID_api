@@ -17,6 +17,8 @@ from loguru import logger
 from pymodbus.client import AsyncModbusTcpClient
 from cor_pass.database.db import async_session_maker
 
+error_count = 0
+
 COLLECTION_INTERVAL_SECONDS = 2
 
 # Конфигурация Modbus
