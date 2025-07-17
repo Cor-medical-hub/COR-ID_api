@@ -2065,9 +2065,7 @@ class EnergeticScheduleBase(BaseModel):
     battery_level_percent: int = Field(
         ..., ge=0, le=100, description="Целевой уровень батареи (%)"
     )
-    charge_battery: bool = Field(
-        False, description="Флаг: заряжать батарею в этом режиме"
-    )
+    charge_battery_value: int = Field(..., ge=-1, le=10000, description="заряжать батарею в этом режиме и с каким значением")
     is_manual_mode: bool = Field(
         False, description="Флаг: находится ли инвертор в ручном режиме"
     )
@@ -2088,9 +2086,7 @@ class EnergeticScheduleResponse(BaseModel):
     battery_level_percent: int = Field(
         ..., ge=0, le=100, description="Целевой уровень батареи (%)"
     )
-    charge_battery: bool = Field(
-        False, description="Флаг: заряжать батарею в этом режиме"
-    )
+    charge_battery_value: int = Field(..., ge=-1, le=10000, description="заряжать батарею в этом режиме и с каким значением")
     is_active: bool = Field(True, description="Флаг: активно ли это расписание")
     is_manual_mode: bool = Field(
         False, description="Флаг: находится ли инвертор в ручном режиме"
