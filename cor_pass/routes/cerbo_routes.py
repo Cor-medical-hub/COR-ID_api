@@ -282,7 +282,7 @@ async def get_vebus_status(request: Request):
         logger.error("❗ Ошибка чтения VE.Bus регистров", exc_info=e)
         raise HTTPException(status_code=500, detail="Modbus ошибка")
 
-
+# статус зарядки проценты
 @router.post("/vebus/soc")
 async def set_vebus_soc(control: VebusSOCControl, request: Request):
     """
@@ -308,7 +308,7 @@ async def set_vebus_soc(control: VebusSOCControl, request: Request):
         logger.error("❗ Ошибка установки VE.Bus SoC", exc_info=e)
         raise HTTPException(status_code=500, detail="Modbus ошибка")
 
-
+# отдача в сеть
 @router.post("/ess_advanced_settings/setpoint_fine")
 async def set_ess_advanced_setpoint_fine(control: EssAdvancedControl, request: Request):
     """
@@ -379,7 +379,7 @@ async def set_inverter_power_setpoint(payload: InverterPowerPayload, request: Re
         raise HTTPException(status_code=500, detail="Modbus ошибка")
 
 
-
+# Ток заряда 
 @router.post("/ess_advanced_settings/dvcc_max_charge_current")
 async def set_dvcc_max_charge_current(data: DVCCMaxChargeCurrentRequest, request: Request):
     """
