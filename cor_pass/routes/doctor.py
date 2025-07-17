@@ -47,6 +47,7 @@ from cor_pass.repository.patient import (
     create_patient_linked_to_user,
     create_standalone_patient,
     find_patient,
+    get_single_patient_by_corid,
     register_new_patient,
 )
 from cor_pass.schemas import (
@@ -1079,8 +1080,30 @@ async def close_case_endpoint(
 
 
 
+async def _get_and_return_case_details(db: AsyncSession, patient_id: str, case_id: str, doctor_id: str, router):
+    case_details_response = await case_service.get_patient_case_details_for_glass_page(
+        db=db,
+        patient_id=patient_id,
+        current_doctor_id=doctor_id,
+        router=router,
+        case_id=case_id,
+    )
+    if case_details_response is None:
+        raise HTTPException(status_code=404, detail="Детали кейса не найдены по этому коду.")
+    return UnifiedSearchResponse(data=SearchResultCaseDetails(**case_details_response.model_dump()))
+
+async def _get_and_return_patient_overview(db: AsyncSession, patient_cor_id: str):
+    patient_overview_response = await case_service.get_patient_first_case_details(
+        db=db, patient_id=patient_cor_id
+    )
+    if patient_overview_response is None:
+        raise HTTPException(status_code=404, detail="Обзор пациента не найден.")
+    return UnifiedSearchResponse(data=SearchResultPatientOverview(**patient_overview_response))
+
+
+
 @router.get(
-    "/",
+    "/search",
     response_model=UnifiedSearchResponse,
     dependencies=[Depends(doctor_access)],
     summary="Поиск пациента по ФИО или коду кейса",
@@ -1098,45 +1121,23 @@ async def unified_search(
 
     case_db = await case_service.get_single_case(db=db, case_id=query)
     if case_db:
-        # Если найден кейс, получаем детали для него
-        patient_id_from_case = str(case_db.patient_id)
+        return await _get_and_return_case_details(db, str(case_db.patient_id), str(case_db.id), doctor.doctor_id, router)
+    
+    case_db_by_code = await case_service.get_single_case_by_case_code(db=db, case_code=query)
+    if case_db_by_code:
+        return await _get_and_return_case_details(db, str(case_db_by_code.patient_id), str(case_db_by_code.id), doctor.doctor_id, router)
 
-        case_details_response = await case_service.get_patient_case_details_for_glass_page(
-            db=db,
-            patient_id=patient_id_from_case,
-            current_doctor_id=doctor.doctor_id,
-            router=router,
-            case_id=str(case_db.id),
-        )
-        if case_details_response is None:
-            raise HTTPException(status_code=404, detail="Case details not found for this code.")
-        
-        return UnifiedSearchResponse(
-            data=SearchResultCaseDetails(**case_details_response.model_dump())
-        )
-
-    # 2. Если по case_code не найдено, пытаемся найти пациента по ФИО
 
     search_ngrams = generate_ngrams(query, n=2)
     search_ngrams.extend(generate_ngrams(query, n=3))
-    logger.debug(f"search_ngrams.extend - {search_ngrams}")
     search_ngrams_joined = " ".join(sorted(list(set(search_ngrams))))
-    logger.debug(f"search_ngrams_joined - {search_ngrams_joined}")
 
+    found_patient_by_cor_id = await get_single_patient_by_corid(db=db, cor_id=query)
+    if found_patient_by_cor_id:
+        return await _get_and_return_patient_overview(db, found_patient_by_cor_id.patient_cor_id)
+    
     found_patient = await find_patient(db=db, search_ngrams_joined=search_ngrams_joined)
-    logger.debug(f"found_patient - {found_patient}")
-
     if found_patient:
-        patient_overview_response = await case_service.get_patient_first_case_details(
-            db=db, patient_id=found_patient.patient_cor_id
-        )
-        patient_response = PatientFirstCaseDetailsResponse(**patient_overview_response)
-        logger.debug(f"patient_overview_response - {patient_overview_response}")
-        if patient_overview_response is None:
-            raise HTTPException(status_code=404, detail="Patient overview not found.")
-
-        return UnifiedSearchResponse(
-            data=SearchResultPatientOverview(**patient_overview_response)
-        )
+        return await _get_and_return_patient_overview(db, found_patient.patient_cor_id)
             
     raise HTTPException(status_code=404, detail="Patient or Case not found.")
