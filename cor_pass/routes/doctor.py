@@ -1107,11 +1107,11 @@ async def _get_and_return_patient_overview(db: AsyncSession, patient_cor_id: str
     response_model=UnifiedSearchResponse,
     dependencies=[Depends(doctor_access)],
     summary="Поиск пациента по ФИО или коду кейса",
-    description="Поиск может выполняться по ФИО пациента (возвращает get_patient_first_case_details) "
-                "или по коду кейса (возвращает get_patient_case_details_for_glass_page). "
+    description="Поиск может выполняться по ФИО пациента или cor-id (возвращает get_patient_first_case_details) "
+                "или по коду кейса / id кейса (возвращает get_patient_case_details_for_glass_page). "
 )
 async def unified_search(
-    query: str = Query(..., min_length=2, description="ФИО или код кейса"),
+    query: str = Query(..., min_length=2, description="ФИО / cor-id пациента или код / id кейса"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(auth_service.get_current_user),
 ):

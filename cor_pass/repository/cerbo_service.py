@@ -652,7 +652,7 @@ async def create_schedule(
         end_time=calculated_end_time,
         grid_feed_w=schedule_data.grid_feed_w,
         battery_level_percent=schedule_data.battery_level_percent,
-        charge_battery=schedule_data.charge_battery,
+        charge_battery_value=schedule_data.charge_battery_value,
         is_manual_mode=schedule_data.is_manual_mode,
     )
     db.add(db_schedule)
@@ -671,17 +671,6 @@ async def get_schedule_by_id(
         select(EnergeticSchedule).where(EnergeticSchedule.id == schedule_id)
     )
     return result.scalars().first()
-
-
-# async def get_all_schedules(db: AsyncSession) -> List[EnergeticSchedule]:
-#     """
-#     Получает все активные расписания, отсортированные по времени начала.
-#     """
-#     result = await db.execute(
-#         select(EnergeticSchedule)
-#         .order_by(EnergeticSchedule.start_time)
-#     )
-#     return result.scalars().all()
 
 
 async def get_all_schedules(db: AsyncSession) -> List[EnergeticSchedule]:
@@ -718,7 +707,7 @@ async def update_schedule(
     db_schedule.end_time = calculated_end_time
     db_schedule.grid_feed_w = schedule_data.grid_feed_w
     db_schedule.battery_level_percent = schedule_data.battery_level_percent
-    db_schedule.charge_battery = schedule_data.charge_battery
+    db_schedule.charge_battery_value = schedule_data.charge_battery_value
     db_schedule.is_manual_mode = schedule_data.is_manual_mode
 
     await db.commit()
@@ -751,12 +740,12 @@ async def update_schedule_is_active_status(
 
 
 async def set_inverter_parameters(
-    grid_feed_w: int, battery_level_percent: int, charge_battery: bool
+    grid_feed_w: int, battery_level_percent: int, charge_battery_value: int
 ):
     logger.debug(f"\n--- Тестовая отправка параметров на инвертор ---")
     logger.debug(f"Отдача в сеть: {grid_feed_w} Вт")
     logger.debug(f"Целевой уровень батареи: {battery_level_percent}%")
-    logger.debug(f"Зарядка батареи: {charge_battery}")
+    logger.debug(f"Зарядка батареи: {charge_battery_value}")
     logger.debug("--------------------------------------")
 
 
@@ -766,7 +755,7 @@ current_active_schedule_id: Optional[str] = None
 SCHEDULE_CHECK_INTERVAL_SECONDS = 3
 DEFAULT_grid_feed_kw = 70000
 DEFAULT_battery_level_percent = 30
-DEFAULT_charge_battery = True
+DEFAULT_charge_battery_value = 300
 
 
 async def energetic_schedule_task(async_session_maker):
@@ -795,7 +784,7 @@ async def energetic_schedule_task(async_session_maker):
                         await set_inverter_parameters(
                             grid_feed_w=DEFAULT_grid_feed_kw,
                             battery_level_percent=DEFAULT_battery_level_percent,
-                            charge_battery=DEFAULT_charge_battery,
+                            charge_battery_value=DEFAULT_charge_battery_value,
                         )
                         await update_schedule_is_active_status(
                             db=db_session,
@@ -847,7 +836,7 @@ async def energetic_schedule_task(async_session_maker):
                         await set_inverter_parameters(
                             grid_feed_w=active_auto_schedule_for_now.grid_feed_w,
                             battery_level_percent=active_auto_schedule_for_now.battery_level_percent,
-                            charge_battery=active_auto_schedule_for_now.charge_battery,
+                            charge_battery_value=active_auto_schedule_for_now.charge_battery_value,
                         )
                         await update_schedule_is_active_status(
                             db=db_session,
@@ -871,7 +860,7 @@ async def energetic_schedule_task(async_session_maker):
                         await set_inverter_parameters(
                             grid_feed_w=DEFAULT_grid_feed_kw,
                             battery_level_percent=DEFAULT_battery_level_percent,
-                            charge_battery=DEFAULT_charge_battery,
+                            charge_battery_value=DEFAULT_charge_battery_value,
                         )
                         await update_schedule_is_active_status(
                             db=db_session,

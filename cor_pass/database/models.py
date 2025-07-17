@@ -1032,12 +1032,6 @@ class EnergeticSchedule(Base):
     battery_level_percent = Column(
         Integer, nullable=False, comment="Целевой уровень батареи (%)"
     )
-    charge_battery = Column(
-        Boolean,
-        nullable=False,
-        default=False,
-        comment="Флаг: заряжать батарею в этом режиме",
-    ) # убрать
 
     # Статусы расписания
     is_active = Column(
@@ -1052,19 +1046,19 @@ class EnergeticSchedule(Base):
         default=False,
         comment="Флаг: находится ли инвертор в ручном режиме",
     )
-    # charge_battery = Column(
-    #     int,
-    #     nullable=False,
-    #     default=300,
-    #     comment="заряжать батарею в этом режиме с каким то током",
-    # )
+    charge_battery_value = Column(
+        Integer,
+        nullable=False,
+        default=300,
+        comment="заряжать батарею в этом режиме с каким то током",
+    )
 
     def __repr__(self):
         return (
             f"<EnergeticSchedule(id='{self.id}', "
             f"start_time={self.start_time}, duration={self.duration}, end_time={self.end_time}, "
             f"grid_feed_kw={self.grid_feed_w}, battery_level_percent={self.battery_level_percent}, "
-            f"charge_battery={self.charge_battery}, is_active={self.is_active}, "
+            f"charge_battery_value={self.charge_battery_value}, is_active={self.is_active}, "
             f"is_manual_mode={self.is_manual_mode})>"
         )
 

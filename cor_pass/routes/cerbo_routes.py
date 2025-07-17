@@ -764,7 +764,7 @@ async def get_all_energetic_schedules_api(
             duration=schedule.duration,
             grid_feed_w=schedule.grid_feed_w,
             battery_level_percent=schedule.battery_level_percent,
-            charge_battery=schedule.charge_battery,
+            charge_battery_value=schedule.charge_battery_value,
             is_active=schedule.is_active,
             is_manual_mode=schedule.is_manual_mode,
             end_time=schedule.end_time
