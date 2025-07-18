@@ -649,3 +649,35 @@ footer {
     z-index: 10;
 }
 
+.save-btn.inactive {
+    filter: grayscale(100%);
+    pointer-events: none;
+    opacity: 0.5;
+}
+.save-btn.active {
+    filter: none;
+    pointer-events: auto;
+    opacity: 1;
+}
+
+
+.current-time-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: red;
+    z-index: 10;
+}
+
+.current-time-label {
+    position: absolute;
+    top: -20px;
+    left: -15px;
+    background-color: red;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    z-index: 11;
+}
