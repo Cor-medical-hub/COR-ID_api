@@ -127,9 +127,9 @@ app = FastAPI(
     title="COR-ID API",
     description=api_description,
     version="1.0.1",
-    openapi_url="/openapi.json",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    openapi_url="/openapi.json" if settings.app_env == "development" else None,
+    docs_url="/docs" if settings.app_env == "development" else None,
+    redoc_url="/redoc" if settings.app_env == "development" else None,
 )
 
 # app = FastAPI()
