@@ -15,7 +15,7 @@ async def print_labels(printer_ip: str, labels_to_print: List[PrintLabel], reque
 
     """
     logger.debug(request.base_url)
-    if request.base_url == "https://dev-corid.cor-medical.ua/":
+    if request.base_url == "http://dev-corid.cor-medical.ua/":
         return {"success": True, "printer_response": "Делаем вид что принтер напечатал"}
     printer_url = PRINTER_BASE_URL.format(printer_ip=printer_ip)
     try:
