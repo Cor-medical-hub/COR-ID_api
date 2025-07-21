@@ -2154,3 +2154,54 @@ class SearchCaseDetailsSimple(BaseModel):
     case_id: str
     patient_id: str
 
+class GeneralPrinting(BaseModel):
+    printer_ip: str
+    model_id: int
+    clinic_name: str
+    hooper: str
+    # printing: bool
+
+class GlassPrinting(BaseModel):
+    printer_ip: str
+    model_id: int
+    clinic_name: str
+    hooper: str
+    glass_id: str
+    printing: bool
+
+class GlassResponseForPrinting(BaseModel):
+
+    case_code: str
+    sample_number: str
+    cassette_number: str
+    glass_number: int
+    staining: str
+    patient_cor_id: str
+
+class CassettePrinting(BaseModel):
+    printer_ip: str
+    model_id: int
+    clinic_name: str
+    hooper: str
+    cassete_id: str
+    printing: bool
+
+class CassetteResponseForPrinting(BaseModel):
+
+    case_code: str
+    sample_number: str
+    cassette_number: str
+    patient_cor_id: str
+
+
+
+class PrintLabel(BaseModel):
+    """Модель для одной метки для печати."""
+    model_id: int
+    content: str
+    uuid: str 
+
+class PrintRequest(BaseModel):
+    """Модель для запроса на печать."""
+    printer_ip: str
+    labels: List[PrintLabel]
