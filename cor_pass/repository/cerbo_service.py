@@ -776,7 +776,7 @@ async def read_grid_feed_w(app: FastAPI) -> Optional[int]:
             actual_value = register_value
             
         actual_value_watts = actual_value * 100
-        logger.debug(f"Прочитано AC Power Setpoint Fine: {actual_value_watts} W (регистр 2703 = {register_value})")
+        # logger.debug(f"Прочитано AC Power Setpoint Fine: {actual_value_watts} W (регистр 2703 = {register_value})")
         return actual_value_watts
     except Exception as e:
         logger.error(f"Ошибка при чтении AC Power Setpoint Fine: {e}", exc_info=True)
@@ -797,7 +797,7 @@ async def read_vebus_soc(app: FastAPI) -> Optional[int]:
         
         register_value = result.registers[0]
         actual_value_percent = register_value / 10
-        logger.debug(f"Прочитано VE.Bus SoC: {actual_value_percent}% (регистр 2901 = {register_value})")
+        # logger.debug(f"Прочитано VE.Bus SoC: {actual_value_percent}% (регистр 2901 = {register_value})")
         return int(actual_value_percent) 
     except Exception as e:
         logger.error(f"Ошибка при чтении VE.Bus SoC: {e}", exc_info=True)
@@ -823,7 +823,7 @@ async def read_dvcc_max_charge_current(app: FastAPI) -> Optional[int]:
         else:
             actual_value = register_value
             
-        logger.debug(f"Прочитано DVCC max charge current: {actual_value} A (регистр 2705 = {register_value})")
+        # logger.debug(f"Прочитано DVCC max charge current: {actual_value} A (регистр 2705 = {register_value})")
         return actual_value
     except Exception as e:
         logger.error(f"Ошибка при чтении DVCC max charge current: {e}", exc_info=True)
@@ -854,7 +854,7 @@ async def send_grid_feed_w_command(app: FastAPI, grid_feed_w: int):
         )
         global error_count
         error_count = 0  
-        logger.debug(f"✅ Установлено AC Power Setpoint Fine: {grid_feed_w} W (регистр 2703 = {register_value})")
+        # logger.debug(f"✅ Установлено AC Power Setpoint Fine: {grid_feed_w} W (регистр 2703 = {register_value})")
         return {"status": "ok", "value": grid_feed_w}
     except Exception as e:
         logger.error(
@@ -918,14 +918,14 @@ async def send_dvcc_max_charge_current_command(app: FastAPI, charge_battery_valu
 async def set_inverter_parameters(
     grid_feed_w: int, battery_level_percent: int, charge_battery_value: int, app: FastAPI
 ):
-    logger.debug(f"\n--- Тестовая отправка параметров на инвертор ---")
+    # logger.debug(f"\n--- Тестовая отправка параметров на инвертор ---")
     await send_grid_feed_w_command(app=app, grid_feed_w=grid_feed_w)
-    logger.debug(f"Отдача в сеть: {grid_feed_w} Вт")
-    logger.debug(f"Целевой уровень батареи: {battery_level_percent}%")
+    # logger.debug(f"Отдача в сеть: {grid_feed_w} Вт")
+    # logger.debug(f"Целевой уровень батареи: {battery_level_percent}%")
     await send_vebus_soc_command(app=app, battery_level_percent=battery_level_percent)
-    logger.debug(f"Зарядка батареи: {charge_battery_value}")
+    # logger.debug(f"Зарядка батареи: {charge_battery_value}")
     await send_dvcc_max_charge_current_command(app=app, charge_battery_value=charge_battery_value)
-    logger.debug("--------------------------------------")
+    # logger.debug("--------------------------------------")
 
 
 current_active_schedule_id: Optional[str] = None
@@ -979,7 +979,7 @@ async def energetic_schedule_task(async_session_maker, app):
                     desired_charge_battery_value = active_auto_schedule_for_now.charge_battery_value
                     
                     if active_auto_schedule_for_now.id != current_active_schedule_id:
-                        logger.info(f"Найдено новое активное расписание: ID {active_auto_schedule_for_now.id}. Активация.")
+                        # logger.info(f"Найдено новое активное расписание: ID {active_auto_schedule_for_now.id}. Активация.")
                         if current_active_schedule_id is not None:
                             await update_schedule_is_active_status(
                                 db=db_session,
@@ -1017,7 +1017,7 @@ async def energetic_schedule_task(async_session_maker, app):
                     desired_charge_battery_value = DEFAULT_charge_battery_value
 
                     if current_active_schedule_id is not None:
-                        logger.info("Текущее время вне любого расписания. Возврат к дефолтным параметрам.")
+                        # logger.info("Текущее время вне любого расписания. Возврат к дефолтным параметрам.")
                         await update_schedule_is_active_status(
                             db=db_session,
                             schedule_id=current_active_schedule_id,
@@ -1025,7 +1025,8 @@ async def energetic_schedule_task(async_session_maker, app):
                         )
                         current_active_schedule_id = None
                     else:
-                        logger.debug("Текущее время вне любого расписания. Инвертор уже в дефолтных параметрах (или должен быть).")
+                        pass
+                        # logger.debug("Текущее время вне любого расписания. Инвертор уже в дефолтных параметрах (или должен быть).")
 
 
                 # logger.debug("Чтение текущих значений регистров Modbus...")
@@ -1043,17 +1044,17 @@ async def energetic_schedule_task(async_session_maker, app):
 
                 needs_update = False
                 if actual_grid_feed_w != desired_grid_feed_w:
-                    logger.debug(f"Несоответствие AC Power Setpoint Fine: желаемое={desired_grid_feed_w}, актуальное={actual_grid_feed_w}")
+                    # logger.debug(f"Несоответствие AC Power Setpoint Fine: желаемое={desired_grid_feed_w}, актуальное={actual_grid_feed_w}")
                     needs_update = True
                 if actual_battery_level_percent != desired_battery_level_percent:
-                    logger.debug(f"Несоответствие VE.Bus SoC: желаемое={desired_battery_level_percent}, актуальное={actual_battery_level_percent}")
+                    # logger.debug(f"Несоответствие VE.Bus SoC: желаемое={desired_battery_level_percent}, актуальное={actual_battery_level_percent}")
                     needs_update = True
                 if actual_charge_battery_value != desired_charge_battery_value:
-                    logger.debug(f"Несоответствие DVCC max charge current: желаемое={desired_charge_battery_value}, актуальное={actual_charge_battery_value}")
+                    # logger.debug(f"Несоответствие DVCC max charge current: желаемое={desired_charge_battery_value}, актуальное={actual_charge_battery_value}")
                     needs_update = True
 
                 if needs_update:
-                    logger.warning("Обнаружено несоответствие параметров инвертора. Отправка актуальных значений.")
+                    # logger.warning("Обнаружено несоответствие параметров инвертора. Отправка актуальных значений.")
                     await set_inverter_parameters(
                         grid_feed_w=desired_grid_feed_w,
                         battery_level_percent=desired_battery_level_percent,
@@ -1061,7 +1062,8 @@ async def energetic_schedule_task(async_session_maker, app):
                         app=app
                     )
                 else:
-                    logger.debug("Параметры инвертора соответствуют расписанию/дефолтным значениям.")
+                    # logger.debug("Параметры инвертора соответствуют расписанию/дефолтным значениям.")
+                    pass
 
 
                 for schedule in all_schedules:
