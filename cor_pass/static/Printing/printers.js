@@ -19,7 +19,7 @@ async function printLabel(printerIp, templateNumber, content, resultElement = nu
     };
 
     try {
-        const response = await fetch('https://dev-corid.cor-medical.ua/api/print_labels', {
+        const response = await fetch('/api/print_labels', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ async function printLabel(printerIp, templateNumber, content, resultElement = nu
 async function checkPrinterAvailability(ip = PRINTER_IP) {
     try {
         console.log(`[checkPrinterAvailability] Проверка IP: ${ip}`);
-        const response = await fetch(`https://dev-corid.cor-medical.ua/api/check_printer?ip=${encodeURIComponent(ip)}`);
+        const response = await fetch(`/api/check_printer?ip=${encodeURIComponent(ip)}`);
         console.log(`[checkPrinterAvailability] HTTP статус: ${response.status}`);
 
         const data = await response.json();
@@ -136,7 +136,7 @@ async function addDevice() {
         resultElement.style.color = 'black';
 
         // Отправляем запрос на сервер
-        const response = await fetch('https://dev-corid.cor-medical.ua/api/printing_devices/', {
+        const response = await fetch('/api/printing_devices/', {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
@@ -176,7 +176,7 @@ async function addDevice() {
 
 async function getDevicesList(){
     try {
-        const response = await fetch('https://dev-corid.cor-medical.ua/api/printing_devices/all', {
+        const response = await fetch('/api/printing_devices/all', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
