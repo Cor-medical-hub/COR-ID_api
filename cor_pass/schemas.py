@@ -1964,16 +1964,19 @@ class FullDeviceMeasurementCreate(BaseModel):
     # агрегированные данные
     general_battery_power: float = Field(
         ..., description="Общая мощность батареи"
-    )  # Изменено на float
+    )  
     inverter_total_ac_output: float = Field(
         ..., description="Общая выходная мощность AC инвертора"
-    )  # Изменено на float
+    )  
     ess_total_input_power: float = Field(
         ..., description="Общая входная мощность ESS"
-    )  # Изменено на float
+    )  
     solar_total_pv_power: float = Field(
         ..., description="Общая мощность солнечных панелей"
-    )  # Изменено на float
+    )  
+    soc: float = Field(
+        ..., description="SOC - State of charge"
+    )  
 
     class Config:
         from_attributes = True
@@ -2001,6 +2004,9 @@ class CerboMeasurementResponse(BaseModel):
     solar_total_pv_power: float = Field(
         ..., description="Общая мощность солнечных панелей"
     )
+    soc: float = Field(
+        ..., description="SOC - State of charge"
+    )  
 
     class Config:
         from_attributes = True
