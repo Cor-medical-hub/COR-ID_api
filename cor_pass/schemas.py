@@ -2004,8 +2004,8 @@ class CerboMeasurementResponse(BaseModel):
     solar_total_pv_power: float = Field(
         ..., description="Общая мощность солнечных панелей"
     )
-    soc: float = Field(
-        ..., description="SOC - State of charge"
+    soc: Optional[float] = Field(
+        None, description="SOC - State of charge"
     )  
 
     class Config:
