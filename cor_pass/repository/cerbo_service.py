@@ -424,6 +424,36 @@ async def collect_solarchargers_data(
         raise
 
 
+async def get_battery_status(modbus_client: Any, transaction_id: UUID
+) -> Dict[str, Any]:
+    try:
+
+        addresses = [REGISTERS[key] for key in REGISTERS]
+        start = min(addresses)
+        count = max(addresses) - start + 1
+
+        result = await modbus_client.read_input_registers(start, count=count, slave=BATTERY_ID)
+        if result.isError():
+            raise HTTPException(status_code=500, detail="Ошибка чтения регистров батареи")
+
+        raw = result.registers
+
+        def get_value(name: str) -> int:
+            return raw[REGISTERS[name] - start]
+        global error_count
+        error_count = 0
+
+        return {
+            "soc": get_value("soc") / 10
+        }
+
+    except Exception as e:
+        register_modbus_error()
+        logger.error("❗️ Ошибка получения данных с батареи", exc_info=e)
+        raise HTTPException(status_code=500, detail="Modbus ошибка")
+    
+#Отсюда берём SOC - State of charge для записи в БД
+
 async def create_full_device_measurement(
     db: AsyncSession, data: FullDeviceMeasurementCreate
 ) -> FullDeviceMeasurementResponse:
@@ -521,6 +551,17 @@ async def cerbo_collection_task(app: FastAPI):
                     exc_info=True,
                 )
 
+            try:
+                soc_data = await get_battery_status(
+                    modbus_client, current_transaction_id
+                )
+                collected_data.update(soc_data)
+            except Exception as e:
+                logger.error(
+                    f"[{current_transaction_id}] Failed to collect soc_data: {e}. Skipping this data block.",
+                    exc_info=True,
+                )
+
             if not collected_data:
                 logger.warning(
                     f"[{current_transaction_id}] No data collected from any Modbus device. Skipping database save."
@@ -539,6 +580,7 @@ async def cerbo_collection_task(app: FastAPI):
                 "solar_total_pv_power",
                 "measured_at",
                 "object_name",
+                "soc"
             ]
 
             missing_fields = [
