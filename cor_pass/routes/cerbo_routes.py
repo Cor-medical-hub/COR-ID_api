@@ -696,7 +696,7 @@ async def write_register(request_data: RegisterWriteRequest, request: Request):
 )
 async def read_measurements(
     page: int = Query(1, ge=1, description="Номер страницы (начиная с 1)"),
-    page_size: int = Query(10, ge=1, le=1000, description="Количество элементов на странице (от 1 до 100)"),
+    page_size: int = Query(10, ge=1, le=1000, description="Количество элементов на странице (от 1 до 1000)"),
     object_name: Optional[str] = Query(None, description="Фильтр по имени объекта"),
     start_date: Optional[datetime] = Query(None, description="Начальная дата измерения (ISO 8601, например '2023-01-01T00:00:00')"),
     end_date: Optional[datetime] = Query(None, description="Конечная дата измерения (ISO 8601, например '2023-12-31T23:59:59')"),
