@@ -400,7 +400,7 @@ async def print_all_sample_cassettes(
             printing=printing
         )
         await print_cassette_data(db=db, data=cassette_data, request=request)
-
+ 
     for cassette_db in cassettes_to_update:
         cassette_db.is_printed = printing
 
