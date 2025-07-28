@@ -19,16 +19,20 @@ from cor_pass.schemas import (
     CaseOwnerResponse,
     CaseOwnershipResponse,
     CaseParametersScheema,
+    CaseWithOwner,
     CassetteForGlassPage,
     CassettePrinting,
     CassetteTestForGlassPage,
     DoctorDiagnosisSchema,
     DoctorResponseForSignature,
     FinalReportResponseSchema,
+    FirstCaseGlassDetailsSchemaWithOwner,
+    FirstCaseReferralDetailsWithOwner,
     FirstCaseTestGlassDetailsSchema,
     GeneralPrinting,
     GlassPrinting,
     GlassTestModelScheema,
+    LastCaseExcisionDetailsSchemaWithOwner,
     PatientFinalReportPageResponse,
     PatientTestReportPageResponse,
     ReportAndDiagnosisUpdateSchema,
@@ -826,6 +830,7 @@ async def get_patient_cases_with_directions(
     все семплы первого кейса, но кассеты и стекла загружаются только для первого семпла.
     Включает ссылки на файлы направлений для первого кейса.
     """
+    is_case_owner = False
 
     cases_result = await db.execute(
         select(db_models.Case)
@@ -834,11 +839,29 @@ async def get_patient_cases_with_directions(
     )
     all_cases_db = cases_result.scalars().all()
 
-    all_cases = [
-        CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db
-    ]
+    all_cases = []
+    for case in all_cases_db:
+        if current_doctor_id == case.case_owner:
+                is_case_owner = True
+        case_response = CaseWithOwner(
+                id=case.id,
+                case_code=case.case_code,
+                creation_date=case.creation_date,
+                patient_id=str(case.patient_id),
+                grossing_status=db_models.Grossing_status(case.grossing_status),
+                bank_count=case.bank_count,
+                cassette_count=case.cassette_count,
+                glass_count=case.glass_count,
+                pathohistological_conclusion=case.pathohistological_conclusion,
+                microdescription=case.microdescription,
+                is_printed_cassette=case.is_printed_cassette,
+                is_printed_glass=case.is_printed_glass,
+                is_printed_qr=case.is_printed_qr,
+                is_case_owner = is_case_owner
+            )
+        all_cases.append(case_response)
     first_case_direction_details: Optional[FirstCaseReferralDetailsSchema] = None
-    last_case_with_relations: Optional[db_models.Case] = None
+    last_case_with_relations: Optional[CaseWithOwner] = None
     case_owner: Optional[CaseOwnerResponse] = None
 
     if all_cases_db:
@@ -893,8 +916,9 @@ async def get_patient_cases_with_directions(
                         file_url=file_url,
                     )
                 )
-
-            first_case_direction_details = FirstCaseReferralDetailsSchema(
+            if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+            first_case_direction_details = FirstCaseReferralDetailsWithOwner(
                 id=last_case_with_relations.id,
                 case_code=last_case_with_relations.case_code,
                 creation_date=last_case_with_relations.creation_date,
@@ -903,14 +927,33 @@ async def get_patient_cases_with_directions(
                 attachments=attachments_for_response,
                 grossing_status=last_case_with_relations.grossing_status,
                 patient_cor_id=last_case_with_relations.patient_id,
+                is_case_owner = is_case_owner
             )
+    if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+    last_case_details = CaseWithOwner(
+        id=last_case_with_relations.id,
+        case_code=last_case_with_relations.case_code,
+        creation_date=last_case_with_relations.creation_date,
+        patient_id=str(last_case_with_relations.patient_id),
+        grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+        bank_count=last_case_with_relations.bank_count,
+        cassette_count=last_case_with_relations.cassette_count,
+        glass_count=last_case_with_relations.glass_count,
+        pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+        microdescription=last_case_with_relations.microdescription,
+        is_printed_cassette=last_case_with_relations.is_printed_cassette,
+        is_printed_glass=last_case_with_relations.is_printed_glass,
+        is_printed_qr=last_case_with_relations.is_printed_qr,
+        is_case_owner = is_case_owner
+    )
     if last_case_with_relations:
         case_owner = await get_case_owner(
             db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id
         )
     return PatientCasesWithReferralsResponse(
         all_cases=all_cases,
-        case_details=last_case_with_relations,
+        case_details=last_case_details,
         case_owner=case_owner,
         first_case_direction=first_case_direction_details,
     )
@@ -928,6 +971,7 @@ async def get_patient_case_details_for_glass_page(
     для первого кейса, отсортированного по дате создания.
     Используется для вкладки "Стёкла" на странице врача.
     """
+    is_case_owner = False
     cases_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.patient_id == patient_id)
@@ -935,14 +979,32 @@ async def get_patient_case_details_for_glass_page(
     )
     all_cases_db = cases_result.scalars().all()
 
-    all_cases_schematized = [
-        CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db
-    ]
+    all_cases_schematized = []
+    for case in all_cases_db:
+        if current_doctor_id == case.case_owner:
+                is_case_owner = True
+        case_response = CaseWithOwner(
+                id=case.id,
+                case_code=case.case_code,
+                creation_date=case.creation_date,
+                patient_id=str(case.patient_id),
+                grossing_status=db_models.Grossing_status(case.grossing_status),
+                bank_count=case.bank_count,
+                cassette_count=case.cassette_count,
+                glass_count=case.glass_count,
+                pathohistological_conclusion=case.pathohistological_conclusion,
+                microdescription=case.microdescription,
+                is_printed_cassette=case.is_printed_cassette,
+                is_printed_glass=case.is_printed_glass,
+                is_printed_qr=case.is_printed_qr,
+                is_case_owner = is_case_owner
+            )
+        all_cases_schematized.append(case_response)
 
     first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
     report_details = None
     case_owner: Optional[CaseOwnerResponse] = None
-    last_case_with_relations: Optional[db_models.Case] = None
+    last_case_with_relations: Optional[CaseWithOwner] = None
 
     if all_cases_db:
         first_case_db = all_cases_db[0]
@@ -1036,7 +1098,7 @@ async def get_patient_case_details_for_glass_page(
             sample_schematized["cassettes"] = cassettes_for_sample
             first_case_samples_schematized.append(sample_schematized)
 
-        first_case_details_for_glass = FirstCaseGlassDetailsSchema(
+        first_case_details_for_glass = FirstCaseGlassDetailsSchemaWithOwner(
             id=last_case_with_relations.id,
             case_code=last_case_with_relations.case_code,
             creation_date=last_case_with_relations.creation_date,
@@ -1048,6 +1110,7 @@ async def get_patient_case_details_for_glass_page(
             is_printed_cassette=last_case_with_relations.is_printed_cassette,
             is_printed_glass=last_case_with_relations.is_printed_glass,
             is_printed_qr=last_case_with_relations.is_printed_qr,
+            is_case_owner = is_case_owner
         )
     if last_case_with_relations:
         case_owner = await get_case_owner(
@@ -1080,6 +1143,7 @@ async def get_current_cases_glass_details(
     - Сначала кейсы "F"/"U" (по creation_date DESC).
     - Затем кейсы "S" (по creation_date DESC).
     """
+    
     case_id_query = case_id
     cases_fu_subquery = (
         select(
@@ -1096,6 +1160,7 @@ async def get_current_cases_glass_details(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("1").label("sort_priority"),
         ).where(
             and_(
@@ -1130,6 +1195,7 @@ async def get_current_cases_glass_details(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("2").label("sort_priority"),
         ).where(
             and_(
@@ -1156,6 +1222,7 @@ async def get_current_cases_glass_details(
         cases_fu_subquery.c.is_printed_cassette,
         cases_fu_subquery.c.is_printed_glass,
         cases_fu_subquery.c.is_printed_qr,
+        cases_fu_subquery.c.case_owner,
     ).union_all(
         select(
             cases_s_subquery.c.id,
@@ -1172,6 +1239,7 @@ async def get_current_cases_glass_details(
             cases_s_subquery.c.is_printed_cassette,
             cases_s_subquery.c.is_printed_glass,
             cases_s_subquery.c.is_printed_qr,
+            cases_s_subquery.c.case_owner,
         )
     )
 
@@ -1188,8 +1256,11 @@ async def get_current_cases_glass_details(
     report_details: Optional[FinalReportResponseSchema] = None
     case_owner: Optional[CaseOwnerResponse] = None
     last_case_with_relations: Optional[db_models.Case] = None
+    is_case_owner = False
 
     for row in all_current_cases_raw:
+        if current_doctor_id == row.case_owner:
+            is_case_owner = True
         case_id = row.id
         case_code = row.case_code
         creation_date = row.creation_date
@@ -1204,7 +1275,7 @@ async def get_current_cases_glass_details(
         is_printed_glass = row.is_printed_glass
         is_printed_qr = row.is_printed_qr
         current_cases_list.append(
-            CaseModelScheema(
+            CaseWithOwner(
                 id=case_id,
                 case_code=case_code,
                 creation_date=creation_date,
@@ -1218,6 +1289,7 @@ async def get_current_cases_glass_details(
                 is_printed_cassette=is_printed_cassette,
                 is_printed_glass=is_printed_glass,
                 is_printed_qr=is_printed_qr,
+                is_case_owner = is_case_owner
             )
         )
 
@@ -1313,8 +1385,9 @@ async def get_current_cases_glass_details(
             ).model_dump()
             sample_schematized["cassettes"] = cassettes_for_sample
             first_case_samples_schematized.append(sample_schematized)
-
-        first_case_details_for_glass = FirstCaseGlassDetailsSchema(
+        if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+        first_case_details_for_glass = FirstCaseGlassDetailsSchemaWithOwner(
             id=last_case_with_relations.id,
             case_code=last_case_with_relations.case_code,
             creation_date=last_case_with_relations.creation_date,
@@ -1326,6 +1399,7 @@ async def get_current_cases_glass_details(
             is_printed_cassette=last_case_with_relations.is_printed_cassette,
             is_printed_glass=last_case_with_relations.is_printed_glass,
             is_printed_qr=last_case_with_relations.is_printed_qr,
+            is_case_owner = is_case_owner
         )
     if last_case_with_relations:
         case_owner = await get_case_owner(
@@ -1527,6 +1601,7 @@ async def get_patient_case_details_for_excision_page(
     по последнему кейсу (параметры, макроописание, инфо по семплам).
     Используется для вкладки "Excision" (удаление/макроописание) на странице врача.
     """
+    is_case_owner = False
     cases_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.patient_id == patient_id)
@@ -1534,11 +1609,29 @@ async def get_patient_case_details_for_excision_page(
     )
     all_cases_db = cases_result.scalars().all()
 
-    all_cases_schematized = [
-        CaseModelScheema.model_validate(case).model_dump() for case in all_cases_db
-    ]
+    all_cases_schematized = []
+    for case in all_cases_db:
+        if current_doctor_id == case.case_owner:
+                is_case_owner = True
+        case_response = CaseWithOwner(
+                id=case.id,
+                case_code=case.case_code,
+                creation_date=case.creation_date,
+                patient_id=str(case.patient_id),
+                grossing_status=db_models.Grossing_status(case.grossing_status),
+                bank_count=case.bank_count,
+                cassette_count=case.cassette_count,
+                glass_count=case.glass_count,
+                pathohistological_conclusion=case.pathohistological_conclusion,
+                microdescription=case.microdescription,
+                is_printed_cassette=case.is_printed_cassette,
+                is_printed_glass=case.is_printed_glass,
+                is_printed_qr=case.is_printed_qr,
+                is_case_owner = is_case_owner
+            )
+        all_cases_schematized.append(case_response)
 
-    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchemaWithOwner] = None
     case_owner: Optional[CaseOwnerResponse] = None
 
     if all_cases_db:
@@ -1582,7 +1675,7 @@ async def get_patient_case_details_for_excision_page(
                     )
                 )
 
-            last_case_details_for_excision = LastCaseExcisionDetailsSchema(
+            last_case_details_for_excision = LastCaseExcisionDetailsSchemaWithOwner(
                 id=last_case_with_relations.id,
                 case_code=last_case_with_relations.case_code,
                 creation_date=last_case_with_relations.creation_date,
@@ -1595,6 +1688,7 @@ async def get_patient_case_details_for_excision_page(
                 is_printed_cassette=last_case_with_relations.is_printed_cassette,
                 is_printed_glass=last_case_with_relations.is_printed_glass,
                 is_printed_qr=last_case_with_relations.is_printed_qr,
+                is_case_owner = is_case_owner
             )
     if last_case_details_for_excision:
         case_owner = await get_case_owner(
@@ -1612,7 +1706,7 @@ async def get_patient_case_details_for_excision_page(
 async def get_single_case_details_for_excision_page(
     db: AsyncSession, case_id: str, current_doctor_id: str
 ) -> SingleCaseExcisionPageResponse:
-
+    is_case_owner = False
     last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
     case_owner: Optional[CaseOwnerResponse] = None
 
@@ -1649,7 +1743,7 @@ async def get_single_case_details_for_excision_page(
                 )
             )
 
-        last_case_details_for_excision = LastCaseExcisionDetailsSchema(
+        last_case_details_for_excision = LastCaseExcisionDetailsSchemaWithOwner(
             id=last_case_with_relations.id,
             case_code=last_case_with_relations.case_code,
             creation_date=last_case_with_relations.creation_date,
@@ -1662,6 +1756,7 @@ async def get_single_case_details_for_excision_page(
             is_printed_cassette=last_case_with_relations.is_printed_cassette,
             is_printed_glass=last_case_with_relations.is_printed_glass,
             is_printed_qr=last_case_with_relations.is_printed_qr,
+            is_case_owner = is_case_owner
         )
     if last_case_details_for_excision:
         case_owner = await get_case_owner(
@@ -1923,17 +2018,36 @@ async def get_patient_report_page_data(
       и его заключение (если есть). Если заключения нет, оно будет создано.
     - Все стёкла последнего кейса (для выбора, какие прикрепить).
     """
+    is_case_owner = False
     cases_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.patient_id == patient_id)
         .order_by(db_models.Case.creation_date.desc())
     )
     all_cases_db = cases_result.scalars().all()
-    all_cases_schematized = [
-        CaseModelScheema.model_validate(case) for case in all_cases_db
-    ]
+    all_cases_schematized = []
+    for case in all_cases_db:
+        if current_doctor_id == case.case_owner:
+                is_case_owner = True
+        case_response = CaseWithOwner(
+                id=case.id,
+                case_code=case.case_code,
+                creation_date=case.creation_date,
+                patient_id=str(case.patient_id),
+                grossing_status=db_models.Grossing_status(case.grossing_status),
+                bank_count=case.bank_count,
+                cassette_count=case.cassette_count,
+                glass_count=case.glass_count,
+                pathohistological_conclusion=case.pathohistological_conclusion,
+                microdescription=case.microdescription,
+                is_printed_cassette=case.is_printed_cassette,
+                is_printed_glass=case.is_printed_glass,
+                is_printed_qr=case.is_printed_qr,
+                is_case_owner = is_case_owner
+            )
+        all_cases_schematized.append(case_response)
 
-    last_case_for_report: Optional[CaseModelScheema] = None
+    last_case_for_report: Optional[CaseWithOwner] = None
     report_details: Optional[ReportResponseSchema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
     first_case_details_for_glass: Optional[FirstCaseTestGlassDetailsSchema] = None
@@ -1968,8 +2082,23 @@ async def get_patient_report_page_data(
         last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
         if last_case_with_relations:
-            last_case_for_report = CaseModelScheema.model_validate(
-                last_case_with_relations
+            if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+            last_case_for_report= CaseWithOwner(
+                id=last_case_with_relations.id,
+                case_code=last_case_with_relations.case_code,
+                creation_date=last_case_with_relations.creation_date,
+                patient_id=str(last_case_with_relations.patient_id),
+                grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+                bank_count=last_case_with_relations.bank_count,
+                cassette_count=last_case_with_relations.cassette_count,
+                glass_count=last_case_with_relations.glass_count,
+                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                microdescription=last_case_with_relations.microdescription,
+                is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                is_printed_glass=last_case_with_relations.is_printed_glass,
+                is_printed_qr=last_case_with_relations.is_printed_qr,
+                is_case_owner = is_case_owner
             )
 
             if not last_case_with_relations.report:
@@ -2281,18 +2410,40 @@ async def get_patient_final_report_page_data(
       и его заключение (если есть). Если заключения нет, оно будет создано.
     - Все стёкла последнего кейса (для выбора, какие прикрепить).
     """
+    is_case_owner = False
     cases_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.patient_id == patient_id)
         .order_by(db_models.Case.creation_date.desc())
     )
     all_cases_db = cases_result.scalars().all()
-    all_cases_schematized = [
-        CaseModelScheema.model_validate(case) for case in all_cases_db
-    ]
+    # all_cases_schematized = [
+    #     CaseModelScheema.model_validate(case) for case in all_cases_db
+    # ]
+    all_cases_schematized = []
+    for case in all_cases_db:
+        if current_doctor_id == case.case_owner:
+                is_case_owner = True
+        case_response = CaseWithOwner(
+                id=case.id,
+                case_code=case.case_code,
+                creation_date=case.creation_date,
+                patient_id=str(case.patient_id),
+                grossing_status=db_models.Grossing_status(case.grossing_status),
+                bank_count=case.bank_count,
+                cassette_count=case.cassette_count,
+                glass_count=case.glass_count,
+                pathohistological_conclusion=case.pathohistological_conclusion,
+                microdescription=case.microdescription,
+                is_printed_cassette=case.is_printed_cassette,
+                is_printed_glass=case.is_printed_glass,
+                is_printed_qr=case.is_printed_qr,
+                is_case_owner = is_case_owner
+            )
+        all_cases_schematized.append(case_response)
 
     report_details: Optional[ReportResponseSchema] = None
-    last_case_details: Optional[CaseModelScheema] = None
+    last_case_details: Optional[CaseWithOwner] = None
     case_owner: Optional[CaseOwnerResponse] = None
     last_case_with_relations: Optional[db_models.Case] = None
 
@@ -2325,8 +2476,23 @@ async def get_patient_final_report_page_data(
         last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
         if last_case_with_relations:
-            last_case_details = CaseModelScheema.model_validate(
-                last_case_with_relations
+            if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+            last_case_details = CaseWithOwner(
+                id=last_case_with_relations.id,
+                case_code=last_case_with_relations.case_code,
+                creation_date=last_case_with_relations.creation_date,
+                patient_id=str(last_case_with_relations.patient_id),
+                grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+                bank_count=last_case_with_relations.bank_count,
+                cassette_count=last_case_with_relations.cassette_count,
+                glass_count=last_case_with_relations.glass_count,
+                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                microdescription=last_case_with_relations.microdescription,
+                is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                is_printed_glass=last_case_with_relations.is_printed_glass,
+                is_printed_qr=last_case_with_relations.is_printed_qr,
+                is_case_owner = is_case_owner
             )
             if not last_case_with_relations.report:
                 new_report = db_models.Report(case_id=last_case_with_relations.id)
@@ -2423,8 +2589,8 @@ async def _format_final_report_response(
 
     case_details_schema = None
     doctor_diagnoses_schematized: List[DoctorDiagnosisSchema] = []
-    if case_db:
-        case_details_schema = CaseModelScheema.model_validate(case_db)
+    # if case_db:
+    #     case_details_schema = CaseModelScheema.model_validate(case_db)
     if db_report:
         await db.refresh(db_report, attribute_names=["doctor_diagnoses"])
 
@@ -2564,6 +2730,7 @@ async def get_final_report_by_case_id(
     """
     Получает заключение для конкретного кейса. Если заключения нет, оно будет создано.
     """
+    is_case_owner= False
     report_details: Optional[ReportResponseSchema] = None
     last_case_details: Optional[CaseModelScheema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
@@ -2590,7 +2757,24 @@ async def get_final_report_by_case_id(
     last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
     if last_case_with_relations:
-        last_case_details = CaseModelScheema.model_validate(last_case_with_relations)
+        if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+        last_case_details = CaseWithOwner(
+            id=last_case_with_relations.id,
+            case_code=last_case_with_relations.case_code,
+            creation_date=last_case_with_relations.creation_date,
+            patient_id=str(last_case_with_relations.patient_id),
+            grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+            bank_count=last_case_with_relations.bank_count,
+            cassette_count=last_case_with_relations.cassette_count,
+            glass_count=last_case_with_relations.glass_count,
+            pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+            microdescription=last_case_with_relations.microdescription,
+            is_printed_cassette=last_case_with_relations.is_printed_cassette,
+            is_printed_glass=last_case_with_relations.is_printed_glass,
+            is_printed_qr=last_case_with_relations.is_printed_qr,
+            is_case_owner = is_case_owner
+        )
         if not last_case_with_relations.report:
             new_report = db_models.Report(case_id=last_case_with_relations.id)
             db.add(new_report)
@@ -2654,6 +2838,7 @@ async def get_current_case_details_for_excision_page(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("1").label("sort_priority"),
         ).where(
             and_(
@@ -2688,6 +2873,7 @@ async def get_current_case_details_for_excision_page(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("2").label("sort_priority"),
         ).where(
             and_(
@@ -2714,6 +2900,7 @@ async def get_current_case_details_for_excision_page(
         cases_fu_subquery.c.is_printed_glass,
         cases_fu_subquery.c.is_printed_qr,
         cases_fu_subquery.c.sort_priority,
+        cases_fu_subquery.c.case_owner,
     ).union_all(
         select(
             cases_s_subquery.c.id,
@@ -2730,6 +2917,7 @@ async def get_current_case_details_for_excision_page(
             cases_s_subquery.c.is_printed_glass,
             cases_s_subquery.c.is_printed_qr,
             cases_s_subquery.c.sort_priority,
+            cases_s_subquery.c.case_owner,
         )
     )
 
@@ -2742,6 +2930,7 @@ async def get_current_case_details_for_excision_page(
     all_current_cases_raw = paginated_results.all()
 
     current_cases_list: List[CaseModelScheema] = []
+    is_case_owner = False
 
     for row in all_current_cases_raw:
         case_id = row.id
@@ -2758,8 +2947,11 @@ async def get_current_case_details_for_excision_page(
         is_printed_glass = row.is_printed_glass
         is_printed_qr = row.is_printed_qr
 
+        if current_doctor_id == row.case_owner:
+            is_case_owner = True
+
         current_cases_list.append(
-            CaseModelScheema(
+            CaseWithOwner(
                 id=case_id,
                 case_code=case_code,
                 creation_date=creation_date,
@@ -2773,6 +2965,7 @@ async def get_current_case_details_for_excision_page(
                 is_printed_cassette=is_printed_cassette,
                 is_printed_glass=is_printed_glass,
                 is_printed_qr=is_printed_qr,
+                is_case_owner = is_case_owner
             )
         )
 
@@ -2819,8 +3012,9 @@ async def get_current_case_details_for_excision_page(
                         macro_description=sample_db.macro_description,
                     )
                 )
-
-            last_case_details_for_excision = LastCaseExcisionDetailsSchema(
+            if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+            last_case_details_for_excision = LastCaseExcisionDetailsSchemaWithOwner(
                 id=last_case_with_relations.id,
                 case_code=last_case_with_relations.case_code,
                 creation_date=last_case_with_relations.creation_date,
@@ -2833,6 +3027,7 @@ async def get_current_case_details_for_excision_page(
                 is_printed_cassette=last_case_with_relations.is_printed_cassette,
                 is_printed_glass=last_case_with_relations.is_printed_glass,
                 is_printed_qr=last_case_with_relations.is_printed_qr,
+                is_case_owner = is_case_owner
             )
     if last_case_with_relations:
         case_owner = await get_case_owner(
@@ -2877,6 +3072,7 @@ async def get_current_cases_report_page_data(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("1").label("sort_priority"),
         ).where(
             and_(
@@ -2912,6 +3108,7 @@ async def get_current_cases_report_page_data(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("2").label("sort_priority"),
         ).where(
             and_(
@@ -2939,6 +3136,7 @@ async def get_current_cases_report_page_data(
         cases_fu_subquery.c.is_printed_cassette,
         cases_fu_subquery.c.is_printed_glass,
         cases_fu_subquery.c.is_printed_qr,
+        cases_fu_subquery.c.case_owner,
     ).union_all(
         select(
             cases_s_subquery.c.id,
@@ -2956,6 +3154,7 @@ async def get_current_cases_report_page_data(
             cases_s_subquery.c.is_printed_cassette,
             cases_s_subquery.c.is_printed_glass,
             cases_s_subquery.c.is_printed_qr,
+            cases_s_subquery.c.case_owner,
         )
     )
 
@@ -2967,7 +3166,8 @@ async def get_current_cases_report_page_data(
     paginated_results = await db.execute(final_ordered_query.offset(skip).limit(limit))
     all_current_cases_raw = paginated_results.all()
 
-    current_cases_list: List[CaseModelScheema] = []
+    current_cases_list: List[CaseWithOwner] = []
+    is_case_owner = False
 
     for row in all_current_cases_raw:
         case_id = row.id
@@ -2983,9 +3183,11 @@ async def get_current_cases_report_page_data(
         is_printed_cassette = row.is_printed_cassette
         is_printed_glass = row.is_printed_glass
         is_printed_qr = row.is_printed_qr
+        if current_doctor_id == row.case_owner:
+            is_case_owner = True
 
         current_cases_list.append(
-            CaseModelScheema(
+            CaseWithOwner(
                 id=case_id,
                 case_code=case_code,
                 creation_date=creation_date,
@@ -2999,10 +3201,11 @@ async def get_current_cases_report_page_data(
                 is_printed_cassette=is_printed_cassette,
                 is_printed_glass=is_printed_glass,
                 is_printed_qr=is_printed_qr,
+                is_case_owner = is_case_owner
             )
         )
 
-    last_case_for_report: Optional[CaseModelScheema] = None
+    last_case_for_report: Optional[CaseWithOwner] = None
     report_details: Optional[ReportResponseSchema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
     first_case_details_for_glass: Optional[FirstCaseTestGlassDetailsSchema] = None
@@ -3037,8 +3240,23 @@ async def get_current_cases_report_page_data(
         last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
         if last_case_with_relations:
-            last_case_for_report = CaseModelScheema.model_validate(
-                last_case_with_relations
+            if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+            last_case_for_report = CaseWithOwner(
+                id=last_case_with_relations.id,
+                case_code=last_case_with_relations.case_code,
+                creation_date=last_case_with_relations.creation_date,
+                patient_id=str(last_case_with_relations.patient_id),
+                grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+                bank_count=last_case_with_relations.bank_count,
+                cassette_count=last_case_with_relations.cassette_count,
+                glass_count=last_case_with_relations.glass_count,
+                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                microdescription=last_case_with_relations.microdescription,
+                is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                is_printed_glass=last_case_with_relations.is_printed_glass,
+                is_printed_qr=last_case_with_relations.is_printed_qr,
+                is_case_owner = is_case_owner
             )
 
             if not last_case_with_relations.report:
@@ -3146,6 +3364,7 @@ async def get_current_cases_with_directions(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("1").label("sort_priority"),
         ).where(
             and_(
@@ -3180,6 +3399,7 @@ async def get_current_cases_with_directions(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("2").label("sort_priority"),
         ).where(
             and_(
@@ -3206,6 +3426,7 @@ async def get_current_cases_with_directions(
         cases_fu_subquery.c.is_printed_cassette,
         cases_fu_subquery.c.is_printed_glass,
         cases_fu_subquery.c.is_printed_qr,
+        cases_fu_subquery.c.case_owner,
     ).union_all(
         select(
             cases_s_subquery.c.id,
@@ -3222,6 +3443,7 @@ async def get_current_cases_with_directions(
             cases_s_subquery.c.is_printed_cassette,
             cases_s_subquery.c.is_printed_glass,
             cases_s_subquery.c.is_printed_qr,
+            cases_s_subquery.c.case_owner,
         )
     )
 
@@ -3233,7 +3455,8 @@ async def get_current_cases_with_directions(
     paginated_results = await db.execute(final_ordered_query.offset(skip).limit(limit))
     all_current_cases_raw = paginated_results.all()
 
-    current_cases_list: List[CaseModelScheema] = []
+    current_cases_list: List[CaseWithOwner] = []
+    is_case_owner = False
 
     for row in all_current_cases_raw:
         case_id = row.id
@@ -3249,8 +3472,11 @@ async def get_current_cases_with_directions(
         is_printed_cassette = row.is_printed_cassette
         is_printed_glass = row.is_printed_glass
         is_printed_qr = row.is_printed_qr
+
+        if current_doctor_id == row.case_owner:
+            is_case_owner = True
         current_cases_list.append(
-            CaseModelScheema(
+            CaseWithOwner(
                 id=case_id,
                 case_code=case_code,
                 creation_date=creation_date,
@@ -3264,6 +3490,7 @@ async def get_current_cases_with_directions(
                 is_printed_cassette=is_printed_cassette,
                 is_printed_glass=is_printed_glass,
                 is_printed_qr=is_printed_qr,
+                is_case_owner = is_case_owner
             )
         )
 
@@ -3323,8 +3550,10 @@ async def get_current_cases_with_directions(
                         file_url=file_url,
                     )
                 )
+            if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
 
-            first_case_direction_details = FirstCaseReferralDetailsSchema(
+            first_case_direction_details = FirstCaseReferralDetailsWithOwner(
                 id=last_case_with_relations.id,
                 case_code=last_case_with_relations.case_code,
                 creation_date=last_case_with_relations.creation_date,
@@ -3333,6 +3562,25 @@ async def get_current_cases_with_directions(
                 attachments=attachments_for_response,
                 grossing_status=last_case_with_relations.grossing_status,
                 patient_cor_id=last_case_with_relations.patient_id,
+                is_case_owner = is_case_owner
+            )
+    if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+    case_details = CaseWithOwner(
+                id=last_case_with_relations.id,
+                case_code=last_case_with_relations.case_code,
+                creation_date=last_case_with_relations.creation_date,
+                patient_id=str(last_case_with_relations.patient_id),
+                grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+                bank_count=last_case_with_relations.bank_count,
+                cassette_count=last_case_with_relations.cassette_count,
+                glass_count=last_case_with_relations.glass_count,
+                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                microdescription=last_case_with_relations.microdescription,
+                is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                is_printed_glass=last_case_with_relations.is_printed_glass,
+                is_printed_qr=last_case_with_relations.is_printed_qr,
+                is_case_owner = is_case_owner
             )
     if last_case_with_relations:
         case_owner = await get_case_owner(
@@ -3340,7 +3588,7 @@ async def get_current_cases_with_directions(
         )
     return PatientCasesWithReferralsResponse(
         all_cases=current_cases_list,
-        case_details=last_case_with_relations,
+        case_details=case_details,
         case_owner=case_owner,
         first_case_direction=first_case_direction_details,
     )
@@ -3376,6 +3624,7 @@ async def get_current_cases_final_report_page_data(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("1").label("sort_priority"),
         ).where(
             and_(
@@ -3410,6 +3659,7 @@ async def get_current_cases_final_report_page_data(
             db_models.Case.is_printed_cassette,
             db_models.Case.is_printed_glass,
             db_models.Case.is_printed_qr,
+            db_models.Case.case_owner,
             literal_column("2").label("sort_priority"),
         ).where(
             and_(
@@ -3436,6 +3686,7 @@ async def get_current_cases_final_report_page_data(
         cases_fu_subquery.c.is_printed_glass,
         cases_fu_subquery.c.is_printed_qr,
         cases_fu_subquery.c.sort_priority,
+        cases_fu_subquery.c.case_owner,
     ).union_all(
         select(
             cases_s_subquery.c.id,
@@ -3452,6 +3703,7 @@ async def get_current_cases_final_report_page_data(
             cases_s_subquery.c.is_printed_glass,
             cases_s_subquery.c.is_printed_qr,
             cases_s_subquery.c.sort_priority,
+            cases_s_subquery.c.case_owner,
         )
     )
 
@@ -3468,10 +3720,13 @@ async def get_current_cases_final_report_page_data(
     report_details: Optional[FinalReportResponseSchema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
     case_owner: Optional[CaseOwnerResponse] = None
+    is_case_owner = False
 
     for row in all_current_cases_raw:
+        if current_doctor_id == row.case_owner:
+            is_case_owner = True
         current_cases_list.append(
-            CaseModelScheema(
+            CaseWithOwner(
                 id=str(row.id),
                 case_code=row.case_code,
                 creation_date=row.creation_date,
@@ -3485,6 +3740,7 @@ async def get_current_cases_final_report_page_data(
                 is_printed_cassette=row.is_printed_cassette,
                 is_printed_glass=row.is_printed_glass,
                 is_printed_qr=row.is_printed_qr,
+                is_case_owner = is_case_owner
             )
         )
 
@@ -3516,8 +3772,26 @@ async def get_current_cases_final_report_page_data(
         last_case_with_relations = last_case_full_info_result.scalar_one_or_none()
 
         if last_case_with_relations:
-            last_case_details = CaseModelScheema.model_validate(
-                last_case_with_relations
+            # last_case_details = CaseModelScheema.model_validate(
+            #     last_case_with_relations
+            # )
+            if current_doctor_id == last_case_with_relations.case_owner:
+                is_case_owner = True
+            last_case_details = CaseWithOwner(
+                id=last_case_with_relations.id,
+                case_code=last_case_with_relations.case_code,
+                creation_date=last_case_with_relations.creation_date,
+                patient_id=str(last_case_with_relations.patient_id),
+                grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+                bank_count=last_case_with_relations.bank_count,
+                cassette_count=last_case_with_relations.cassette_count,
+                glass_count=last_case_with_relations.glass_count,
+                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                microdescription=last_case_with_relations.microdescription,
+                is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                is_printed_glass=last_case_with_relations.is_printed_glass,
+                is_printed_qr=last_case_with_relations.is_printed_qr,
+                is_case_owner = is_case_owner
             )
 
             if not last_case_with_relations.report:

@@ -583,7 +583,6 @@ async def update_microdescription(
         )
     return db_case
 
-
 @router.get(
     "/patients/{patient_id}/excision-details",
     response_model=PatientExcisionPageResponse,

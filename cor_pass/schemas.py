@@ -966,6 +966,13 @@ class Case(BaseModel):
     is_printed_glass: Optional[bool]
     is_printed_qr: Optional[bool]
 
+
+    class Config:
+        from_attributes = True
+
+class CaseWithOwner(Case):
+    is_case_owner: Optional[bool]
+
     class Config:
         from_attributes = True
 
@@ -1339,6 +1346,11 @@ class FirstCaseReferralDetailsSchema(BaseModel):
     class Config:
         from_attributes = True
 
+class FirstCaseReferralDetailsWithOwner(FirstCaseReferralDetailsSchema):
+    is_case_owner: Optional[bool]
+
+    class Config:
+        from_attributes = True
 
 class DoctorSignatureBase(BaseModel):
     signature_name: Optional[str] = None
@@ -1454,8 +1466,8 @@ class FinalReportResponseSchema(BaseModel):
 
 
 class PatientFinalReportPageResponse(BaseModel):
-    all_cases: Optional[List[Case]] = None
-    last_case_details: Optional[Case] = None
+    all_cases: Optional[List[CaseWithOwner]] = None
+    last_case_details: Optional[CaseWithOwner] = None
     case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[FinalReportResponseSchema]
 
@@ -1464,7 +1476,7 @@ class PatientFinalReportPageResponse(BaseModel):
 
 
 class CaseFinalReportPageResponse(BaseModel):
-    case_details: Case
+    case_details: CaseWithOwner
     case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[FinalReportResponseSchema]
 
@@ -1473,10 +1485,10 @@ class CaseFinalReportPageResponse(BaseModel):
 
 
 class PatientCasesWithReferralsResponse(BaseModel):
-    all_cases: List[Case]
-    case_details: Optional[Case]
+    all_cases: List[CaseWithOwner]
+    case_details: Optional[CaseWithOwner]
     case_owner: Optional[CaseOwnerResponse]
-    first_case_direction: Optional[FirstCaseReferralDetailsSchema] = None
+    first_case_direction: Optional[FirstCaseReferralDetailsWithOwner] = None
 
     class Config:
         from_attributes = True
@@ -1500,10 +1512,16 @@ class FirstCaseGlassDetailsSchema(BaseModel):
     class Config:
         from_attributes = True
 
+class FirstCaseGlassDetailsSchemaWithOwner(FirstCaseGlassDetailsSchema):
+    is_case_owner: Optional[bool]
+
+    class Config:
+        from_attributes = True
+
 
 class PatientGlassPageResponse(BaseModel):
-    all_cases: List[Case]
-    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchema] = None
+    all_cases: List[CaseWithOwner]
+    first_case_details_for_glass: Optional[FirstCaseGlassDetailsSchemaWithOwner] = None
     case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[FinalReportResponseSchema]
 
@@ -1561,10 +1579,15 @@ class LastCaseExcisionDetailsSchema(BaseModel):
     class Config:
         from_attributes = True
 
+class LastCaseExcisionDetailsSchemaWithOwner(LastCaseExcisionDetailsSchema):
+    is_case_owner: Optional[bool]
+
+    class Config:
+        from_attributes = True
 
 class PatientExcisionPageResponse(BaseModel):
-    all_cases: List[Case]
-    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+    all_cases: List[CaseWithOwner]
+    last_case_details_for_excision: Optional[LastCaseExcisionDetailsSchemaWithOwner] = None
     case_owner: Optional[CaseOwnerResponse]
 
     class Config:
@@ -1573,7 +1596,7 @@ class PatientExcisionPageResponse(BaseModel):
 
 class SingleCaseExcisionPageResponse(BaseModel):
 
-    case_details_for_excision: Optional[LastCaseExcisionDetailsSchema] = None
+    case_details_for_excision: Optional[LastCaseExcisionDetailsSchemaWithOwner] = None
     case_owner: Optional[CaseOwnerResponse]
 
     class Config:
@@ -1751,8 +1774,8 @@ class SignReportRequest(BaseModel):
 
 
 class PatientTestReportPageResponse(BaseModel):
-    all_cases: List[Case]
-    last_case_for_report: Optional[Case]
+    all_cases: List[CaseWithOwner]
+    last_case_for_report: Optional[CaseWithOwner]
     case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[ReportResponseSchema]
     all_glasses_for_last_case: Optional[FirstCaseTestGlassDetailsSchema] = None
