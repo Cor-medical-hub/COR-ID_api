@@ -23,7 +23,7 @@
             <button id="testBtn">Тест</button>
             <button id="addDeviceBtn">Добавить устройство</button>
         </div>  
-        <div id="printerStatus" class="status-indicator">Статус принтера: проверка...</div>
+      <!--  <div id="printerStatus" class="status-indicator">Статус принтера: проверка...</div> -->
     </div>    
 
 
@@ -40,6 +40,7 @@
                 <!-- Здесь будет список устройств -->
                 <p>Список устройств загружается...</p>
             </div>
+          <!--  <div id="printerStatus" class="status-indicator">Статус принтера: проверка...</div>  -->
         </div>
     </div>
     
@@ -55,15 +56,24 @@
            
             <div class="form">
                 <label for="printerIp">IP принтера:</label>
-                <select id="printerIp" style="width: 200px;">
-                    <option value="custom">Ввести свой IP</option>
-                </select>
-                <input type="text" id="customPrinterIp" style="display: none; width: 180px; margin-left: 5px;" placeholder="Введите IP">
+                <input list="printerIps" id="printerIp" placeholder="Выберите или введите IP" class="combo-input">
+                <datalist id="printerIps">
+                    <!-- Опции будут добавлены динамически -->
+                </datalist>
             </div>
+
+
+
             <div class="form">
                 <label for="deviceId">Шаблон № (0-65535):</label>
                 <input type="number" id="template" min="0" max="65535" required>
             </div>
+
+            <div class="form" id="hopperNumberContainer" style="width:70px; display: none;">
+                <label for="hopperNumber">Хоппер:</label>
+                <input type="number" id="hopperNumber"  min="0" max="6" required>
+            </div>
+           
 
             <div class="field-group">
                 <div class="form-group-test">
@@ -96,10 +106,7 @@
                     <label for="staining">Staining:</label>
                     <input type="text" id="staining" value="H&amp;E">
                 </div>
-                <div class="form-group-test" style="width:40px;">
-                    <label for="hopperNumber">Hopper:</label>
-                    <input type="text" id="hopperNumber" value="?">
-                </div>
+        
                 <div class="form-group-test" style="flex: 2;">
                     <label for="patientCorId">Patient COR ID:</label>
                     <input type="text" id="patientCorId" value="TDAJ92Z7-1983M">
