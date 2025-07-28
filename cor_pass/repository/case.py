@@ -3928,6 +3928,9 @@ async def take_case_ownership(
         pathohistological_conclusion=case_db.pathohistological_conclusion,
         microdescription=case_db.microdescription,
         samples=first_case_samples,
+        is_printed_cassette=case_db.is_printed_cassette,
+        is_printed_glass=case_db.is_printed_glass,
+        is_printed_qr=case_db.is_printed_qr,
     )
     case_owner_response = CaseOwnerResponse(
         id=doctor.id if case_db.case_owner else None,
@@ -4030,6 +4033,9 @@ async def release_case_ownership(
         pathohistological_conclusion=case_db.pathohistological_conclusion,
         microdescription=case_db.microdescription,
         samples=first_case_samples,
+        is_printed_cassette=case_db.is_printed_cassette,
+        is_printed_glass=case_db.is_printed_glass,
+        is_printed_qr=case_db.is_printed_qr,
     )
     case_owner_response = CaseOwnerResponse(
         id=doctor.id if case_db.case_owner else None,
