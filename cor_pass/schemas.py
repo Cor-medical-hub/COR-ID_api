@@ -42,8 +42,8 @@ class UserModel(BaseModel):
 
     @field_validator("user_sex")
     def user_sex_must_be_m_or_f(cls, v):
-        if v not in ["M", "F"]:
-            raise ValueError('user_sex must be "M" or "F"')
+        if v not in ["M", "F", "*"]:
+            raise ValueError('user_sex must be "M" or "F" or "*" (other)')
         return v
 
 
