@@ -1821,49 +1821,6 @@ class CaseOwnershipResponse(BaseModel):
     case_owner: Optional[CaseOwnerResponse]
 
 
-# class BloodPressureMeasurementCreate(BaseModel):
-#     systolic_pressure: Optional[int] = Field(None, gt=0, description="Систолическое (верхнее) давление")
-#     diastolic_pressure: Optional[int] = Field(None, gt=0, description="Диастолическое (нижнее) давление")
-#     pulse: Optional[int] = Field(None, gt=0, description="Пульс")
-#     measured_at: datetime = Field(..., description="Дата и время измерения (с устройства)")
-
-#     @field_validator('systolic_pressure')
-#     @classmethod
-#     def validate_systolic_range(cls, v):
-#         if not (50 <= v <= 250):
-#             raise ValueError("Систолическое давление должно быть в диапазоне от 50 до 250.")
-#         return v
-
-#     @field_validator('diastolic_pressure')
-#     @classmethod
-#     def validate_diastolic_range(cls, v):
-#         if not (30 <= v <= 150):
-#             raise ValueError("Диастолическое давление должно быть в диапазоне от 30 до 150.")
-#         return v
-
-
-#     @model_validator(mode='after')
-#     def check_diastolic_less_than_systolic(self):
-#         if self.diastolic_pressure >= self.systolic_pressure:
-#             raise ValueError("Диастолическое давление не может быть выше или равно систолическому.")
-#         return self
-
-# class BloodPressureMeasures(BaseModel):
-#     sistolic: Optional[int] = Field(None, alias="sistolic")
-#     diastolic: Optional[int] = Field(None, alias="diastolic")
-
-
-# class IndividualResult(BaseModel):
-#     measures: str | BloodPressureMeasures
-#     member: List[str]
-
-
-# class TonometrIncomingData(BaseModel):
-#     created_at: datetime
-#     member: List[str]
-#     result: List[IndividualResult]
-
-
 class NewBloodPressureMeasurementResponse(BaseModel):
     id: str
     systolic_pressure: Optional[int]
