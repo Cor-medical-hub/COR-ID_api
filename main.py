@@ -259,7 +259,6 @@ async def custom_identifier(request: Request) -> str:
 # Событие при старте приложения
 @app.on_event("startup")
 async def startup():
-    print("------------- STARTUP --------------")
     logger.info("------------- STARTUP --------------")
     await FastAPILimiter.init(redis_client, identifier=custom_identifier)
     asyncio.create_task(check_session_timeouts())
@@ -267,8 +266,8 @@ async def startup():
     initialize_ip2location()
     if settings.app_env == "development":
         await create_modbus_client(app)
-        asyncio.create_task(cerbo_collection_task(app))
-        asyncio.create_task(energetic_schedule_task(async_session_maker=async_session_maker, app=app))
+        # asyncio.create_task(cerbo_collection_task(app))
+        # asyncio.create_task(energetic_schedule_task(async_session_maker=async_session_maker, app=app))
     # asyncio.create_task(cerbo_GX.read_modbus_and_cache())
 
 

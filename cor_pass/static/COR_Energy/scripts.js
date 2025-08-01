@@ -622,7 +622,7 @@ async function writeRegister() {
             },
             body: JSON.stringify({
                 slave_id: parseInt(slaveId),
-                register: parseInt(register),
+                register_number: parseInt(register),
                 value: parseInt(value)
             })
         });
