@@ -4209,7 +4209,7 @@ async def print_all_case_glasses(
     for glass_db in glasses_to_update:
         glass_data = GlassPrinting(
             printer_ip=data.printer_ip,
-            model_id=data.model_id,
+            number_models_id=data.number_models_id,
             clinic_name=data.clinic_name,
             hooper=data.hooper,
             glass_id=glass_db.id,
@@ -4271,7 +4271,7 @@ async def print_all_case_cassette(
         for cassette_db in cassettes_to_update:
             cassette_data = CassettePrinting(
             printer_ip=data.printer_ip,
-            model_id=data.model_id,
+            number_models_id=data.number_models_id,
             clinic_name=data.clinic_name,
             hooper=data.hooper,
             cassete_id=cassette_db.id,

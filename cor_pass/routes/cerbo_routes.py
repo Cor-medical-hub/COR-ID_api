@@ -670,7 +670,7 @@ async def write_register(request_data: RegisterWriteRequest, request: Request):
         
         # Записываем значение в регистр
         result = await client.write_register(
-            address=request_data.register,
+            address=request_data.register_number,
             value=request_data.value,
             slave=request_data.slave_id
         )
@@ -678,11 +678,11 @@ async def write_register(request_data: RegisterWriteRequest, request: Request):
         if result.isError():
             raise HTTPException(status_code=500, detail="Ошибка записи регистра")
             
-        return {"status": "success", "register": request_data.register, "value": request_data.value}
+        return {"status": "success", "register": request_data.register_number, "value": request_data.value}
         
     except Exception as e:
         register_modbus_error()
-        logger.error(f"❗ Ошибка записи регистра {request_data.register}", exc_info=e)
+        logger.error(f"❗ Ошибка записи регистра {request_data.register_number}", exc_info=e)
         raise HTTPException(status_code=500, detail="Modbus ошибка")
 
 
@@ -734,8 +734,6 @@ async def create_energetic_schedule(
 ):
     new_schedule = await create_schedule(db, schedule_data)
     return new_schedule
-
-
 
 @router.get("/schedules/{schedule_id}", 
             response_model=EnergeticScheduleResponse,

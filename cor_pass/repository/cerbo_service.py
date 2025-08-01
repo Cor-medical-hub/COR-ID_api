@@ -469,154 +469,154 @@ async def create_full_device_measurement(
         raise
 
 
-async def cerbo_collection_task(app: FastAPI):
-    """
-    Фоновая задача, которая запускает сбор данных с Modbus и сохраняет их напрямую в базу данных.
-    Работает в бесконечном цикле с паузами.
-    """
+# async def cerbo_collection_task(app: FastAPI):
+#     """
+#     Фоновая задача, которая запускает сбор данных с Modbus и сохраняет их напрямую в базу данных.
+#     Работает в бесконечном цикле с паузами.
+#     """
 
-    while True:
-        current_transaction_id = uuid4()
-        # logger.debug(f"Starting new device data collection cycle. Transaction ID: {current_transaction_id}")
+#     while True:
+#         current_transaction_id = uuid4()
+#         # logger.debug(f"Starting new device data collection cycle. Transaction ID: {current_transaction_id}")
 
-        modbus_client = app.state.modbus_client
+#         modbus_client = app.state.modbus_client
 
-        try:
-            if not modbus_client or not modbus_client.connected:
-                logger.critical(
-                    f"[{current_transaction_id}] Modbus client not connected. Attempting to reconnect..."
-                )
-                try:
-                    if modbus_client is None:
-                        modbus_client = AsyncModbusTcpClient(
-                            host=MODBUS_IP, port=MODBUS_PORT
-                        )
-                        app.state.modbus_client = modbus_client
+#         try:
+#             if not modbus_client or not modbus_client.connected:
+#                 logger.critical(
+#                     f"[{current_transaction_id}] Modbus client not connected. Attempting to reconnect..."
+#                 )
+#                 try:
+#                     if modbus_client is None:
+#                         modbus_client = AsyncModbusTcpClient(
+#                             host=MODBUS_IP, port=MODBUS_PORT
+#                         )
+#                         app.state.modbus_client = modbus_client
 
-                    await modbus_client.connect()
-                    logger.debug(
-                        f"[{current_transaction_id}] Modbus client reconnected."
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"[{current_transaction_id}] Failed to reconnect Modbus client: {e}. Skipping this cycle.",
-                        exc_info=True,
-                    )
-                    await asyncio.sleep(COLLECTION_INTERVAL_SECONDS)
-                    continue
+#                     await modbus_client.connect()
+#                     logger.debug(
+#                         f"[{current_transaction_id}] Modbus client reconnected."
+#                     )
+#                 except Exception as e:
+#                     logger.error(
+#                         f"[{current_transaction_id}] Failed to reconnect Modbus client: {e}. Skipping this cycle.",
+#                         exc_info=True,
+#                     )
+#                     await asyncio.sleep(COLLECTION_INTERVAL_SECONDS)
+#                     continue
 
-            collected_data = {}
+#             collected_data = {}
 
-            try:
-                battery_data = await collect_battery_data(
-                    modbus_client, current_transaction_id
-                )
-                collected_data.update(battery_data)
-            except Exception as e:
-                logger.error(
-                    f"[{current_transaction_id}] Failed to collect battery data: {e}. Skipping this data block.",
-                    exc_info=True,
-                )
+#             try:
+#                 battery_data = await collect_battery_data(
+#                     modbus_client, current_transaction_id
+#                 )
+#                 collected_data.update(battery_data)
+#             except Exception as e:
+#                 logger.error(
+#                     f"[{current_transaction_id}] Failed to collect battery data: {e}. Skipping this data block.",
+#                     exc_info=True,
+#                 )
 
-            try:
-                inverter_data = await collect_inverter_power_data(
-                    modbus_client, current_transaction_id
-                )
-                collected_data.update(inverter_data)
-            except Exception as e:
-                logger.error(
-                    f"[{current_transaction_id}] Failed to collect inverter data: {e}. Skipping this data block.",
-                    exc_info=True,
-                )
+#             try:
+#                 inverter_data = await collect_inverter_power_data(
+#                     modbus_client, current_transaction_id
+#                 )
+#                 collected_data.update(inverter_data)
+#             except Exception as e:
+#                 logger.error(
+#                     f"[{current_transaction_id}] Failed to collect inverter data: {e}. Skipping this data block.",
+#                     exc_info=True,
+#                 )
 
-            try:
-                ess_ac_data = await collect_ess_ac_data(
-                    modbus_client, current_transaction_id
-                )
-                collected_data.update(ess_ac_data)
-            except Exception as e:
-                logger.error(
-                    f"[{current_transaction_id}] Failed to collect ESS AC data: {e}. Skipping this data block.",
-                    exc_info=True,
-                )
+#             try:
+#                 ess_ac_data = await collect_ess_ac_data(
+#                     modbus_client, current_transaction_id
+#                 )
+#                 collected_data.update(ess_ac_data)
+#             except Exception as e:
+#                 logger.error(
+#                     f"[{current_transaction_id}] Failed to collect ESS AC data: {e}. Skipping this data block.",
+#                     exc_info=True,
+#                 )
 
-            try:
-                solarchargers_data = await collect_solarchargers_data(
-                    modbus_client, current_transaction_id
-                )
-                collected_data.update(solarchargers_data)
-            except Exception as e:
-                logger.error(
-                    f"[{current_transaction_id}] Failed to collect solar chargers data: {e}. Skipping this data block.",
-                    exc_info=True,
-                )
+#             try:
+#                 solarchargers_data = await collect_solarchargers_data(
+#                     modbus_client, current_transaction_id
+#                 )
+#                 collected_data.update(solarchargers_data)
+#             except Exception as e:
+#                 logger.error(
+#                     f"[{current_transaction_id}] Failed to collect solar chargers data: {e}. Skipping this data block.",
+#                     exc_info=True,
+#                 )
 
-            try:
-                soc_data = await get_battery_status(
-                    modbus_client, current_transaction_id
-                )
-                collected_data.update(soc_data)
-            except Exception as e:
-                logger.error(
-                    f"[{current_transaction_id}] Failed to collect soc_data: {e}. Skipping this data block.",
-                    exc_info=True,
-                )
+#             try:
+#                 soc_data = await get_battery_status(
+#                     modbus_client, current_transaction_id
+#                 )
+#                 collected_data.update(soc_data)
+#             except Exception as e:
+#                 logger.error(
+#                     f"[{current_transaction_id}] Failed to collect soc_data: {e}. Skipping this data block.",
+#                     exc_info=True,
+#                 )
 
-            if not collected_data:
-                logger.warning(
-                    f"[{current_transaction_id}] No data collected from any Modbus device. Skipping database save."
-                )
-                await asyncio.sleep(COLLECTION_INTERVAL_SECONDS)
-                continue
+#             if not collected_data:
+#                 logger.warning(
+#                     f"[{current_transaction_id}] No data collected from any Modbus device. Skipping database save."
+#                 )
+#                 await asyncio.sleep(COLLECTION_INTERVAL_SECONDS)
+#                 continue
 
-            final_data_for_pydantic = collected_data
-            final_data_for_pydantic["measured_at"] = datetime.now()
-            final_data_for_pydantic["object_name"] = "COR-AZK"
+#             final_data_for_pydantic = collected_data
+#             final_data_for_pydantic["measured_at"] = datetime.now()
+#             final_data_for_pydantic["object_name"] = "COR-AZK"
 
-            required_fields = [
-                "general_battery_power",
-                "inverter_total_ac_output",
-                "ess_total_input_power",
-                "solar_total_pv_power",
-                "measured_at",
-                "object_name",
-                "soc"
-            ]
+#             required_fields = [
+#                 "general_battery_power",
+#                 "inverter_total_ac_output",
+#                 "ess_total_input_power",
+#                 "solar_total_pv_power",
+#                 "measured_at",
+#                 "object_name",
+#                 "soc"
+#             ]
 
-            missing_fields = [
-                field
-                for field in required_fields
-                if field not in final_data_for_pydantic
-                or final_data_for_pydantic[field] is None
-            ]
-            if missing_fields:
-                logger.error(
-                    f"[{current_transaction_id}] Incomplete data for FullDeviceMeasurementCreate. Missing: {missing_fields}. Skipping save.",
-                    extra={
-                        "missing_fields": missing_fields,
-                        "collected_data": final_data_for_pydantic,
-                    },
-                )
-                await asyncio.sleep(COLLECTION_INTERVAL_SECONDS)
-                continue
+#             missing_fields = [
+#                 field
+#                 for field in required_fields
+#                 if field not in final_data_for_pydantic
+#                 or final_data_for_pydantic[field] is None
+#             ]
+#             if missing_fields:
+#                 logger.error(
+#                     f"[{current_transaction_id}] Incomplete data for FullDeviceMeasurementCreate. Missing: {missing_fields}. Skipping save.",
+#                     extra={
+#                         "missing_fields": missing_fields,
+#                         "collected_data": final_data_for_pydantic,
+#                     },
+#                 )
+#                 await asyncio.sleep(COLLECTION_INTERVAL_SECONDS)
+#                 continue
 
-            full_measurement = FullDeviceMeasurementCreate(**final_data_for_pydantic)
+#             full_measurement = FullDeviceMeasurementCreate(**final_data_for_pydantic)
 
-            async with async_session_maker() as db:
-                new_record = await create_full_device_measurement(
-                    db=db, data=full_measurement
-                )
-                # logger.debug(f"[{current_transaction_id}] Successfully saved full measurement to DB. Record ID: {new_record.id}")
+#             async with async_session_maker() as db:
+#                 new_record = await create_full_device_measurement(
+#                     db=db, data=full_measurement
+#                 )
+#                 # logger.debug(f"[{current_transaction_id}] Successfully saved full measurement to DB. Record ID: {new_record.id}")
 
-        except Exception as e:
-            logger.error(
-                f"[{current_transaction_id}] Unhandled error during periodic data collection: {e}",
-                exc_info=True,
-            )
+#         except Exception as e:
+#             logger.error(
+#                 f"[{current_transaction_id}] Unhandled error during periodic data collection: {e}",
+#                 exc_info=True,
+#             )
 
-        finally:
-            # logger.debug(f"[{current_transaction_id}] Waiting {COLLECTION_INTERVAL_SECONDS} seconds before next collection cycle.")
-            await asyncio.sleep(COLLECTION_INTERVAL_SECONDS)
+#         finally:
+#             # logger.debug(f"[{current_transaction_id}] Waiting {COLLECTION_INTERVAL_SECONDS} seconds before next collection cycle.")
+#             await asyncio.sleep(COLLECTION_INTERVAL_SECONDS)
 
 
 async def get_device_measurements_paginated(
@@ -797,333 +797,333 @@ async def ensure_modbus_connected(app: FastAPI):
     return modbus_client 
 
 
-async def read_grid_feed_w(app: FastAPI) -> Optional[int]:
-    """
-    Читает текущее значение AC Power Setpoint Fine (регистр 2703) и возвращает его в Ваттах.
-    """
-    modbus_client = await ensure_modbus_connected(app)
-    if modbus_client is None:
-        return None
-    try:
-        result = await modbus_client.read_holding_registers(address=2703, count=1, slave=INVERTER_ID)
-        if result.isError():
-            logger.error(f"Ошибка чтения регистра 2703: {result}")
-            return None
+# async def read_grid_feed_w(app: FastAPI) -> Optional[int]:
+#     """
+#     Читает текущее значение AC Power Setpoint Fine (регистр 2703) и возвращает его в Ваттах.
+#     """
+#     modbus_client = await ensure_modbus_connected(app)
+#     if modbus_client is None:
+#         return None
+#     try:
+#         result = await modbus_client.read_holding_registers(address=2703, count=1, slave=INVERTER_ID)
+#         if result.isError():
+#             logger.error(f"Ошибка чтения регистра 2703: {result}")
+#             return None
         
-        register_value = result.registers[0]
+#         register_value = result.registers[0]
         
-        if register_value > 32767:  
-            actual_value = register_value - (1 << 16)
-        else:
-            actual_value = register_value
+#         if register_value > 32767:  
+#             actual_value = register_value - (1 << 16)
+#         else:
+#             actual_value = register_value
             
-        actual_value_watts = actual_value * 100
-        # logger.debug(f"Прочитано AC Power Setpoint Fine: {actual_value_watts} W (регистр 2703 = {register_value})")
-        return actual_value_watts
-    except Exception as e:
-        logger.error(f"Ошибка при чтении AC Power Setpoint Fine: {e}", exc_info=True)
-        return None
+#         actual_value_watts = actual_value * 100
+#         # logger.debug(f"Прочитано AC Power Setpoint Fine: {actual_value_watts} W (регистр 2703 = {register_value})")
+#         return actual_value_watts
+#     except Exception as e:
+#         logger.error(f"Ошибка при чтении AC Power Setpoint Fine: {e}", exc_info=True)
+#         return None
 
-async def read_vebus_soc(app: FastAPI) -> Optional[int]:
-    """
-    Читает текущее значение VE.Bus SoC (регистр 2901) и возвращает его в процентах.
-    """
-    modbus_client = await ensure_modbus_connected(app)
-    if modbus_client is None:
-        return None
-    try:
-        result = await modbus_client.read_holding_registers(address=2901, count=1, slave=INVERTER_ID)
-        if result.isError():
-            logger.error(f"Ошибка чтения регистра 2901: {result}")
-            return None
+# async def read_vebus_soc(app: FastAPI) -> Optional[int]:
+#     """
+#     Читает текущее значение VE.Bus SoC (регистр 2901) и возвращает его в процентах.
+#     """
+#     modbus_client = await ensure_modbus_connected(app)
+#     if modbus_client is None:
+#         return None
+#     try:
+#         result = await modbus_client.read_holding_registers(address=2901, count=1, slave=INVERTER_ID)
+#         if result.isError():
+#             logger.error(f"Ошибка чтения регистра 2901: {result}")
+#             return None
         
-        register_value = result.registers[0]
-        actual_value_percent = register_value / 10
-        # logger.debug(f"Прочитано VE.Bus SoC: {actual_value_percent}% (регистр 2901 = {register_value})")
-        return int(actual_value_percent) 
-    except Exception as e:
-        logger.error(f"Ошибка при чтении VE.Bus SoC: {e}", exc_info=True)
-        return None
+#         register_value = result.registers[0]
+#         actual_value_percent = register_value / 10
+#         # logger.debug(f"Прочитано VE.Bus SoC: {actual_value_percent}% (регистр 2901 = {register_value})")
+#         return int(actual_value_percent) 
+#     except Exception as e:
+#         logger.error(f"Ошибка при чтении VE.Bus SoC: {e}", exc_info=True)
+#         return None
 
-async def read_dvcc_max_charge_current(app: FastAPI) -> Optional[int]:
-    """
-    Читает текущее значение DVCC max charge current (регистр 2705) и возвращает его в Амперах.
-    """
-    modbus_client = await ensure_modbus_connected(app)
-    if modbus_client is None:
-        return None
-    try:
-        result = await modbus_client.read_holding_registers(address=2705, count=1, slave=INVERTER_ID)
-        if result.isError():
-            logger.error(f"Ошибка чтения регистра 2705: {result}")
-            return None
+# async def read_dvcc_max_charge_current(app: FastAPI) -> Optional[int]:
+#     """
+#     Читает текущее значение DVCC max charge current (регистр 2705) и возвращает его в Амперах.
+#     """
+#     modbus_client = await ensure_modbus_connected(app)
+#     if modbus_client is None:
+#         return None
+#     try:
+#         result = await modbus_client.read_holding_registers(address=2705, count=1, slave=INVERTER_ID)
+#         if result.isError():
+#             logger.error(f"Ошибка чтения регистра 2705: {result}")
+#             return None
         
-        register_value = result.registers[0]
+#         register_value = result.registers[0]
         
-        if register_value > 32767:  
-            actual_value = register_value - (1 << 16)
-        else:
-            actual_value = register_value
+#         if register_value > 32767:  
+#             actual_value = register_value - (1 << 16)
+#         else:
+#             actual_value = register_value
             
-        # logger.debug(f"Прочитано DVCC max charge current: {actual_value} A (регистр 2705 = {register_value})")
-        return actual_value
-    except Exception as e:
-        logger.error(f"Ошибка при чтении DVCC max charge current: {e}", exc_info=True)
-        return None
+#         # logger.debug(f"Прочитано DVCC max charge current: {actual_value} A (регистр 2705 = {register_value})")
+#         return actual_value
+#     except Exception as e:
+#         logger.error(f"Ошибка при чтении DVCC max charge current: {e}", exc_info=True)
+#         return None
 
-async def send_grid_feed_w_command(app: FastAPI, grid_feed_w: int):
-    modbus_client = await ensure_modbus_connected(app)
-    if modbus_client is None: 
-        return {"status": "error", "message": "Modbus client not available"}
-    try:
-        slave = INVERTER_ID
-        # Преобразуем значение для записи в регистр
-        register_value = int(grid_feed_w / 100)
+# async def send_grid_feed_w_command(app: FastAPI, grid_feed_w: int):
+#     modbus_client = await ensure_modbus_connected(app)
+#     if modbus_client is None: 
+#         return {"status": "error", "message": "Modbus client not available"}
+#     try:
+#         slave = INVERTER_ID
+#         # Преобразуем значение для записи в регистр
+#         register_value = int(grid_feed_w / 100)
         
-        # Преобразование отрицательных чисел в формат Modbus (дополнительный код)
-        if register_value < 0:
-            register_value = (1 << 16) + register_value  # Преобразование в 16-битное представление
+#         # Преобразование отрицательных чисел в формат Modbus (дополнительный код)
+#         if register_value < 0:
+#             register_value = (1 << 16) + register_value  # Преобразование в 16-битное представление
             
-        # Проверяем, что значение вписывается в int16
-        if register_value < 0 or register_value > 65535:
-            raise HTTPException(status_code=400, detail="Значение выходит за допустимые пределы")
+#         # Проверяем, что значение вписывается в int16
+#         if register_value < 0 or register_value > 65535:
+#             raise HTTPException(status_code=400, detail="Значение выходит за допустимые пределы")
         
-        # Записываем значение в регистр 2703
-        await modbus_client.write_register(
-            address=2703,
-            value=register_value,
-            slave=slave
-        )
-        global error_count
-        error_count = 0  
-        # logger.debug(f"✅ Установлено AC Power Setpoint Fine: {grid_feed_w} W (регистр 2703 = {register_value})")
-        return {"status": "ok", "value": grid_feed_w}
-    except Exception as e:
-        logger.error(
-            f" Unhandled error during periodic data collection: {e}",
-            exc_info=True,
-        )
+#         # Записываем значение в регистр 2703
+#         await modbus_client.write_register(
+#             address=2703,
+#             value=register_value,
+#             slave=slave
+#         )
+#         global error_count
+#         error_count = 0  
+#         # logger.debug(f"✅ Установлено AC Power Setpoint Fine: {grid_feed_w} W (регистр 2703 = {register_value})")
+#         return {"status": "ok", "value": grid_feed_w}
+#     except Exception as e:
+#         logger.error(
+#             f" Unhandled error during periodic data collection: {e}",
+#             exc_info=True,
+#         )
 
 
 
 
-async def send_vebus_soc_command(app: FastAPI, battery_level_percent: int):
-    modbus_client = await ensure_modbus_connected(app)
-    if modbus_client is None: 
-        return {"status": "error", "message": "Modbus client not available"}
-    try:
-        scaled_value = int(battery_level_percent * 10)
-        await modbus_client.write_register(
-            address=2901,  # адрес регистра VE.Bus SoC
-            value=scaled_value,
-            slave =INVERTER_ID
-        )
-        global error_count
-        error_count = 0
-        return {"status": "ok"}
-    except Exception as e:
-        logger.error(
-            f" Unhandled error during periodic data collection: {e}",
-            exc_info=True,
-        )
+# async def send_vebus_soc_command(app: FastAPI, battery_level_percent: int):
+#     modbus_client = await ensure_modbus_connected(app)
+#     if modbus_client is None: 
+#         return {"status": "error", "message": "Modbus client not available"}
+#     try:
+#         scaled_value = int(battery_level_percent * 10)
+#         await modbus_client.write_register(
+#             address=2901,  # адрес регистра VE.Bus SoC
+#             value=scaled_value,
+#             slave =INVERTER_ID
+#         )
+#         global error_count
+#         error_count = 0
+#         return {"status": "ok"}
+#     except Exception as e:
+#         logger.error(
+#             f" Unhandled error during periodic data collection: {e}",
+#             exc_info=True,
+#         )
 
 
 
-async def send_dvcc_max_charge_current_command(app: FastAPI, charge_battery_value: int):
-    modbus_client = await ensure_modbus_connected(app)
-    if modbus_client is None: 
-        return {"status": "error", "message": "Modbus client not available"}
+# async def send_dvcc_max_charge_current_command(app: FastAPI, charge_battery_value: int):
+#     modbus_client = await ensure_modbus_connected(app)
+#     if modbus_client is None: 
+#         return {"status": "error", "message": "Modbus client not available"}
         
-    try:
-        slave = INVERTER_ID
-        value = charge_battery_value
-        # Проверка границ значений int16
-        if not -32768 <= value <= 32767:
-            raise HTTPException(status_code=400, detail="Значение выходит за пределы int16")
-        # Преобразуем в формат Modbus (uint16) для передачи
-        if value < 0:
-            register_value = (1 << 16) + value  # преобразуем -1 в 0xFFFF
-        else:
-            register_value = value
-        # Запись в регистр
-        await modbus_client.write_register(address=2705, value=register_value, slave=slave)
+#     try:
+#         slave = INVERTER_ID
+#         value = charge_battery_value
+#         # Проверка границ значений int16
+#         if not -32768 <= value <= 32767:
+#             raise HTTPException(status_code=400, detail="Значение выходит за пределы int16")
+#         # Преобразуем в формат Modbus (uint16) для передачи
+#         if value < 0:
+#             register_value = (1 << 16) + value  # преобразуем -1 в 0xFFFF
+#         else:
+#             register_value = value
+#         # Запись в регистр
+#         await modbus_client.write_register(address=2705, value=register_value, slave=slave)
 
-        logger.debug(f"✅ Установлен DVCC max charge current: {value} A (регистр 2705 = {register_value})")
-        return {"status": "ok", "value": value}
-    except Exception as e:
-        logger.error(
-            f" Unhandled error during periodic data collection: {e}",
-            exc_info=True,
-        )
-
-
-async def set_inverter_parameters(
-    grid_feed_w: int, battery_level_percent: int, charge_battery_value: int, app: FastAPI
-):
-    # logger.debug(f"\n--- Тестовая отправка параметров на инвертор ---")
-    await send_grid_feed_w_command(app=app, grid_feed_w=grid_feed_w)
-    # logger.debug(f"Отдача в сеть: {grid_feed_w} Вт")
-    # logger.debug(f"Целевой уровень батареи: {battery_level_percent}%")
-    await send_vebus_soc_command(app=app, battery_level_percent=battery_level_percent)
-    # logger.debug(f"Зарядка батареи: {charge_battery_value}")
-    await send_dvcc_max_charge_current_command(app=app, charge_battery_value=charge_battery_value)
-    # logger.debug("--------------------------------------")
+#         logger.debug(f"✅ Установлен DVCC max charge current: {value} A (регистр 2705 = {register_value})")
+#         return {"status": "ok", "value": value}
+#     except Exception as e:
+#         logger.error(
+#             f" Unhandled error during periodic data collection: {e}",
+#             exc_info=True,
+#         )
 
 
-current_active_schedule_id: Optional[str] = None
+# async def set_inverter_parameters(
+#     grid_feed_w: int, battery_level_percent: int, charge_battery_value: int, app: FastAPI
+# ):
+#     # logger.debug(f"\n--- Тестовая отправка параметров на инвертор ---")
+#     await send_grid_feed_w_command(app=app, grid_feed_w=grid_feed_w)
+#     # logger.debug(f"Отдача в сеть: {grid_feed_w} Вт")
+#     # logger.debug(f"Целевой уровень батареи: {battery_level_percent}%")
+#     await send_vebus_soc_command(app=app, battery_level_percent=battery_level_percent)
+#     # logger.debug(f"Зарядка батареи: {charge_battery_value}")
+#     await send_dvcc_max_charge_current_command(app=app, charge_battery_value=charge_battery_value)
+#     # logger.debug("--------------------------------------")
 
 
-SCHEDULE_CHECK_INTERVAL_SECONDS = 3
-DEFAULT_grid_feed_kw = 70000
-DEFAULT_battery_level_percent = 30
-DEFAULT_charge_battery_value = 300
+# current_active_schedule_id: Optional[str] = None
 
 
-async def energetic_schedule_task(async_session_maker, app):
-    """
-    Фоновая задача для проверки и применения энергетического расписания.
-    """
-    global current_active_schedule_id
+# SCHEDULE_CHECK_INTERVAL_SECONDS = 3
+# DEFAULT_grid_feed_kw = 70000
+# DEFAULT_battery_level_percent = 30
+# DEFAULT_charge_battery_value = 300
 
-    while True:
-        try:
-            current_check_time = datetime.now()
-            # logger.debug(f"[{current_check_time.strftime('%H:%M:%S')}] Проверка расписания и актуальных параметров...")
 
-            async with async_session_maker() as db_session:
-                all_schedules = await get_all_schedules(db_session)
+# async def energetic_schedule_task(async_session_maker, app):
+#     """
+#     Фоновая задача для проверки и применения энергетического расписания.
+#     """
+#     global current_active_schedule_id
 
-                operational_schedules = [
-                    s for s in all_schedules if not s.is_manual_mode
-                ]
+#     while True:
+#         try:
+#             current_check_time = datetime.now()
+#             # logger.debug(f"[{current_check_time.strftime('%H:%M:%S')}] Проверка расписания и актуальных параметров...")
 
-                current_time = current_check_time.time()
+#             async with async_session_maker() as db_session:
+#                 all_schedules = await get_all_schedules(db_session)
 
-                desired_grid_feed_w: int
-                desired_battery_level_percent: int
-                desired_charge_battery_value: int
+#                 operational_schedules = [
+#                     s for s in all_schedules if not s.is_manual_mode
+#                 ]
+
+#                 current_time = current_check_time.time()
+
+#                 desired_grid_feed_w: int
+#                 desired_battery_level_percent: int
+#                 desired_charge_battery_value: int
                 
-                active_auto_schedule_for_now: Optional[EnergeticSchedule] = None
+#                 active_auto_schedule_for_now: Optional[EnergeticSchedule] = None
 
-                for schedule in operational_schedules:
-                    if schedule.start_time <= schedule.end_time:
-                        if schedule.start_time <= current_time < schedule.end_time:
-                            active_auto_schedule_for_now = schedule
-                            break
-                    else: 
-                        if (current_time >= schedule.start_time or current_time < schedule.end_time):
-                            active_auto_schedule_for_now = schedule
-                            break
+#                 for schedule in operational_schedules:
+#                     if schedule.start_time <= schedule.end_time:
+#                         if schedule.start_time <= current_time < schedule.end_time:
+#                             active_auto_schedule_for_now = schedule
+#                             break
+#                     else: 
+#                         if (current_time >= schedule.start_time or current_time < schedule.end_time):
+#                             active_auto_schedule_for_now = schedule
+#                             break
 
-                if active_auto_schedule_for_now:
-                    desired_grid_feed_w = active_auto_schedule_for_now.grid_feed_w
-                    desired_battery_level_percent = active_auto_schedule_for_now.battery_level_percent
-                    desired_charge_battery_value = active_auto_schedule_for_now.charge_battery_value
+#                 if active_auto_schedule_for_now:
+#                     desired_grid_feed_w = active_auto_schedule_for_now.grid_feed_w
+#                     desired_battery_level_percent = active_auto_schedule_for_now.battery_level_percent
+#                     desired_charge_battery_value = active_auto_schedule_for_now.charge_battery_value
                     
-                    if active_auto_schedule_for_now.id != current_active_schedule_id:
-                        # logger.info(f"Найдено новое активное расписание: ID {active_auto_schedule_for_now.id}. Активация.")
-                        if current_active_schedule_id is not None:
-                            await update_schedule_is_active_status(
-                                db=db_session,
-                                schedule_id=current_active_schedule_id,
-                                is_active_status=False,
-                            )
-                        current_active_schedule_id = active_auto_schedule_for_now.id
-                        await set_inverter_parameters(
-                            grid_feed_w=desired_grid_feed_w,
-                            battery_level_percent=desired_battery_level_percent,
-                            charge_battery_value=desired_charge_battery_value,
-                            app=app
-                        )
-                        await update_schedule_is_active_status(
-                            db=db_session,
-                            schedule_id=active_auto_schedule_for_now.id,
-                            is_active_status=True,
-                        )
-                        await asyncio.sleep(SCHEDULE_CHECK_INTERVAL_SECONDS)
-                        continue 
+#                     if active_auto_schedule_for_now.id != current_active_schedule_id:
+#                         # logger.info(f"Найдено новое активное расписание: ID {active_auto_schedule_for_now.id}. Активация.")
+#                         if current_active_schedule_id is not None:
+#                             await update_schedule_is_active_status(
+#                                 db=db_session,
+#                                 schedule_id=current_active_schedule_id,
+#                                 is_active_status=False,
+#                             )
+#                         current_active_schedule_id = active_auto_schedule_for_now.id
+#                         await set_inverter_parameters(
+#                             grid_feed_w=desired_grid_feed_w,
+#                             battery_level_percent=desired_battery_level_percent,
+#                             charge_battery_value=desired_charge_battery_value,
+#                             app=app
+#                         )
+#                         await update_schedule_is_active_status(
+#                             db=db_session,
+#                             schedule_id=active_auto_schedule_for_now.id,
+#                             is_active_status=True,
+#                         )
+#                         await asyncio.sleep(SCHEDULE_CHECK_INTERVAL_SECONDS)
+#                         continue 
                     
 
-                    else:
-                        if not active_auto_schedule_for_now.is_active:
-                            await update_schedule_is_active_status(
-                                db=db_session,
-                                schedule_id=active_auto_schedule_for_now.id,
-                                is_active_status=True,
-                            )
-                        # logger.debug(f"Автоматическое расписание {active_auto_schedule_for_now.id} активно. Проверка актуальности параметров.")
+#                     else:
+#                         if not active_auto_schedule_for_now.is_active:
+#                             await update_schedule_is_active_status(
+#                                 db=db_session,
+#                                 schedule_id=active_auto_schedule_for_now.id,
+#                                 is_active_status=True,
+#                             )
+#                         # logger.debug(f"Автоматическое расписание {active_auto_schedule_for_now.id} активно. Проверка актуальности параметров.")
 
-                else: 
-                    desired_grid_feed_w = DEFAULT_grid_feed_kw
-                    desired_battery_level_percent = DEFAULT_battery_level_percent
-                    desired_charge_battery_value = DEFAULT_charge_battery_value
+#                 else: 
+#                     desired_grid_feed_w = DEFAULT_grid_feed_kw
+#                     desired_battery_level_percent = DEFAULT_battery_level_percent
+#                     desired_charge_battery_value = DEFAULT_charge_battery_value
 
-                    if current_active_schedule_id is not None:
-                        # logger.info("Текущее время вне любого расписания. Возврат к дефолтным параметрам.")
-                        await update_schedule_is_active_status(
-                            db=db_session,
-                            schedule_id=current_active_schedule_id,
-                            is_active_status=False,
-                        )
-                        current_active_schedule_id = None
-                    else:
-                        pass
-                        # logger.debug("Текущее время вне любого расписания. Инвертор уже в дефолтных параметрах (или должен быть).")
-
-
-                # logger.debug("Чтение текущих значений регистров Modbus...")
-                actual_grid_feed_w = await read_grid_feed_w(app)
-                actual_battery_level_percent = await read_vebus_soc(app)
-                actual_charge_battery_value = await read_dvcc_max_charge_current(app)
+#                     if current_active_schedule_id is not None:
+#                         # logger.info("Текущее время вне любого расписания. Возврат к дефолтным параметрам.")
+#                         await update_schedule_is_active_status(
+#                             db=db_session,
+#                             schedule_id=current_active_schedule_id,
+#                             is_active_status=False,
+#                         )
+#                         current_active_schedule_id = None
+#                     else:
+#                         pass
+#                         # logger.debug("Текущее время вне любого расписания. Инвертор уже в дефолтных параметрах (или должен быть).")
 
 
-                if (actual_grid_feed_w is None or 
-                    actual_battery_level_percent is None or 
-                    actual_charge_battery_value is None):
-                    logger.warning("Не удалось прочитать все актуальные значения из Modbus. Пропуск проверки и повторная попытка.")
-                    await asyncio.sleep(SCHEDULE_CHECK_INTERVAL_SECONDS)
-                    continue 
-
-                needs_update = False
-                if actual_grid_feed_w != desired_grid_feed_w:
-                    # logger.debug(f"Несоответствие AC Power Setpoint Fine: желаемое={desired_grid_feed_w}, актуальное={actual_grid_feed_w}")
-                    needs_update = True
-                if actual_battery_level_percent != desired_battery_level_percent:
-                    # logger.debug(f"Несоответствие VE.Bus SoC: желаемое={desired_battery_level_percent}, актуальное={actual_battery_level_percent}")
-                    needs_update = True
-                if actual_charge_battery_value != desired_charge_battery_value:
-                    # logger.debug(f"Несоответствие DVCC max charge current: желаемое={desired_charge_battery_value}, актуальное={actual_charge_battery_value}")
-                    needs_update = True
-
-                if needs_update:
-                    # logger.warning("Обнаружено несоответствие параметров инвертора. Отправка актуальных значений.")
-                    await set_inverter_parameters(
-                        grid_feed_w=desired_grid_feed_w,
-                        battery_level_percent=desired_battery_level_percent,
-                        charge_battery_value=desired_charge_battery_value,
-                        app=app
-                    )
-                else:
-                    # logger.debug("Параметры инвертора соответствуют расписанию/дефолтным значениям.")
-                    pass
+#                 # logger.debug("Чтение текущих значений регистров Modbus...")
+#                 actual_grid_feed_w = await read_grid_feed_w(app)
+#                 actual_battery_level_percent = await read_vebus_soc(app)
+#                 actual_charge_battery_value = await read_dvcc_max_charge_current(app)
 
 
-                for schedule in all_schedules:
-                    if (
-                        not schedule.is_manual_mode
-                        and schedule.id != current_active_schedule_id
-                        and schedule.is_active
-                    ):
-                        logger.warning(f"Расписание {schedule.id} активно, но не является текущим. Деактивация.")
-                        await update_schedule_is_active_status(
-                            db=db_session,
-                            schedule_id=schedule.id,
-                            is_active_status=False,
-                        )
+#                 if (actual_grid_feed_w is None or 
+#                     actual_battery_level_percent is None or 
+#                     actual_charge_battery_value is None):
+#                     logger.warning("Не удалось прочитать все актуальные значения из Modbus. Пропуск проверки и повторная попытка.")
+#                     await asyncio.sleep(SCHEDULE_CHECK_INTERVAL_SECONDS)
+#                     continue 
 
-        except Exception as e:
-            logger.error(
-                f"Ошибка в фоновой задаче energetic_schedule_task: {e}", exc_info=True
-            )
+#                 needs_update = False
+#                 if actual_grid_feed_w != desired_grid_feed_w:
+#                     # logger.debug(f"Несоответствие AC Power Setpoint Fine: желаемое={desired_grid_feed_w}, актуальное={actual_grid_feed_w}")
+#                     needs_update = True
+#                 if actual_battery_level_percent != desired_battery_level_percent:
+#                     # logger.debug(f"Несоответствие VE.Bus SoC: желаемое={desired_battery_level_percent}, актуальное={actual_battery_level_percent}")
+#                     needs_update = True
+#                 if actual_charge_battery_value != desired_charge_battery_value:
+#                     # logger.debug(f"Несоответствие DVCC max charge current: желаемое={desired_charge_battery_value}, актуальное={actual_charge_battery_value}")
+#                     needs_update = True
 
-        await asyncio.sleep(SCHEDULE_CHECK_INTERVAL_SECONDS)
+#                 if needs_update:
+#                     # logger.warning("Обнаружено несоответствие параметров инвертора. Отправка актуальных значений.")
+#                     await set_inverter_parameters(
+#                         grid_feed_w=desired_grid_feed_w,
+#                         battery_level_percent=desired_battery_level_percent,
+#                         charge_battery_value=desired_charge_battery_value,
+#                         app=app
+#                     )
+#                 else:
+#                     # logger.debug("Параметры инвертора соответствуют расписанию/дефолтным значениям.")
+#                     pass
+
+
+#                 for schedule in all_schedules:
+#                     if (
+#                         not schedule.is_manual_mode
+#                         and schedule.id != current_active_schedule_id
+#                         and schedule.is_active
+#                     ):
+#                         logger.warning(f"Расписание {schedule.id} активно, но не является текущим. Деактивация.")
+#                         await update_schedule_is_active_status(
+#                             db=db_session,
+#                             schedule_id=schedule.id,
+#                             is_active_status=False,
+#                         )
+
+#         except Exception as e:
+#             logger.error(
+#                 f"Ошибка в фоновой задаче energetic_schedule_task: {e}", exc_info=True
+#             )
+
+#         await asyncio.sleep(SCHEDULE_CHECK_INTERVAL_SECONDS)

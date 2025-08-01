@@ -33,7 +33,18 @@ services:
         max-size: "10m"
         max-file: "3"
     command: gunicorn main:app --workers 5 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level info --error-logfile - --access-logfile -
+  modbus_worker:
+      build:
+        context: . 
+        dockerfile: Dockerfile.modbus_worker
+      image: modbus-worker:latest 
+      container_name: modbus_worker 
+      env_file:
+        - $CORID_ENV-corid.cor-medical.ua.env
+      depends_on:
+        - postgres 
 
+      restart: unless-stopped 
   redis:
     image: redis:alpine
     container_name: $CORID_ENV-redis

@@ -2147,7 +2147,7 @@ class EnergeticScheduleResponse(BaseModel):
 
 class RegisterWriteRequest(BaseModel):
     slave_id: int
-    register: int
+    register_number: int
     value: int
 
 
@@ -2185,14 +2185,14 @@ class SearchCaseDetailsSimple(BaseModel):
 
 class GeneralPrinting(BaseModel):
     printer_ip: str
-    model_id: int
+    number_models_id: int
     clinic_name: str
     hooper: str
     # printing: bool
 
 class GlassPrinting(BaseModel):
     printer_ip: str
-    model_id: int
+    number_models_id: int
     clinic_name: str
     hooper: str
     glass_id: str
@@ -2209,7 +2209,7 @@ class GlassResponseForPrinting(BaseModel):
 
 class CassettePrinting(BaseModel):
     printer_ip: str
-    model_id: int
+    number_models_id: int
     clinic_name: str
     hooper: str
     cassete_id: str
@@ -2226,7 +2226,7 @@ class CassetteResponseForPrinting(BaseModel):
 
 class PrintLabel(BaseModel):
     """Модель для одной метки для печати."""
-    model_id: int
+    number_models_id: int
     content: str
     uuid: str 
 
