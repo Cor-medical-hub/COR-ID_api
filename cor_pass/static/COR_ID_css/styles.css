@@ -334,9 +334,11 @@ h1 {
 }
 
 h3 {
-    color: #333;
-    margin-bottom: 20px;
+    color: #291161;
+    margin-bottom: 10px;
     text-align: center;
+    margin-top: 0px;
+
 }
 
 h4 {

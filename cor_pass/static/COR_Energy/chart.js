@@ -25,8 +25,212 @@ function initPagesPerScreenControl() {
         pagesPerScreen = parseInt(this.value);
         updateChartData();
     });
+    
+    // Скрываем элемент по умолчанию
+    control.style.display = 'none';
 }
 
+
+
+// Функция для загрузки данных по временному диапазону
+async function loadDataForTimeRange(range) {
+    const now = new Date();
+    let startDate;
+    let intervals = 60;
+    
+    switch(range) {
+        case '1h': 
+            startDate = new Date(now.getTime() - 3600000);
+            intervals = 120;
+            break;
+        case '6h': 
+            startDate = new Date(now.getTime() - 6 * 3600000);
+            intervals = 360;
+            break;
+        case '12h': 
+            startDate = new Date(now.getTime() - 12 * 3600000);
+            intervals = 144;
+            break;
+        case '24h': 
+            startDate = new Date(now.getTime() - 24 * 3600000);
+            intervals = 96;
+            break;
+        case '3d': 
+            startDate = new Date(now.getTime() - 3 * 24 * 3600000);
+            intervals = 72;
+            break;
+        case '7d': 
+            startDate = new Date(now.getTime() - 7 * 24 * 3600000);
+            intervals = 168;
+            break;
+        case '30d': 
+            startDate = new Date(now.getTime() - 30 * 24 * 3600000);
+            intervals = 120;
+            break;
+        default: return;
+    }
+    
+    try {
+        isLoading = true;
+        document.getElementById('loadingIndicator').style.display = 'inline';
+        
+        // Форматируем даты без миллисекунд
+        const formatDateForAPI = (date) => {
+            return date.toISOString().replace(/\.\d{3}Z$/, '');
+        };
+        
+        const params = new URLSearchParams({
+            start_date: formatDateForAPI(startDate),
+            end_date: formatDateForAPI(now),
+            intervals: intervals
+        });
+        
+        const url = `/api/modbus/measurements/averaged/?${params.toString()}`;
+       // console.log('Fetching data from:', url);
+        
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (e) {
+                errorData = { detail: response.statusText };
+            }
+            console.error('Server error details:', errorData);
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+      //  console.log('Received data:', data);
+        
+        allMeasurements = [];
+        if (data && data.length > 0) {
+            allMeasurements[0] = data;
+            currentPage = 1;
+            updateChartData();
+        }
+    } catch (error) {
+        console.error('Error loading time range data:', error);
+        alert(`Ошибка загрузки данных: ${error.message}`);
+    } finally {
+        isLoading = false;
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+}
+
+
+
+function initTimeRangeControl() {
+    // Установим текущую дату в кастомных полях
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - (24 * 3600000));
+    document.getElementById('startDate').value = formatDateTimeLocal(oneDayAgo);
+    document.getElementById('endDate').value = formatDateTimeLocal(now);
+    
+    // Обработчик изменения периода
+    document.getElementById('timeRangeSelect').addEventListener('change', function() {
+        const isRealtime = this.value === 'realtime';
+        const isCustom = this.value === 'custom';
+        
+        // Управление видимостью элементов
+        document.querySelector('.pages-control').style.display = isRealtime ? 'flex' : 'none';
+        document.querySelector('.time-range-slider-container').style.display = isRealtime ? 'block' : 'none';
+        document.querySelector('.time-display').style.display = isRealtime ? 'block' : 'none';
+        document.getElementById('customDateRange').style.display = isCustom ? 'flex' : 'none';
+        
+        if (isRealtime) {
+            startLiveUpdates();
+        } else if (isCustom) {
+            // Останавливаем обновления в реальном времени
+            stopChartUpdates();
+        } else {
+            // Загружаем данные для выбранного диапазона
+            stopChartUpdates();
+            loadDataForTimeRange(this.value);
+        }
+    });
+    
+    // Обработчик для кастомного диапазона
+    document.getElementById('applyCustomRange').addEventListener('click', function() {
+        const startDate = new Date(document.getElementById('startDate').value);
+        const endDate = new Date(document.getElementById('endDate').value);
+        
+        if (!startDate || !endDate) {
+            alert('Пожалуйста, выберите обе даты');
+            return;
+        }
+        
+        if (startDate >= endDate) {
+            alert('Конечная дата должна быть позже начальной');
+            return;
+        }
+        
+        stopChartUpdates();
+        fetchAveragedMeasurements(startDate, endDate);
+    });
+    
+    // Запускаем режим реального времени по умолчанию
+    startLiveUpdates();
+}
+
+async function fetchAveragedMeasurements(startDate, endDate) {
+    try {
+        isLoading = true;
+        document.getElementById('loadingIndicator').style.display = 'inline';
+        
+        const durationHours = (endDate - startDate) / (1000 * 60 * 60);
+        let intervals;
+        
+        if (durationHours <= 1) intervals = 120;
+        else if (durationHours <= 6) intervals = 180;
+        else if (durationHours <= 24) intervals = 96;
+        else intervals = 120;
+        
+        const formatDateForAPI = (date) => {
+            return date.toISOString().replace(/\.\d{3}Z$/, '');
+        };
+        
+        const params = new URLSearchParams({
+            start_date: formatDateForAPI(startDate),
+            end_date: formatDateForAPI(endDate),
+            intervals: intervals
+        });
+        
+        const url = `/api/modbus/measurements/averaged/?${params.toString()}`;
+       // console.log('Fetching custom data from:', url);
+        
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка при загрузке данных');
+        }
+        
+        const data = await response.json();
+        
+        allMeasurements = [];
+        if (data && data.length > 0) {
+            allMeasurements[0] = data;
+            currentPage = 1;
+            updateChartData();
+        }
+    } catch (error) {
+        console.error('Error fetching averaged measurements:', error);
+        alert(`Ошибка загрузки данных: ${error.message}`);
+    } finally {
+        isLoading = false;
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+}
 
 async function fetchMeasurements(page = 1) {
     try {
@@ -141,6 +345,7 @@ function processMeasurementsData(measurements) {
         new Date(a.measured_at) - new Date(b.measured_at));
     
     const labels = [];
+    const soc =[];
     const loadPower = [];
     const solarPower = [];
     const batteryPower = [];
@@ -160,9 +365,10 @@ function processMeasurementsData(measurements) {
         solarPower.push(Math.round(measurement.solar_total_pv_power / 10) / 100);
         batteryPower.push(Math.round(measurement.general_battery_power / 10) / 100);
         essTotalInputPower.push(Math.round(measurement.ess_total_input_power / 10) / 100);
+        soc.push(measurement.soc);
     });
 
-    return { labels, loadPower, solarPower, batteryPower, essTotalInputPower };
+    return { labels, loadPower, solarPower, batteryPower, essTotalInputPower,soc };
 }
 
 // Функция для инициализации графика
@@ -179,12 +385,13 @@ function initPowerChart() {
             labels: [],
             datasets: [
                 {
-                    label: 'Мощность нагрузки (кВт)',
+                    label: 'Нагрузка(кВт)',
                     data: [],
                     borderColor: 'rgba(75, 192, 192, 1)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderWidth: 2,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    yAxisID: 'y' // Основная ось Y
                 },
                 {
                     label: 'Солнечная генерация (кВт)',
@@ -192,7 +399,8 @@ function initPowerChart() {
                     borderColor: 'rgba(255, 159, 64, 1)',
                     backgroundColor: 'rgba(255, 159, 64, 0.2)',
                     borderWidth: 2,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    yAxisID: 'y'
                 },
                 {
                     label: 'Мощность батареи (кВт)',
@@ -200,15 +408,28 @@ function initPowerChart() {
                     borderColor: 'rgba(153, 102, 255, 1)',
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     borderWidth: 2,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    yAxisID: 'y'
                 },
                 {
-                    label: 'Общая входная мощность ESS (кВт)',
+                    label: 'Входная мощность ESS(кВт)',
                     data: [],
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
                     borderWidth: 2,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Батарея (%)',
+                    data: [],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    yAxisID: 'soc-y', // Ось для SOC
+                    borderDash: [5, 5], // Пунктирная линия
+                    hidden: false // Показываем по умолчанию
                 }
             ]
         },
@@ -224,8 +445,7 @@ function initPowerChart() {
                     },
                     grid: {
                         display: false
-                    },
-                    // Убрали reverse: true, так как данные теперь правильно сортируются
+                    }
                 },
                 y: {
                     title: {
@@ -236,6 +456,22 @@ function initPowerChart() {
                     max: 20,
                     ticks: {
                         stepSize: 5
+                    },
+                    position: 'left'
+                },
+                'soc-y': {
+                    title: {
+                        display: true,
+                        text: 'Заряд (%)'
+                    },
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 10
+                    },
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false // Не показываем сетку для SOC
                     }
                 }
             },
@@ -246,7 +482,11 @@ function initPowerChart() {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return `${context.dataset.label}: ${context.raw.toFixed(2)} кВт`;
+                            let label = context.dataset.label || '';
+                            if (label.includes('SOC')) {
+                                return `${label}: ${context.raw}%`;
+                            }
+                            return `${label}: ${context.raw.toFixed(2)} кВт`;
                         }
                     }
                 }
@@ -263,6 +503,7 @@ function initPowerChart() {
 // Функция для обновления данных графика
 function updateChartData() {
     let combinedLabels = [];
+    let combinedSoc = [];
     let combinedLoadPower = [];
     let combinedSolarPower = [];
     let combinedBatteryPower = [];
@@ -279,6 +520,7 @@ function updateChartData() {
         if (measurements) {
             const {
                 labels,
+                soc,
                 loadPower,
                 solarPower,
                 batteryPower,
@@ -293,6 +535,7 @@ function updateChartData() {
             combinedSolarPower.push(...solarPower);
             combinedBatteryPower.push(...batteryPower);
             combinedEssTotalInputPower.push(...essTotalInputPower);
+            combinedSoc.push(...soc);
         } else {
             console.log(`Страница ${page} — пусто или не загружена`);
         }
@@ -305,6 +548,7 @@ function updateChartData() {
     powerChart.data.datasets[1].data = combinedSolarPower;
     powerChart.data.datasets[2].data = combinedBatteryPower;
     powerChart.data.datasets[3].data = combinedEssTotalInputPower;
+    powerChart.data.datasets[4].data = combinedSoc;
 
     const allData = [
         ...combinedLoadPower,
@@ -325,34 +569,41 @@ function updateChartData() {
     powerChart.update();
 }
 
+
+
 // Основная функция запуска
 async function startChartUpdates() {    
-    // Инициализируем график
+    // Инициализация графика и элементов управления
     initPowerChart();
-    
-    // Инициализируем элементы управления
     initPageSlider();
-    initPagesPerScreenControl();
+    initTimeRangeControl();
     
-    // Инициализируем массив для хранения всех страниц
+    // Инициализация массива измерений
     allMeasurements = new Array(100);
     
-    // Первоначальная загрузка
-    await loadPages(1);
-    
-    // Периодическое обновление
-    if (!chartUpdateInterval) {
-        chartUpdateInterval = setInterval(async () => {
-            if (!isSliderMoving && currentPage === 1) {
-                const newMeasurements = await fetchMeasurements(1);
-                if (newMeasurements.length > 0) {
-                    allMeasurements[0] = newMeasurements;
-                    updateChartData();
-                }
-            }
-        }, 1000);
-    }
+    // Запуск режима реального времени
+    startLiveUpdates();
 }
+
+function startLiveUpdates() {
+    // Останавливаем предыдущие обновления, если они есть
+    stopChartUpdates();
+    
+    // Загружаем первую страницу
+    loadPages(1);
+    
+    // Запускаем интервал обновлений
+    chartUpdateInterval = setInterval(async () => {
+        if (!isSliderMoving && currentPage === 1) {
+            const newMeasurements = await fetchMeasurements(1);
+            if (newMeasurements.length > 0) {
+                allMeasurements[0] = newMeasurements;
+                updateChartData();
+            }
+        }
+    }, 1000);
+}
+
 
 
 
@@ -361,10 +612,7 @@ function stopChartUpdates() {
         clearInterval(chartUpdateInterval);
         chartUpdateInterval = null;
     }
-    if (powerChart) {
-        powerChart.destroy();
-        powerChart = null;
-    }
+   
 }
 
 // Останавливаем обновления при закрытии вкладки
@@ -397,3 +645,14 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+
+function formatDateTimeLocal(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
