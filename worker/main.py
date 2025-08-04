@@ -1,4 +1,3 @@
-# worker/main.py
 import asyncio
 from datetime import datetime, time as dt_time
 from typing import Optional

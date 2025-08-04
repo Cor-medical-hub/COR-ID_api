@@ -363,13 +363,13 @@ async def collect_ess_ac_data(
 
 SOLAR_CHARGER_SLAVE_IDS = list(range(1, 14)) + [100]
 
-
+ 
 async def collect_solarchargers_data(
     modbus_client: Any, transaction_id: UUID
 ) -> Dict[str, Any]:
     # logger.debug(f"[{transaction_id}] Collecting solar chargers data directly from Modbus.")
     try:
-        slave_ids = SOLAR_CHARGER_SLAVE_IDS
+        slave_ids = list(range(1, 14)) + [100]
         total_pv_power = 0.0
 
         for slave in slave_ids:

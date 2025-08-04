@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from typing import List, Optional
-from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_schedule, decode_signed_16, decode_signed_32, delete_schedule, get_all_schedules, get_averaged_measurements_service, get_device_measurements_paginated, get_modbus_client, get_schedule_by_id, register_modbus_error, update_schedule
+from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_schedule, decode_signed_16, decode_signed_32, delete_schedule, get_all_schedules, get_device_measurements_paginated,get_averaged_measurements_service, get_modbus_client, get_schedule_by_id, register_modbus_error, update_schedule
 from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -553,7 +553,7 @@ async def get_solarchargers_status(request: Request):
                     ("pv_power_2", 3726, 1, False),
                     ("pv_power_3", 3727, 1, False),
                 ]
-
+ 
                 # Все нужные адреса
                 needed_regs = [3700, 3701, 3702, 3703, 3724, 3725, 3726, 3727]
                 min_reg = min(needed_regs)
@@ -772,6 +772,8 @@ async def create_energetic_schedule(
 ):
     new_schedule = await create_schedule(db, schedule_data)
     return new_schedule
+
+
 
 @router.get("/schedules/{schedule_id}", 
             response_model=EnergeticScheduleResponse,

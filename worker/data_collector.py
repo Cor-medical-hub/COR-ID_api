@@ -174,15 +174,19 @@ async def collect_ess_ac_data(
         raise
 
 async def collect_solarchargers_data(
-    modbus_client: AsyncModbusTcpClient, transaction_id: UUID 
+    modbus_client: AsyncModbusTcpClient, transaction_id: UUID
 ) -> Dict[str, Any]:
     """Собирает данные с солнечных зарядных устройств."""
     try:
+        slave_ids = SOLAR_CHARGER_SLAVE_IDS
         total_pv_power = 0.0
-        for slave in SOLAR_CHARGER_SLAVE_IDS:
+        for slave in slave_ids:
             try:
                 addresses_info = [
-                    ("pv_voltage_0", 3700, 100, False), ("pv_power_0", 3724, 1, False),
+                    ("pv_voltage_0", 3700, 100, False), ("pv_voltage_1", 3701, 100, False),
+                    ("pv_voltage_2", 3702, 100, False), ("pv_voltage_3", 3703, 100, False),
+                    ("pv_power_0", 3724, 1, False), ("pv_power_1", 3725, 1, False),
+                    ("pv_power_2", 3726, 1, False), ("pv_power_3", 3727, 1, False),
                 ]
                 needed_regs = [info[1] for info in addresses_info]
                 min_reg = min(needed_regs)
@@ -201,7 +205,7 @@ async def collect_solarchargers_data(
                     for field_name, reg_address, scale, is_signed in addresses_info:
                         idx = reg_address - min_reg
                         raw = regs[idx]
-                        value = decode_signed_16(raw) if is_signed else raw
+                        value = raw 
                         if field_name.startswith("pv_power_"):
                             total_pv_power += round(value / scale, 2)
             except Exception as e:
