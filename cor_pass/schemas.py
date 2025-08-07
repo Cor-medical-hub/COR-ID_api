@@ -1974,6 +1974,19 @@ class TonometrIncomingData(BaseModel):
     results_list: List[IndividualResult] = Field(..., alias="results")
 
 
+
+# Модели для ЭКГ
+
+class ECGMeasurementResponse(BaseModel):
+    id: str 
+    user_id: str
+    created_at: datetime
+    file_name: str
+
+    class Config:
+        from_attributes = True 
+
+
 # Модели для опроса инвертора
 
 

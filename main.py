@@ -49,6 +49,7 @@ from cor_pass.routes import (
     energy_managers,
     cerbo_routes,
     blood_pressures,
+    ecg_measurements
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
@@ -130,19 +131,11 @@ app = FastAPI(
     redoc_url="/redoc" if settings.app_env == "development" else None,
 )
 
-# app = FastAPI()
 app.mount("/static", StaticFiles(directory="cor_pass/static"), name="static")
-
 
 origins = settings.allowed_redirect_urls
 
-
 PrometheusFastApiInstrumentator().instrument(app).expose(app, "/metrics")
-
-
-# @app.get("/metrics")
-# async def metrics():
-#     return Response(generate_latest(), media_type="text/plain")
 
 
 # Пример метрик
@@ -299,6 +292,7 @@ app.include_router(lab_assistants.router, prefix="/api")
 app.include_router(cerbo_routes.router, prefix="/api")
 app.include_router(energy_managers.router, prefix="/api")
 app.include_router(blood_pressures.router, prefix="/api")
+app.include_router(ecg_measurements.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(
