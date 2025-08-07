@@ -232,6 +232,9 @@ class User(Base):
     blood_pressure_measurements = relationship(
         "BloodPressureMeasurement", back_populates="user", cascade="all, delete-orphan"
     )
+    ecg_measurements = relationship(
+        "ECGMeasurement", back_populates="user", cascade="all, delete-orphan"
+    )
 
     # Индексы
     __table_args__ = (
@@ -1064,5 +1067,22 @@ class EnergeticSchedule(Base):
             f"is_manual_mode={self.is_manual_mode})>"
         )
 
+
+
+class ECGMeasurement(Base):
+    __tablename__ = "ecg_measurements"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=func.now(),
+        comment="Дата и время сохранения записи в БД",
+    )
+    file_data = Column(LargeBinary, nullable=False) 
+    file_name = Column(String, nullable=True) 
+
+    user = relationship("User", back_populates="ecg_measurements")
 
 # Base.metadata.create_all(bind=engine)
