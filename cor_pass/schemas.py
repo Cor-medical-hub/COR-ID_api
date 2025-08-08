@@ -2247,3 +2247,13 @@ class PrintRequest(BaseModel):
     """Модель для запроса на печать."""
     printer_ip: str
     labels: List[PrintLabel]
+
+
+class FeedbackRatingScheema(BaseModel):
+    rating: int = Field(..., ge=1, le=5, description="Оценка от 1 до 5")
+    comment: str = Field(...,min_length=2,max_length=800, description="Комментарий до 800 символов")
+
+
+
+class FeedbackProposalsScheema(BaseModel):
+    proposal: str = Field(...,min_length=2,max_length=800, description="Предложения")
