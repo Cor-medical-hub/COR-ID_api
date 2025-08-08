@@ -642,7 +642,7 @@ async def upsert_user_profile_endpoint(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
-    if profile_data.birth_date.year != current_user.birth:
+    if profile_data.birth_date and profile_data.birth_date.year != current_user.birth:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Пользователь указал не верный год рождения (год рождения должен совпадать с указанным ранее в cor-id)",
