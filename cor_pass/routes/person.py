@@ -762,7 +762,7 @@ async def get_profile_photo_base64_endpoint(
 
 @router.post("/feedback/rate", 
              dependencies=[Depends(RateLimiter(times=5, seconds=60))],
-             status_code=status.HTTP_202_ACCEPTED)
+             status_code=status.HTTP_200_OK)
 async def submit_feedback(
     feedback: FeedbackRatingScheema,
     background_tasks: BackgroundTasks,
@@ -782,7 +782,7 @@ async def submit_feedback(
 
 @router.post("/feedback/proposal", 
              dependencies=[Depends(RateLimiter(times=5, seconds=60))],
-             status_code=status.HTTP_202_ACCEPTED)
+             status_code=status.HTTP_200_OK)
 async def submit_proposal(
     feedback: FeedbackProposalsScheema,
     background_tasks: BackgroundTasks,
