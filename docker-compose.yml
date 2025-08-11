@@ -38,7 +38,7 @@ services:
         context: . 
         dockerfile: Dockerfile.modbus_worker
       image: modbus-worker:latest 
-      container_name: modbus_worker 
+      container_name: $CORID_ENV-modbus_worker 
       env_file:
         - $CORID_ENV-corid.cor-medical.ua.env
       depends_on:
