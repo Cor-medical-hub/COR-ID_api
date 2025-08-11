@@ -288,10 +288,10 @@ if __name__ == "__main__":
     DEFAULT_battery_level_percent = 30
     DEFAULT_charge_battery_value = 300
     current_active_schedule_id: Optional[str] = None
-
-    try:
-        asyncio.run(main_worker_entrypoint())
-    except KeyboardInterrupt:
-        logger.info("Modbus Worker stopped by user.")
-    except Exception as e:
-        logger.error(f"Modbus Worker crashed: {e}", exc_info=True)
+    if settings.app_env == "development":
+        try:
+            asyncio.run(main_worker_entrypoint())
+        except KeyboardInterrupt:
+            logger.info("Modbus Worker stopped by user.")
+        except Exception as e:
+            logger.error(f"Modbus Worker crashed: {e}", exc_info=True)
