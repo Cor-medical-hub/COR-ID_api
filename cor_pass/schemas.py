@@ -1931,6 +1931,19 @@ class TonometrIncomingData(BaseModel):
     results_list: List[IndividualResult] = Field(..., alias="results")
 
 
+
+# Модели для ЭКГ
+
+class ECGMeasurementResponse(BaseModel):
+    id: str 
+    user_id: str
+    created_at: datetime
+    file_name: str
+
+    class Config:
+        from_attributes = True 
+
+
 # Модели для опроса инвертора
 
 
@@ -2104,7 +2117,7 @@ class EnergeticScheduleResponse(BaseModel):
 
 class RegisterWriteRequest(BaseModel):
     slave_id: int
-    register: int
+    register_number: int
     value: int
 
 
@@ -2142,14 +2155,14 @@ class SearchCaseDetailsSimple(BaseModel):
 
 class GeneralPrinting(BaseModel):
     printer_ip: str
-    model_id: int
+    number_models_id: int
     clinic_name: str
     hooper: str
     # printing: bool
 
 class GlassPrinting(BaseModel):
     printer_ip: str
-    model_id: int
+    number_models_id: int
     clinic_name: str
     hooper: str
     glass_id: str
@@ -2166,7 +2179,7 @@ class GlassResponseForPrinting(BaseModel):
 
 class CassettePrinting(BaseModel):
     printer_ip: str
-    model_id: int
+    number_models_id: int
     clinic_name: str
     hooper: str
     cassete_id: str
@@ -2183,7 +2196,7 @@ class CassetteResponseForPrinting(BaseModel):
 
 class PrintLabel(BaseModel):
     """Модель для одной метки для печати."""
-    model_id: int
+    number_models_id: int
     content: str
     uuid: str 
 
@@ -2191,3 +2204,13 @@ class PrintRequest(BaseModel):
     """Модель для запроса на печать."""
     printer_ip: str
     labels: List[PrintLabel]
+
+
+class FeedbackRatingScheema(BaseModel):
+    rating: int = Field(..., ge=1, le=5, description="Оценка от 1 до 5")
+    comment: str = Field(...,min_length=2,max_length=800, description="Комментарий до 800 символов")
+
+
+
+class FeedbackProposalsScheema(BaseModel):
+    proposal: str = Field(...,min_length=2,max_length=800, description="Предложения")

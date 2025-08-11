@@ -264,7 +264,7 @@ async def print_glass_data(
     content = f"{clinic_name}|{case_code}|{sample_number}|{cassette_number}|L{glass_number}|{staining}|{hooper}|{patient_cor_id}"
 
     label_to_print = PrintLabel(
-        model_id=data.model_id, 
+        number_models_id=data.number_models_id, 
         content=content,
         uuid=data.glass_id
     )
