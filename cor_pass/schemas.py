@@ -1707,6 +1707,7 @@ class PatientResponseForGetPatients(BaseModel):
     change_date: Optional[datetime] = None
     doctor_status: Optional[PatientStatus] = None
     clinic_status: Optional[PatientClinicStatus] = None
+    cases: Optional[List] = None
 
 
 class GetAllPatientsResponce(BaseModel):

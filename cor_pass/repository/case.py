@@ -506,6 +506,22 @@ async def get_single_case(db: AsyncSession, case_id: str) -> db_models.Case | No
     return result.scalar_one_or_none()
 
 
+async def get_patient_list_cases(
+    db: AsyncSession,
+    patient_id: str,
+)-> List:
+    cases_result = await db.execute(
+        select(db_models.Case)
+        .where(db_models.Case.patient_id == patient_id)
+        .order_by(db_models.Case.creation_date.desc())
+    )
+    all_cases_db = cases_result.scalars().all()
+    all_cases_schematized = []
+    for case_code in all_cases_db:
+        all_cases_schematized.append(case_code.case_code)
+    return all_cases_schematized
+
+
 async def get_single_case_by_case_code(db: AsyncSession, case_code: str) -> db_models.Case | None:
     """Асинхронно получает информацию о кейсе по его case_code, включая связанные банки."""
     result = await db.execute(

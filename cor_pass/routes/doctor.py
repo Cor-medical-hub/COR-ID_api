@@ -272,7 +272,7 @@ async def get_doctor_patients(
         limit=limit
     )
     return response
-
+ 
 
 @router.get(
     "/patients/{patient_cor_id}",
