@@ -301,6 +301,7 @@ async def send_grid_feed_w_command(modbus_client: AsyncModbusTcpClient, grid_fee
             value=register_value,
             slave=slave
         )
+        logger.debug(f"✅ grid_feed_w: {register_value} A (регистр 2703 = {register_value})")
         return {"status": "ok", "value": grid_feed_w}
     except Exception as e:
         logger.error(
@@ -320,6 +321,7 @@ async def send_vebus_soc_command(modbus_client: AsyncModbusTcpClient, battery_le
             value=scaled_value,
             slave =INVERTER_ID
         )
+        logger.debug(f"✅ VE.Bus SoC: {scaled_value} A (регистр 2901 = {scaled_value})")
         return {"status": "ok"}
     except Exception as e:
         logger.error(
