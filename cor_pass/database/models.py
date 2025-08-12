@@ -72,21 +72,21 @@ class PatientClinicStatus(enum.Enum):
 
 # Типы макроархива для параметров кейса
 class MacroArchive(enum.Enum):
-    ESS = "ESS - без остатка"
-    RSS = "RSS - остаток"
+    ESS = "ESS - без залишку"
+    RSS = "RSS - залишок"
 
 
 # Типы декальцинации для параметров кейса
 class DecalcificationType(enum.Enum):
-    ABSENT = "Отсутствует"
+    ABSENT = "Відсутня"
     EDTA = "EDTA"
-    ACIDIC = "Кислотная"
+    ACIDIC = "Кислотна"
 
 
 # Типы образцов для параметров кейса
 class SampleType(enum.Enum):
-    NATIVE = "Нативный биоматериал"
-    BLOCKS = "Блоки/Стекла"
+    NATIVE = "Нативний біоматеріал"
+    BLOCKS = "Блоки/Скельця"
 
 
 # Типы материалов (исследований) для параметров кейса
@@ -99,7 +99,7 @@ class MaterialType(enum.Enum):
     S = "Second Opinion"
     A = "Autopsy"
     EM = "Electron Microscopy"
-    OTHER = "Другое"
+    OTHER = "Інше"
 
 
 # Типы срочности для параметров кейса
@@ -116,19 +116,20 @@ class FixationType(enum.Enum):
     BOUIN = "Bouin"
     ALCOHOL = "Alcohol"
     GLUTARALDEHYDE_2 = "2% Glutaraldehyde"
-    OTHER = "Другое"
+    OTHER = "Інше"
 
 
 # Типы исследований для направления
 class StudyType(enum.Enum):
-    CYTOLOGY = "цитология"
-    HISTOPATHOLOGY = "патогистология"
-    IMMUNOHISTOCHEMISTRY = "иммуногистохимия"
+    CYTOLOGY = "Цитологія"
+    HISTOPATHOLOGY = "Патогістологія"
+    IMMUNOHISTOCHEMISTRY = "Імуногістохімія"
     FISH_CISH = "FISH/CISH"
     CB = "Cellblock"
     S = "Second Opinion"
     A = "Autopsy"
     EM = "Electron Microscopy"
+    OTHER = "Інше"
 
 
 # Типы окрашивания для стёкол
