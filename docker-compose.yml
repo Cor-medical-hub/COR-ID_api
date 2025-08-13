@@ -45,20 +45,20 @@ services:
         - postgres 
 
       restart: unless-stopped
-  scanner_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.scanner_worker
-    image: scanner_worker:latest
-    container_name: $CORID_ENV-scanner_worker
-    restart: always
-    volumes:
-      - .:/app
-    # network_mode: "host"
-    env_file:
-      - $CORID_ENV-corid.cor-medical.ua.env
-    depends_on:
-      - postgres 
+  # scanner_worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.scanner_worker
+  #   image: scanner_worker:latest
+  #   container_name: $CORID_ENV-scanner_worker
+  #   restart: always
+  #   volumes:
+  #     - .:/app
+  #   # network_mode: "host"
+  #   env_file:
+  #     - $CORID_ENV-corid.cor-medical.ua.env
+  #   depends_on:
+  #     - postgres 
   redis:
     image: redis:alpine
     container_name: $CORID_ENV-redis
