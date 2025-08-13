@@ -660,6 +660,8 @@ class Glass(Base):
     staining = Column(Enum(StainingType), nullable=True)
     glass_data = Column(LargeBinary, nullable=True)
     is_printed = Column(Boolean, nullable=True, default=False)
+    scan_url = Column(String, nullable=True)
+    preview_url = Column(String, nullable=True)
     cassette = relationship("Cassette", back_populates="glass")
 
 
