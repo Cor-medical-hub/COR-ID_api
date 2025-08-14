@@ -771,6 +771,7 @@ class Glass(GlassBase):
     id: str
     cassette_id: str
     is_printed: Optional[bool]
+    preview_url: Optional[str]
 
     class Config:
         from_attributes = True
@@ -1609,6 +1610,7 @@ class GlassTestModelScheema(BaseModel):
     glass_number: int
     cassette_id: str
     staining: Optional[str] = None
+    preview_url: Optional[str]
 
 
 class CassetteTestForGlassPage(BaseModel):
