@@ -1975,6 +1975,7 @@ async def get_report_by_case_id(
                         glass_number=glass.glass_number,
                         cassette_id=glass.cassette_id,
                         staining=glass.staining,
+                        preview_url=glass.preview_url
                     )
                     glasses_for_cassette.append(glass)
 
@@ -2160,6 +2161,7 @@ async def get_patient_report_page_data(
                             glass_number=glass.glass_number,
                             cassette_id=glass.cassette_id,
                             staining=glass.staining,
+                            preview_url=glass.preview_url
                         )
                         glasses_for_cassette.append(glass)
 
@@ -3313,6 +3315,7 @@ async def get_current_cases_report_page_data(
                             glass_number=glass.glass_number,
                             cassette_id=glass.cassette_id,
                             staining=glass.staining,
+                            preview_url=glass.preview_url
                         )
                         glasses_for_cassette.append(glass_schematized)
 
