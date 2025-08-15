@@ -2260,3 +2260,25 @@ class FeedbackRatingScheema(BaseModel):
 
 class FeedbackProposalsScheema(BaseModel):
     proposal: str = Field(...,min_length=2,max_length=800, description="Предложения")
+
+
+class InitiateSignatureRequest(BaseModel):
+    # doctor_cor_id: str = Field(..., description="COR-ID доктора, который подписывает")
+    diagnosis_id: str = Field(..., description="ID диагноза, который будет подписан")
+
+
+class InitiateSignatureResponse(BaseModel):
+    session_token: str
+    deep_link: str
+    expires_at: datetime
+
+
+class ActionRequest(BaseModel):
+    session_token: str
+    status: str
+
+
+class StatusResponse(BaseModel):
+    session_token: str
+    status: str
+    expires_at: datetime

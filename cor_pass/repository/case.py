@@ -2399,20 +2399,75 @@ async def add_diagnosis_signature(
         signed_at=func.now(),
     )
     db.add(new_signature)
-
-    await db.commit()
-    await db.refresh(new_signature)
-    await db.refresh(diagnosis_entry)
-
     case_db = await db.scalar(
         select(db_models.Case)
         .where(db_models.Case.id == diagnosis_entry.report.case_id)
         .options(selectinload(db_models.Case.case_parameters))
     )
+    # if case_db.grossing_status == db_models.Grossing_status.COMPLETED:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail=ErrorCode.CASE_ALREADY_COMPLETED,
+    #     )
+    # if not case_db.report:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail=ErrorCode.REPORT_NOT_FOUND_FOR_CASE,
+    #     )
+
+    # case_db.grossing_status = db_models.Grossing_status.IN_SIGNING_STATUS
+
+    await db.commit()
+    await db.refresh(new_signature)
+    await db.refresh(diagnosis_entry)
+
+    # await change_case_status_after_signing(db=db, diagnosis_entry_id=diagnosis_entry_id)
+    # await db.refresh(case_db)
     return await _format_report_response(
         db=db, db_report=diagnosis_entry.report, router=router, case_db=case_db
     )
 
+async def change_case_status_after_signing(
+    db: AsyncSession,
+    diagnosis_entry_id: str,
+) -> None:
+    diagnosis_entry_result = await db.execute(
+        select(db_models.DoctorDiagnosis)
+        .where(db_models.DoctorDiagnosis.id == diagnosis_entry_id)
+        .options(
+            selectinload(db_models.DoctorDiagnosis.doctor),
+            selectinload(db_models.DoctorDiagnosis.signature),
+            selectinload(db_models.DoctorDiagnosis.report)
+                .selectinload(db_models.Report.case)
+                .options(
+                    selectinload(db_models.Case.case_parameters),
+                    selectinload(db_models.Case.report)
+                )
+        )
+    )
+    diagnosis_entry = diagnosis_entry_result.scalar_one_or_none()
+
+    if diagnosis_entry is None:
+        raise ValueError("Diagnosis entry not found")
+
+    case_db = diagnosis_entry.report.case
+
+    if case_db.grossing_status == db_models.Grossing_status.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorCode.CASE_ALREADY_COMPLETED,
+        )
+
+    if not case_db.report:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorCode.REPORT_NOT_FOUND_FOR_CASE,
+        )
+
+    case_db.grossing_status = db_models.Grossing_status.IN_SIGNING_STATUS
+
+    await db.commit()
+    await db.refresh(case_db)
 
 async def get_patient_final_report_page_data(
     db: AsyncSession,
