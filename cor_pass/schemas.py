@@ -2275,7 +2275,7 @@ class InitiateSignatureResponse(BaseModel):
 
 class ActionRequest(BaseModel):
     session_token: str
-    status: str
+    status: SessionLoginStatus
 
 
 class StatusResponse(BaseModel):

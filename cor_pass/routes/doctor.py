@@ -81,6 +81,7 @@ from cor_pass.schemas import (
     ReferralResponseForDoctor,
     SearchResultCaseDetails,
     SearchResultPatientOverview,
+    SessionLoginStatus,
     SignReportRequest,
     SingleCaseExcisionPageResponse,
     SingleCaseGlassPageResponse,
@@ -1197,7 +1198,7 @@ async def approve_signature(body: ActionRequest, db: AsyncSession = Depends(get_
         await db.commit()
         await _broadcast_status(sess.session_token, "expired")
         raise HTTPException(status_code=410, detail="Session expired")
-    if body.status == "approved":
+    if body.status == SessionLoginStatus.approved.value.lower():
         sess.status = "approved"
         await db.commit()
         await _broadcast_status(sess.session_token, "approved")
