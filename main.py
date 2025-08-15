@@ -59,7 +59,7 @@ from fastapi.responses import JSONResponse
 from collections import defaultdict
 from jose import JWTError, jwt
 
-from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
+from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions, register_signature_expirer
 
 from cor_pass.services.logger import setup_logging
 
@@ -254,6 +254,7 @@ async def startup():
     await FastAPILimiter.init(redis_client, identifier=custom_identifier)
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
+    register_signature_expirer(app, async_session_maker)
     initialize_ip2location()
     if settings.app_env == "development":
         await create_modbus_client(app)
