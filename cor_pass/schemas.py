@@ -771,6 +771,7 @@ class Glass(GlassBase):
     id: str
     cassette_id: str
     is_printed: Optional[bool]
+    preview_url: Optional[str]
 
     class Config:
         from_attributes = True
@@ -1609,6 +1610,7 @@ class GlassTestModelScheema(BaseModel):
     glass_number: int
     cassette_id: str
     staining: Optional[str] = None
+    preview_url: Optional[str]
 
 
 class CassetteTestForGlassPage(BaseModel):
@@ -1707,6 +1709,7 @@ class PatientResponseForGetPatients(BaseModel):
     change_date: Optional[datetime] = None
     doctor_status: Optional[PatientStatus] = None
     clinic_status: Optional[PatientClinicStatus] = None
+    cases: Optional[List] = None
 
 
 class GetAllPatientsResponce(BaseModel):
@@ -2205,7 +2208,7 @@ class GeneralPrinting(BaseModel):
 
 class GlassPrinting(BaseModel):
     printer_ip: str
-    number_models_id: int
+    model_id: int
     clinic_name: str
     hooper: str
     glass_id: str
@@ -2239,7 +2242,7 @@ class CassetteResponseForPrinting(BaseModel):
 
 class PrintLabel(BaseModel):
     """Модель для одной метки для печати."""
-    number_models_id: int
+    model_id: int
     content: str
     uuid: str 
 
@@ -2257,3 +2260,25 @@ class FeedbackRatingScheema(BaseModel):
 
 class FeedbackProposalsScheema(BaseModel):
     proposal: str = Field(...,min_length=2,max_length=800, description="Предложения")
+
+
+class InitiateSignatureRequest(BaseModel):
+    # doctor_cor_id: str = Field(..., description="COR-ID доктора, который подписывает")
+    diagnosis_id: str = Field(..., description="ID диагноза, который будет подписан")
+
+
+class InitiateSignatureResponse(BaseModel):
+    session_token: str
+    deep_link: str
+    expires_at: datetime
+
+
+class ActionRequest(BaseModel):
+    session_token: str
+    status: SessionLoginStatus
+
+
+class StatusResponse(BaseModel):
+    session_token: str
+    status: str
+    expires_at: datetime

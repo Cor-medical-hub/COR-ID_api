@@ -2,7 +2,7 @@
 
 
 
-
+  
 
 function setupSVSViewerControls() {
     const img = document.getElementById('svs-fullscreen-image');
@@ -59,21 +59,27 @@ function setupSVSViewerControls() {
     }
 }
 
+
+
+
+
+
+
 function handleClickLeft() {
     if (!viewer) return;
-
+    
     const viewport = viewer.viewport;
     const currentCenter = viewport.getCenter();
     const bounds = viewport.getBounds();
     const imageBounds = viewer.world.getItemAt(0).getBounds();
-
+    
     const deltaX = -bounds.width * 0.125;
     let newX = currentCenter.x + deltaX;
-
+    
     const minX = imageBounds.x + bounds.width/2;
     const maxX = imageBounds.x + imageBounds.width - bounds.width/2;
     newX = Math.max(minX, Math.min(newX, maxX));
-
+    
     // Плавное перемещение
     viewport.panTo(
         new OpenSeadragon.Point(newX, currentCenter.y),
@@ -91,19 +97,19 @@ function handleClickLeft() {
 // Аналогично для остальных функций (right, up, down):
 function handleClickRight() {
     if (!viewer) return;
-
+    
     const viewport = viewer.viewport;
     const currentCenter = viewport.getCenter();
     const bounds = viewport.getBounds();
     const imageBounds = viewer.world.getItemAt(0).getBounds();
-
+    
     const deltaX = bounds.width * 0.125;
     let newX = currentCenter.x + deltaX;
-
+    
     const minX = imageBounds.x + bounds.width/2;
     const maxX = imageBounds.x + imageBounds.width - bounds.width/2;
     newX = Math.max(minX, Math.min(newX, maxX));
-
+    
     viewport.panTo(
         new OpenSeadragon.Point(newX, currentCenter.y),
         {
@@ -118,19 +124,19 @@ function handleClickRight() {
 
 function handleClickUp() {
     if (!viewer) return;
-
+    
     const viewport = viewer.viewport;
     const currentCenter = viewport.getCenter();
     const bounds = viewport.getBounds();
     const imageBounds = viewer.world.getItemAt(0).getBounds();
-
+    
     const deltaY = -bounds.height * 0.125;
     let newY = currentCenter.y + deltaY;
-
+    
     const minY = imageBounds.y + bounds.height/2;
     const maxY = imageBounds.y + imageBounds.height - bounds.height/2;
     newY = Math.max(minY, Math.min(newY, maxY));
-
+    
     viewport.panTo(
         new OpenSeadragon.Point(currentCenter.x, newY),
         {
@@ -145,19 +151,19 @@ function handleClickUp() {
 
 function handleClickDown() {
     if (!viewer) return;
-
+    
     const viewport = viewer.viewport;
     const currentCenter = viewport.getCenter();
     const bounds = viewport.getBounds();
     const imageBounds = viewer.world.getItemAt(0).getBounds();
-
+    
     const deltaY = bounds.height * 0.125;
     let newY = currentCenter.y + deltaY;
-
+    
     const minY = imageBounds.y + bounds.height/2;
     const maxY = imageBounds.y + imageBounds.height - bounds.height/2;
     newY = Math.max(minY, Math.min(newY, maxY));
-
+    
     viewport.panTo(
         new OpenSeadragon.Point(currentCenter.x, newY),
         {
@@ -174,11 +180,14 @@ function handleClickDown() {
 
 
 
-document.querySelector('.close-btn').addEventListener('click', () => {
+document.getElementById('panel-close-btn').addEventListener('click', () => {
     viewer.destroy();
-
+ 
     const svsViewerDiv = document.getElementById('svs-fullscreen-viewer');
     svsViewerDiv.classList.remove('visible');
     svsViewerDiv.classList.add('hidden');
-
+   
 });
+
+
+  
