@@ -47,6 +47,7 @@ pylibjpeg-libjpeg = "^2.3.0"
 pylibjpeg-openjpeg = "^2.4.0"
 gunicorn = "^23.0.0"
 pysmb = "^1.2.11"
+pandas = "^2.3.1"
 
 
 [build-system]
