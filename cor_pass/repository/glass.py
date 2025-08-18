@@ -44,9 +44,9 @@ async def get_glass_preview_png(db: AsyncSession, glass_id: str):
     glass = result.scalars().first()
     if glass is None:
         return None
-    if not glass.preview_url:
-        logger.error(f"preview_url не задан для стекла с ID {glass_id}")
-        return None
+    # if not glass.preview_url:
+    #     logger.error(f"preview_url не задан для стекла с ID {glass_id}")
+    #     return None
     logger.debug(f"Найдено стекло с ID {glass_id}, preview_url: {glass.preview_url}")
     return glass
 
