@@ -20,6 +20,7 @@
         makeModalDraggable('GridSettingsModal');
         makeModalDraggable('SolarModal');
         makeModalDraggable('inverterModal');
+        makeModalDraggable('ExcelModal');
     // Получаем элементы модальных окон
         const batteryModal = document.getElementById('batteryModal');
         const inverterModal = document.getElementById('inverterModal');
@@ -565,22 +566,42 @@ function updateConnectionIndicator(errorCount) {
 }
 
 
+// Функция для открытия модального окна регистров
+function openRegistersModal() {
+    const modal = document.getElementById('RegistersModal');
+    modal.style.display = 'flex';
+    
+    // Сброс значений полей при открытии
+    document.getElementById('slave_id').value = 100;
+    document.getElementById('start_reg').value = 800;
+    document.getElementById('end_reg').value = 830;
+    document.getElementById('register_to_write').value = '';
+    document.getElementById('register_value').value = '';
+    
+    // Скрываем блок результатов
+    const output = document.getElementById('register_results_output');
+    output.textContent = '';
+    output.style.display = 'none';
+    makeModalDraggable('RegistersModal');
+}
 
 async function testRegisters() {
     const slaveId = document.getElementById('slave_id').value;
     const startReg = document.getElementById('start_reg').value;
     const endReg = document.getElementById('end_reg').value;
+    const output = document.getElementById('register_results_output');
     
     if (parseInt(startReg) > parseInt(endReg)) {
         alert("Начальный регистр должен быть меньше или равен конечному");
         return;
     }
     
-    // Показываем загрузку
-    const modal = document.getElementById('RegistersModal');
-    const output = document.getElementById('register_results_output');
+    // Показываем загрузку (серый цвет)
     output.textContent = "Тестирование...";
-    modal.style.display = "block";
+    output.style.display = 'block';
+    output.style.color = '#666';
+    output.style.padding = '10px';
+    output.style.borderRadius = '4px';
     
     try {
         const response = await fetch(`/api/modbus/test_dynamic_ess_registers?start=${startReg}&end=${endReg}&unit_id=${slaveId}`);
@@ -591,28 +612,33 @@ async function testRegisters() {
             resultText += `${reg}: ${value}\n`;
         }
         
+        // Успешный результат (зеленый)
         output.textContent = resultText;
+        output.style.color = '#155724';
     } catch (error) {
+        // Ошибка (красный)
         output.textContent = `Ошибка: ${error.message}`;
+        output.style.color = '#721c24';
     }
 }
-
 
 async function writeRegister() {
     const slaveId = document.getElementById('slave_id').value;
     const register = document.getElementById('register_to_write').value;
     const value = document.getElementById('register_value').value;
+    const output = document.getElementById('register_results_output');
     
     if (!slaveId || !register || !value) {
         alert("Все поля должны быть заполнены");
         return;
     }
     
-    // Показываем загрузку
-    const modal = document.getElementById('RegistersModal');
-    const output = document.getElementById('register_results_output');
+    // Показываем загрузку (серый цвет)
     output.textContent = "Запись регистра...";
-    modal.style.display = "block";
+    output.style.display = 'block';
+    output.style.color = '#666';
+    output.style.padding = '10px';
+    output.style.borderRadius = '4px';
     
     try {
         const response = await fetch(`/api/modbus/write_register`, {
@@ -630,14 +656,29 @@ async function writeRegister() {
         const data = await response.json();
         
         if (response.ok) {
+            // Успешная запись (зеленый)
             output.textContent = `Успешно записано:\nРегистр ${register}: ${value}\nSlave ID: ${slaveId}`;
+            output.style.color = '#155724';
         } else {
+            // Ошибка сервера (красный)
             output.textContent = `Ошибка: ${data.detail || 'Неизвестная ошибка'}`;
+            output.style.color = '#721c24';
         }
     } catch (error) {
+        // Ошибка сети (красный)
         output.textContent = `Ошибка: ${error.message}`;
+        output.style.color = '#721c24';
     }
 }
+
+
+function downloadExcelFile() {
+    const link = document.createElement('a');
+    link.href = '/static/docs/register_map.xlsx';
+    link.download = 'register_map.xlsx';
+    link.click();
+}
+
 
 
 function checkViewport() {
@@ -655,3 +696,53 @@ function checkViewport() {
   
   window.addEventListener('resize', checkViewport);
   checkViewport();
+
+
+
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('ExcelModal');
+    const modalContent = document.getElementById('excel-modal-content');
+    const loader = document.getElementById('modal-loader');
+    const closeBtn = document.querySelector('.close');
+    const processBtn = document.getElementById('process-excel-btn');
+    
+   // makeModalDraggable('ExelModal');
+    // Открыть модальное окно при клике на кнопку
+    processBtn.addEventListener('click', async function() {
+        try {
+            // Показать лоадер
+            modal.style.display = 'block';
+            loader.style.display = 'block';
+            modalContent.innerHTML = '';
+            
+            // Запросить HTML с бэкенда
+            const response = await fetch('/api/excel/process-register-map/');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const html = await response.text();
+            modalContent.innerHTML = html;
+            
+        } catch (error) {
+            console.error('Error:', error);
+            modalContent.innerHTML = `
+                <div class="error-message">
+                    <h3>Error</h3>
+                    <p>Failed to load Excel data: ${error.message}</p>
+                </div>
+            `;
+        } finally {
+            loader.style.display = 'none';
+        }
+    });
+    
+    // Закрыть модальное окно
+    closeBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+   
+});

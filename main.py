@@ -49,7 +49,8 @@ from cor_pass.routes import (
     energy_managers,
     cerbo_routes,
     blood_pressures,
-    ecg_measurements
+    ecg_measurements,
+    excel_router
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
@@ -294,6 +295,7 @@ app.include_router(cerbo_routes.router, prefix="/api")
 app.include_router(energy_managers.router, prefix="/api")
 app.include_router(blood_pressures.router, prefix="/api")
 app.include_router(ecg_measurements.router, prefix="/api")
+app.include_router(excel_router.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(
