@@ -1210,33 +1210,6 @@ async def approve_signature(body: ActionRequest, db: AsyncSession = Depends(get_
         return {"status": "rejected"}
 
 
-# @router.post("/signing/reject")
-# async def reject_signature(body: ActionRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
-#     """
-#     Вызывается мобильным приложением, когда доктор отменяет/отклоняет.
-#     """
-#     sess = await _load_session(db, body.session_token)
-#     doctor = await get_doctor(doctor_id=current_user.cor_id, db=db)
-#     if not sess:
-#         raise HTTPException(status_code=404, detail="Session not found")
-#     if not sess.doctor_cor_id == doctor.doctor_id:
-#         raise HTTPException(status_code=400, detail="Invalid doctor id")
-#     if sess.status != "pending":
-#         await _broadcast_status(sess.session_token, sess.status)
-#         return {"status": sess.status}
-
-#     if _is_expired(sess):
-#         sess.status = "expired"
-#         await db.commit()
-#         await _broadcast_status(sess.session_token, "expired")
-#         raise HTTPException(status_code=410, detail="Session expired")
-
-#     sess.status = "rejected"
-#     await db.commit()
-#     await _broadcast_status(sess.session_token, "rejected")
-#     return {"status": "rejected"}
-
-
 @router.get("/signing/status/{session_token}", response_model=StatusResponse)
 async def get_status(session_token: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
     """
