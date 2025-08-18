@@ -1096,7 +1096,8 @@ class DoctorSignatureSession(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     session_token = Column(String, unique=True, nullable=False)
     doctor_cor_id = Column(String(36), nullable=False)
-    diagnosis_id = Column(String(36), default=lambda: str(uuid.uuid4()))
+    diagnosis_id = Column(String(36), nullable=False)
+    doctor_signature_id = Column(String(36), nullable=True)
     status = Column(String, default="pending")  # pending/approved/rejected/expired
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime,nullable=False,default=func.now())

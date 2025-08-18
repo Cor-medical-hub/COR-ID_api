@@ -2265,6 +2265,7 @@ class FeedbackProposalsScheema(BaseModel):
 class InitiateSignatureRequest(BaseModel):
     # doctor_cor_id: str = Field(..., description="COR-ID доктора, который подписывает")
     diagnosis_id: str = Field(..., description="ID диагноза, который будет подписан")
+    doctor_signature_id: Optional[str] = Field(None, description="ID подписи")
 
 
 class InitiateSignatureResponse(BaseModel):

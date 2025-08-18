@@ -801,9 +801,37 @@ async def handle_report_and_diagnosis(
     )
 
 # Подписать заключение 
+# @router.post(
+#     "/diagnosis/{diagnosis_entry_id}/report/sign",
+#     response_model=ReportResponseSchema,
+#     dependencies=[Depends(doctor_access)],
+#     status_code=status.HTTP_200_OK,
+#     summary="Подписать заключение",
+#     tags=["DoctorPage"],
+# )
+# async def add_signature_to_report_route(
+#     diagnosis_entry_id: str,
+#     request: SignReportRequest,
+#     db: AsyncSession = Depends(get_db),
+#     user: User = Depends(auth_service.get_current_user),
+# ) -> ReportResponseSchema:
+#     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+#     response = await case_service.add_diagnosis_signature(
+#         db=db,
+#         diagnosis_entry_id=diagnosis_entry_id,
+#         doctor_id=doctor.doctor_id,
+#         doctor_signature_id=request.doctor_signature_id,
+#         router=router,
+#     )
+#     await case_service.change_case_status_after_signing(db=db, diagnosis_entry_id=diagnosis_entry_id)
+#     response.case_details.grossing_status == Grossing_status.IN_SIGNING_STATUS
+#     return response
+
+
+# Подписать заключение в2
 @router.post(
     "/diagnosis/{diagnosis_entry_id}/report/sign",
-    response_model=ReportResponseSchema,
+    response_model=InitiateSignatureResponse,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
     summary="Подписать заключение",
@@ -814,18 +842,29 @@ async def add_signature_to_report_route(
     request: SignReportRequest,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(auth_service.get_current_user),
-) -> ReportResponseSchema:
+) -> InitiateSignatureResponse:
+    session_token = uuid.uuid4().hex
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=SESSION_TTL_MINUTES)
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
-    response = await case_service.add_diagnosis_signature(
-        db=db,
-        diagnosis_entry_id=diagnosis_entry_id,
-        doctor_id=doctor.doctor_id,
+    sess = DoctorSignatureSession(
+        session_token=session_token,
+        doctor_cor_id=doctor.doctor_id,
+        diagnosis_id=diagnosis_entry_id,
         doctor_signature_id=request.doctor_signature_id,
-        router=router,
+        status="pending",
+        expires_at=expires_at,
     )
+    db.add(sess)
+    await db.commit()
+
     await case_service.change_case_status_after_signing(db=db, diagnosis_entry_id=diagnosis_entry_id)
-    response.case_details.grossing_status == Grossing_status.IN_SIGNING_STATUS
-    return response
+    deep_link = f"{DEEP_LINK_SCHEME}?session_token={session_token}"
+
+    return InitiateSignatureResponse(
+        session_token=session_token,
+        deep_link=deep_link,
+        expires_at=expires_at,
+    )
 
 
 @router.get(
@@ -1148,7 +1187,7 @@ async def unified_search(
     raise HTTPException(status_code=404, detail="Patient or Case not found.")
 
 
-
+# Заявка на подпись
 @router.post("/signing/initiate", response_model=InitiateSignatureResponse)
 async def initiate_signature(body: InitiateSignatureRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
     """
@@ -1201,6 +1240,13 @@ async def approve_signature(body: ActionRequest, db: AsyncSession = Depends(get_
     if body.status == SessionLoginStatus.approved.value.lower():
         sess.status = "approved"
         await db.commit()
+        response = await case_service.add_diagnosis_signature(
+        db=db,
+        diagnosis_entry_id=sess.diagnosis_id,
+        doctor_id=doctor.doctor_id,
+        doctor_signature_id=sess.doctor_signature_id,
+        router=router,
+    )
         await _broadcast_status(sess.session_token, "approved")
         return {"status": "approved"}
     else:
