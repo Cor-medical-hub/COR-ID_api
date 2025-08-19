@@ -3,12 +3,16 @@ from typing import Optional
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select
+from sqlalchemy.orm import selectinload, joinedload
 from cor_pass.database.models import (
+    Case,
+    DoctorDiagnosis,
     Patient,
     DoctorPatientStatus,
     PatientClinicStatus,
     PatientStatus,
     Doctor,
+    Report,
 )
 from cor_pass.database.models import PatientClinicStatusModel as db_PatientClinicStatus
 from cor_pass.schemas import (
@@ -442,3 +446,49 @@ async def get_single_patient_by_corid(db: AsyncSession, cor_id: str)-> Patient |
     result_patient = await db.execute(stmt_patient)
     existing_patient = result_patient.scalar_one_or_none()
     return existing_patient
+
+
+
+async def get_patient_by_session_id(
+    db: AsyncSession,
+    diagnosis_entry_id: str,
+) -> None:
+    """
+    Получает модель Patient через связи DoctorDiagnosis -> Report -> Case -> Patient.
+    """
+    try:
+        diagnosis_entry_result = await db.execute(
+            select(DoctorDiagnosis)
+            .where(DoctorDiagnosis.id == diagnosis_entry_id)
+            .options(
+                joinedload(DoctorDiagnosis.report)
+                .joinedload(Report.case)
+            )
+        )
+        diagnosis_entry = diagnosis_entry_result.scalar_one_or_none()
+
+        if diagnosis_entry is None:
+            logger.error(f"Diagnosis entry с ID {diagnosis_entry_id} не найдено")
+            raise HTTPException(status_code=404, detail="Diagnosis entry not found")
+
+        # Проверяем промежуточные связи
+        if diagnosis_entry.report is None:
+            logger.error(f"Report не найден для Diagnosis entry {diagnosis_entry_id}")
+            raise HTTPException(status_code=404, detail="Report not found for diagnosis entry")
+
+        if diagnosis_entry.report.case is None:
+            logger.error(f"Case не найден для Report связанного с Diagnosis entry {diagnosis_entry_id}")
+            raise HTTPException(status_code=404, detail="Case not found for report")
+
+        patient_id = diagnosis_entry.report.case.patient_id
+        if patient_id is None:
+            logger.error(f"Patient не найден для Case связанного с Diagnosis entry {diagnosis_entry_id}")
+            raise HTTPException(status_code=404, detail="Patient not found for case")
+
+        logger.info(f"Получена модель Patient: ID={patient_id}")
+        return patient_id
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка при обработке diagnosis_entry {diagnosis_entry_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

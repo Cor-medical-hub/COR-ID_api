@@ -48,6 +48,7 @@ from cor_pass.repository.patient import (
     create_patient_linked_to_user,
     create_standalone_patient,
     find_patient,
+    get_patient_by_session_id,
     get_single_patient_by_corid
 
 )
@@ -1292,3 +1293,31 @@ async def signature_ws(websocket: WebSocket, session_token: str):
         pass
     finally:
         await websocket_events_manager.disconnect(connection_id)
+
+
+@router.get(
+    "/signing/patient_info",
+    # response_model=PatientTestReportPageResponse,
+    dependencies=[Depends(doctor_access)],
+    status_code=status.HTTP_200_OK,
+    tags=["DoctorPage"],
+)
+async def get_patient_report_full_page_data_route(
+    session_token: str,
+    user: User = Depends(auth_service.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Этот маршрут возвращает список всех кейсов пациента, детали последнего кейса
+    (включая его параметры и заключения) и все стекла последнего кейса
+    для выбора для прикрепления к заключению. Если заключение для последнего кейса
+    отсутствует, оно будет автоматически создано с пустыми полями.
+    """
+    doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    sess = await _load_session(db, session_token)
+    if sess.doctor_cor_id != doctor.doctor_id:
+        raise HTTPException(status_code=400, detail="Invalid doctor id")
+    else:
+        patient_cor_id = await get_patient_by_session_id(db=db, diagnosis_entry_id=sess.diagnosis_id)
+        patient_info = await get_single_patient_by_corid(db=db, cor_id=patient_cor_id)
+        return patient_info
