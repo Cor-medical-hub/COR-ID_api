@@ -879,6 +879,7 @@ async def get_patient_cases_with_directions(
     first_case_direction_details: Optional[FirstCaseReferralDetailsSchema] = None
     last_case_with_relations: Optional[CaseWithOwner] = None
     case_owner: Optional[CaseOwnerResponse] = None
+    last_case_details: Optional[CaseWithOwner] = None
 
     if all_cases_db:
         first_case_db = all_cases_db[0]
@@ -928,41 +929,43 @@ async def get_patient_cases_with_directions(
                     ReferralFileSchema(
                         id=file_db.id,
                         file_name=file_db.filename,
-                        file_type=file_db.content_type,
+                        file_type=file_db.content_type, 
                         file_url=file_url,
                     )
                 )
-            if current_doctor_id == last_case_with_relations.case_owner:
-                is_case_owner = True
-            first_case_direction_details = FirstCaseReferralDetailsWithOwner(
-                id=last_case_with_relations.id,
-                case_code=last_case_with_relations.case_code,
-                creation_date=last_case_with_relations.creation_date,
-                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
-                microdescription=last_case_with_relations.microdescription,
-                attachments=attachments_for_response,
-                grossing_status=last_case_with_relations.grossing_status,
-                patient_cor_id=last_case_with_relations.patient_id,
-                is_case_owner = is_case_owner
-            )
-    if current_doctor_id == last_case_with_relations.case_owner:
-                is_case_owner = True
-    last_case_details = CaseWithOwner(
-        id=last_case_with_relations.id,
-        case_code=last_case_with_relations.case_code,
-        creation_date=last_case_with_relations.creation_date,
-        patient_id=str(last_case_with_relations.patient_id),
-        grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
-        bank_count=last_case_with_relations.bank_count,
-        cassette_count=last_case_with_relations.cassette_count,
-        glass_count=last_case_with_relations.glass_count,
-        pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
-        microdescription=last_case_with_relations.microdescription,
-        is_printed_cassette=last_case_with_relations.is_printed_cassette,
-        is_printed_glass=last_case_with_relations.is_printed_glass,
-        is_printed_qr=last_case_with_relations.is_printed_qr,
-        is_case_owner = is_case_owner
-    )
+            if last_case_with_relations:
+                if current_doctor_id == last_case_with_relations.case_owner:
+                    is_case_owner = True
+                first_case_direction_details = FirstCaseReferralDetailsWithOwner(
+                    id=last_case_with_relations.id,
+                    case_code=last_case_with_relations.case_code,
+                    creation_date=last_case_with_relations.creation_date,
+                    pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                    microdescription=last_case_with_relations.microdescription,
+                    attachments=attachments_for_response,
+                    grossing_status=last_case_with_relations.grossing_status,
+                    patient_cor_id=last_case_with_relations.patient_id,
+                    is_case_owner = is_case_owner
+                )
+    if last_case_with_relations:
+        if current_doctor_id == last_case_with_relations.case_owner:
+            is_case_owner = True
+        last_case_details = CaseWithOwner(
+            id=last_case_with_relations.id,
+            case_code=last_case_with_relations.case_code,
+            creation_date=last_case_with_relations.creation_date,
+            patient_id=str(last_case_with_relations.patient_id),
+            grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+            bank_count=last_case_with_relations.bank_count,
+            cassette_count=last_case_with_relations.cassette_count,
+            glass_count=last_case_with_relations.glass_count,
+            pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+            microdescription=last_case_with_relations.microdescription,
+            is_printed_cassette=last_case_with_relations.is_printed_cassette,
+            is_printed_glass=last_case_with_relations.is_printed_glass,
+            is_printed_qr=last_case_with_relations.is_printed_qr,
+            is_case_owner = is_case_owner
+        )
     if last_case_with_relations:
         case_owner = await get_case_owner(
             db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id
@@ -1401,22 +1404,23 @@ async def get_current_cases_glass_details(
             ).model_dump()
             sample_schematized["cassettes"] = cassettes_for_sample
             first_case_samples_schematized.append(sample_schematized)
-        if current_doctor_id == last_case_with_relations.case_owner:
+        if last_case_with_relations:
+            if current_doctor_id == last_case_with_relations.case_owner:
                 is_case_owner = True
-        first_case_details_for_glass = FirstCaseGlassDetailsSchemaWithOwner(
-            id=last_case_with_relations.id,
-            case_code=last_case_with_relations.case_code,
-            creation_date=last_case_with_relations.creation_date,
-            pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
-            microdescription=last_case_with_relations.microdescription,
-            samples=first_case_samples_schematized,
-            grossing_status=last_case_with_relations.grossing_status,
-            patient_cor_id=last_case_with_relations.patient_id,
-            is_printed_cassette=last_case_with_relations.is_printed_cassette,
-            is_printed_glass=last_case_with_relations.is_printed_glass,
-            is_printed_qr=last_case_with_relations.is_printed_qr,
-            is_case_owner = is_case_owner
-        )
+            first_case_details_for_glass = FirstCaseGlassDetailsSchemaWithOwner(
+                id=last_case_with_relations.id,
+                case_code=last_case_with_relations.case_code,
+                creation_date=last_case_with_relations.creation_date,
+                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                microdescription=last_case_with_relations.microdescription,
+                samples=first_case_samples_schematized,
+                grossing_status=last_case_with_relations.grossing_status,
+                patient_cor_id=last_case_with_relations.patient_id,
+                is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                is_printed_glass=last_case_with_relations.is_printed_glass,
+                is_printed_qr=last_case_with_relations.is_printed_qr,
+                is_case_owner = is_case_owner
+            )
     if last_case_with_relations:
         case_owner = await get_case_owner(
             db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id
@@ -2519,6 +2523,7 @@ async def get_patient_final_report_page_data(
     last_case_details: Optional[CaseWithOwner] = None
     case_owner: Optional[CaseOwnerResponse] = None
     last_case_with_relations: Optional[db_models.Case] = None
+    last_case_details: Optional[CaseWithOwner] = None
 
     if all_cases_db:
         last_case_db_summary = all_cases_db[0]
@@ -2808,6 +2813,7 @@ async def get_final_report_by_case_id(
     last_case_details: Optional[CaseModelScheema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
     case_owner: Optional[CaseOwnerResponse] = None
+    last_case_details: Optional[CaseWithOwner] = None
     last_case_full_info_result = await db.execute(
         select(db_models.Case)
         .where(db_models.Case.id == case_id)
@@ -3085,23 +3091,24 @@ async def get_current_case_details_for_excision_page(
                         macro_description=sample_db.macro_description,
                     )
                 )
-            if current_doctor_id == last_case_with_relations.case_owner:
-                is_case_owner = True
-            last_case_details_for_excision = LastCaseExcisionDetailsSchemaWithOwner(
-                id=last_case_with_relations.id,
-                case_code=last_case_with_relations.case_code,
-                creation_date=last_case_with_relations.creation_date,
-                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
-                microdescription=last_case_with_relations.microdescription,
-                case_parameters=case_parameters_schematized,
-                samples=samples_for_excision_page,
-                grossing_status=last_case_with_relations.grossing_status,
-                patient_cor_id=last_case_with_relations.patient_id,
-                is_printed_cassette=last_case_with_relations.is_printed_cassette,
-                is_printed_glass=last_case_with_relations.is_printed_glass,
-                is_printed_qr=last_case_with_relations.is_printed_qr,
-                is_case_owner = is_case_owner
-            )
+            if last_case_with_relations:
+                if current_doctor_id == last_case_with_relations.case_owner:
+                    is_case_owner = True
+                last_case_details_for_excision = LastCaseExcisionDetailsSchemaWithOwner(
+                    id=last_case_with_relations.id,
+                    case_code=last_case_with_relations.case_code,
+                    creation_date=last_case_with_relations.creation_date,
+                    pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                    microdescription=last_case_with_relations.microdescription,
+                    case_parameters=case_parameters_schematized,
+                    samples=samples_for_excision_page,
+                    grossing_status=last_case_with_relations.grossing_status,
+                    patient_cor_id=last_case_with_relations.patient_id,
+                    is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                    is_printed_glass=last_case_with_relations.is_printed_glass,
+                    is_printed_qr=last_case_with_relations.is_printed_qr,
+                    is_case_owner = is_case_owner
+                )
     if last_case_with_relations:
         case_owner = await get_case_owner(
             db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id
@@ -3624,38 +3631,40 @@ async def get_current_cases_with_directions(
                         file_url=file_url,
                     )
                 )
-            if current_doctor_id == last_case_with_relations.case_owner:
-                is_case_owner = True
+            if last_case_with_relations:
+                if current_doctor_id == last_case_with_relations.case_owner:
+                    is_case_owner = True
 
-            first_case_direction_details = FirstCaseReferralDetailsWithOwner(
-                id=last_case_with_relations.id,
-                case_code=last_case_with_relations.case_code,
-                creation_date=last_case_with_relations.creation_date,
-                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
-                microdescription=last_case_with_relations.microdescription,
-                attachments=attachments_for_response,
-                grossing_status=last_case_with_relations.grossing_status,
-                patient_cor_id=last_case_with_relations.patient_id,
-                is_case_owner = is_case_owner
-            )
-    if current_doctor_id == last_case_with_relations.case_owner:
-                is_case_owner = True
-    case_details = CaseWithOwner(
-                id=last_case_with_relations.id,
-                case_code=last_case_with_relations.case_code,
-                creation_date=last_case_with_relations.creation_date,
-                patient_id=str(last_case_with_relations.patient_id),
-                grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
-                bank_count=last_case_with_relations.bank_count,
-                cassette_count=last_case_with_relations.cassette_count,
-                glass_count=last_case_with_relations.glass_count,
-                pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
-                microdescription=last_case_with_relations.microdescription,
-                is_printed_cassette=last_case_with_relations.is_printed_cassette,
-                is_printed_glass=last_case_with_relations.is_printed_glass,
-                is_printed_qr=last_case_with_relations.is_printed_qr,
-                is_case_owner = is_case_owner
-            )
+                first_case_direction_details = FirstCaseReferralDetailsWithOwner(
+                    id=last_case_with_relations.id,
+                    case_code=last_case_with_relations.case_code,
+                    creation_date=last_case_with_relations.creation_date,
+                    pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                    microdescription=last_case_with_relations.microdescription,
+                    attachments=attachments_for_response,
+                    grossing_status=last_case_with_relations.grossing_status,
+                    patient_cor_id=last_case_with_relations.patient_id,
+                    is_case_owner = is_case_owner
+                )
+    if last_case_with_relations:
+        if current_doctor_id == last_case_with_relations.case_owner:
+            is_case_owner = True
+        case_details = CaseWithOwner(
+                    id=last_case_with_relations.id,
+                    case_code=last_case_with_relations.case_code,
+                    creation_date=last_case_with_relations.creation_date,
+                    patient_id=str(last_case_with_relations.patient_id),
+                    grossing_status=db_models.Grossing_status(last_case_with_relations.grossing_status),
+                    bank_count=last_case_with_relations.bank_count,
+                    cassette_count=last_case_with_relations.cassette_count,
+                    glass_count=last_case_with_relations.glass_count,
+                    pathohistological_conclusion=last_case_with_relations.pathohistological_conclusion,
+                    microdescription=last_case_with_relations.microdescription,
+                    is_printed_cassette=last_case_with_relations.is_printed_cassette,
+                    is_printed_glass=last_case_with_relations.is_printed_glass,
+                    is_printed_qr=last_case_with_relations.is_printed_qr,
+                    is_case_owner = is_case_owner
+                )
     if last_case_with_relations:
         case_owner = await get_case_owner(
             db=db, case_id=last_case_with_relations.id, doctor_id=current_doctor_id
@@ -3794,6 +3803,7 @@ async def get_current_cases_final_report_page_data(
     report_details: Optional[FinalReportResponseSchema] = None
     all_samples_for_last_case_schematized: List[SampleTestForGlassPage] = []
     case_owner: Optional[CaseOwnerResponse] = None
+    last_case_details: Optional[CaseWithOwner] = None
     is_case_owner = False
 
     for row in all_current_cases_raw:
