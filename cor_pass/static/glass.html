@@ -278,6 +278,9 @@
         });
         return caseNewNODE
     }
+
+
+    
     const glassTemplate = (currentGlass) => {
         const fileUrl = currentGlass?.preview_url;
         const currentPaint = glassPaintList.find(({id}) => id === currentGlass.staining);
@@ -315,7 +318,8 @@
                 return;
             }
 
-            alert("Тут перехід на вьювер!!!")
+         // Открываем новую вкладку с SVS/DICOM просмотрщиком
+         openViewerInNewTab(currentGlass);
         });
 
         return glassNewNODE
@@ -550,6 +554,15 @@
     });
 </script>
 
+<script>
 
+
+    // Функция для открытия просмотрщика в новой вкладке
+    const openViewerInNewTab = (currentGlass) => {
+   
+    const viewerUrl = `/static/dicom/dicom_viewer.html?glass_id=${currentGlass.id}`;
+    window.open(viewerUrl, '_blank');
+};
+</script>
 </body>
 </html>
