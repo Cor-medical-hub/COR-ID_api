@@ -63,6 +63,17 @@ async def get_printing_device_by_device_identifier(
     printing_device = result.scalar_one_or_none()
     return printing_device
 
+async def get_printing_device_by_device_class(
+    device_class: str, db: AsyncSession
+) -> ResponcePrintingDevice | None:
+
+    stmt = select(PrintingDevice).where(
+        PrintingDevice.device_class == device_class
+    )
+    result = await db.execute(stmt)
+    printing_device = result.scalar_one_or_none()
+    return printing_device
+
 
 async def update_printing_device(
     uuid: str, body: UpdatePrintingDevice, db: AsyncSession
