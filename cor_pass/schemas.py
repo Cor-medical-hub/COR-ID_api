@@ -2207,10 +2207,10 @@ class GeneralPrinting(BaseModel):
     # printing: bool
 
 class GlassPrinting(BaseModel):
-    printer_ip: str
-    model_id: int
-    clinic_name: str
-    hooper: str
+    printer_ip: Optional[str] = None
+    model_id: Optional[str] = None
+    clinic_name: Optional[str] = None
+    hooper: Optional[str] = None
     glass_id: str
     printing: bool
 

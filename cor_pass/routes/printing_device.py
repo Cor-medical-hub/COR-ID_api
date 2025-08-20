@@ -12,6 +12,7 @@ from cor_pass.schemas import (
 from cor_pass.repository.printing_device import (
     create_printing_device,
     get_all_printing_devices,
+    get_printing_device_by_device_class,
     get_printing_device_by_id,
     update_printing_device,
     delete_printing_device_by_id,
@@ -34,12 +35,19 @@ async def create_new_printing_device(
     body: CreatePrintingDevice, db: AsyncSession = Depends(get_db)
 ):
     """Создает новое устройство печати."""
-
+    if body.device_class not in ["GlassPrinter", "scanner", "CassetPrinter", "CassetPrinterHopper"]:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Device class not allowed")
     existing_device = await get_printing_device_by_device_identifier(
         device_identifier=body.device_identifier, db=db
     )
     if existing_device:
         logger.debug(f"{body.device_identifier} already exist")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Device already exists"
+        )
+    existing_class = await get_printing_device_by_device_class(db=db, device_class=body.device_class)
+    if existing_class:
+        logger.debug(f"{body.device_class} already exist")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Device already exists"
         )
