@@ -1,4 +1,6 @@
 import base64
+from datetime import date
+import re
 from typing import Optional
 import uuid
 from fastapi import HTTPException, status
@@ -20,12 +22,13 @@ from cor_pass.schemas import (
     NewPatientRegistration,
     PasswordGeneratorSettings,
     PatientCreationResponse,
+    PatientResponseForSigning,
     UserModel,
 )
 from cor_pass.repository import person as repository_person
 from cor_pass.repository.password_generator import generate_password
 from cor_pass.repository import cor_id as repository_cor_id
-from cor_pass.services.cipher import encrypt_data
+from cor_pass.services.cipher import decrypt_data, encrypt_data
 from cor_pass.services.email import (
     send_email_code_with_temp_pass,
 )
@@ -492,3 +495,66 @@ async def get_patient_by_session_id(
     except Exception as e:
         logger.error(f"Ошибка при обработке diagnosis_entry {diagnosis_entry_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+async def get_patient_info_for_signing(
+    patient_cor_id: str,
+    db: AsyncSession,
+) -> PatientResponseForSigning:
+    """
+    Получает информацию о конкретном пациенте включая его расшифрованные данные.
+    """
+    existing_patient = await get_patient_by_corid(cor_id=patient_cor_id, db=db)
+    if not existing_patient:
+        raise HTTPException(status_code=404, detail=f"Пациент не найден")
+    decoded_key = base64.b64decode(settings.aes_key)
+    existing_patient.encrypted_surname = (
+        await decrypt_data(existing_patient.encrypted_surname, decoded_key)
+        if existing_patient.encrypted_surname
+        else None
+    )
+
+    existing_patient.encrypted_first_name = (
+        await decrypt_data(existing_patient.encrypted_first_name, decoded_key)
+        if existing_patient.encrypted_first_name
+        else None
+    )
+    existing_patient.encrypted_middle_name = (
+        await decrypt_data(existing_patient.encrypted_middle_name, decoded_key)
+        if existing_patient.encrypted_middle_name
+        else None
+    )
+
+    user_birth_year = existing_patient.birth_date
+    if user_birth_year is None and existing_patient.patient_cor_id:
+        cor_id_parts = existing_patient.patient_cor_id.split("-")
+        if len(cor_id_parts) > 1:
+            year_part = cor_id_parts[1]
+            numbers = re.findall(r"\d+", year_part)
+            if numbers:
+                try:
+                    user_birth_year = numbers[0]
+                except ValueError:
+                    user_birth_year = None
+
+    patient_age: Optional[int] = None
+    if existing_patient.birth_date:
+        today = date.today()
+        patient_age = (
+            today.year
+            - existing_patient.birth_date.year
+            - (
+                (today.month, today.day)
+                < (existing_patient.birth_date.month, existing_patient.birth_date.day)
+            )
+        )
+    response = PatientResponseForSigning(
+        patient_cor_id=existing_patient.patient_cor_id,
+        surname=existing_patient.encrypted_surname,
+        first_name=existing_patient.encrypted_first_name,
+        middle_name=existing_patient.encrypted_middle_name,
+        sex=existing_patient.sex,
+        birth_date=user_birth_year,
+        age=patient_age,
+    )
+    return response
