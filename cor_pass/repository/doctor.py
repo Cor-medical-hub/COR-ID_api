@@ -424,7 +424,7 @@ async def get_patients_with_optional_status(
     response = GetAllPatientsResponce(patients=result, total_count=total_count)
     return response
 
-
+ 
 async def get_doctor_single_patient_with_status(
     patient_cor_id: str,
     db: AsyncSession,

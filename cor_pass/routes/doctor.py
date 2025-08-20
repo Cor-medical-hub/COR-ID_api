@@ -49,6 +49,7 @@ from cor_pass.repository.patient import (
     create_standalone_patient,
     find_patient,
     get_patient_by_session_id,
+    get_patient_info_for_signing,
     get_single_patient_by_corid
 
 )
@@ -64,6 +65,7 @@ from cor_pass.schemas import (
     InitiateSignatureResponse,
     PatientCreationResponse,
     PatientFinalReportPageResponse,
+    PatientResponseForSigning,
     PatientTestReportPageResponse,
     ReportAndDiagnosisUpdateSchema,
     ReportResponseSchema,
@@ -1189,7 +1191,7 @@ async def unified_search(
 
 
 # Заявка на подпись
-@router.post("/signing/initiate", response_model=InitiateSignatureResponse)
+@router.post("/signing/initiate", response_model=InitiateSignatureResponse, tags=["DoctorSigning"])
 async def initiate_signature(body: InitiateSignatureRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
     """
     1) Создаёт сессию подписи (pending, 15 минут)
@@ -1217,10 +1219,10 @@ async def initiate_signature(body: InitiateSignatureRequest, db: AsyncSession = 
     )
 
 
-@router.post("/signing/confirm")
+@router.post("/signing/confirm", tags=["DoctorSigning"])
 async def approve_signature(body: ActionRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
     """
-    Вызывается мобильным приложением после диплинка, когда доктор подтверждает.
+    Вызывается мобильным приложением после диплинка для поодтверждения подписания.
     """
     doctor = await get_doctor(doctor_id=current_user.cor_id, db=db)
     sess = await _load_session(db, body.session_token)
@@ -1257,7 +1259,9 @@ async def approve_signature(body: ActionRequest, db: AsyncSession = Depends(get_
         return {"status": "rejected"}
 
 
-@router.get("/signing/status/{session_token}", response_model=StatusResponse)
+@router.get("/signing/status/{session_token}", 
+            response_model=StatusResponse,
+            tags=["DoctorSigning"])
 async def get_status(session_token: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
     """
     Для fallback-поллинга, если WS недоступен.
@@ -1297,21 +1301,18 @@ async def signature_ws(websocket: WebSocket, session_token: str):
 
 @router.get(
     "/signing/patient_info",
-    # response_model=PatientTestReportPageResponse,
+    response_model=PatientResponseForSigning,
     dependencies=[Depends(doctor_access)],
     status_code=status.HTTP_200_OK,
-    tags=["DoctorPage"],
+    tags=["DoctorSigning"],
 )
-async def get_patient_report_full_page_data_route(
+async def get_patient_info_for_cor_id_signing(
     session_token: str,
     user: User = Depends(auth_service.get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+)-> PatientResponseForSigning:
     """
-    Этот маршрут возвращает список всех кейсов пациента, детали последнего кейса
-    (включая его параметры и заключения) и все стекла последнего кейса
-    для выбора для прикрепления к заключению. Если заключение для последнего кейса
-    отсутствует, оно будет автоматически создано с пустыми полями.
+    Возвращаем информацию по пациенту для подтверждения подписи
     """
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
     sess = await _load_session(db, session_token)
@@ -1319,5 +1320,5 @@ async def get_patient_report_full_page_data_route(
         raise HTTPException(status_code=400, detail="Invalid doctor id")
     else:
         patient_cor_id = await get_patient_by_session_id(db=db, diagnosis_entry_id=sess.diagnosis_id)
-        patient_info = await get_single_patient_by_corid(db=db, cor_id=patient_cor_id)
-        return patient_info
+        response = await get_patient_info_for_signing(db=db, patient_cor_id=patient_cor_id)
+        return response

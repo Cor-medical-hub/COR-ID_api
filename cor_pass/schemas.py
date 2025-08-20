@@ -2283,3 +2283,13 @@ class StatusResponse(BaseModel):
     session_token: str
     status: str
     expires_at: datetime
+
+
+class PatientResponseForSigning(BaseModel):
+    patient_cor_id: str
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+    birth_date: Optional[date] = None
+    sex: Optional[str] = None
+    age: Optional[int] = None
