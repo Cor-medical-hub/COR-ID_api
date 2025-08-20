@@ -2224,10 +2224,10 @@ class GlassResponseForPrinting(BaseModel):
     patient_cor_id: str
 
 class CassettePrinting(BaseModel):
-    printer_ip: str
-    number_models_id: int
-    clinic_name: str
-    hooper: str
+    printer_ip: Optional[str] = None
+    number_models_id: Optional[int] = None
+    clinic_name: Optional[str] = None
+    hooper: Optional[str] = None
     cassete_id: str
     printing: bool
 

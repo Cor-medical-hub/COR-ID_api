@@ -1,6 +1,7 @@
 from fastapi import HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from cor_pass.repository.printing_device import get_printing_device_by_device_class
 from cor_pass.schemas import (
     CassettePrinting,
     CassetteResponseForPrinting,
@@ -237,30 +238,33 @@ async def get_cassette_full_info(
     return response
 
 
+
 async def print_cassette_data(
     data: CassettePrinting, db: AsyncSession, request: Request
 ):
     db_cassette = await get_cassette_full_info(db=db, cassette_id=data.cassete_id)
     if db_cassette is None:
         raise HTTPException(status_code=404, detail=f"Кассета с ID {data.cassete_id} не найдена в базе данных")
-
-    clinic_name = data.clinic_name
+    device = await get_printing_device_by_device_class(db=db, device_class="CassetPrinter")
+    models_id = data.number_models_id if data.number_models_id else "8"
+    printer_ip = data.printer_ip if data.printer_ip else device.ip_address
+    clinic_name = data.clinic_name if data.clinic_name else "FF"
     case_code = db_cassette.case_code
     sample_number=db_cassette.sample_number
     cassette_number=db_cassette.cassette_number
     glass_number="-"
     staining="-"
-    hooper=data.hooper
+    hooper=data.hooper if data.hooper else "?"
     patient_cor_id=db_cassette.patient_cor_id
         
     content = f"{clinic_name}|{case_code}|{sample_number}|{cassette_number}|L{glass_number}|{staining}|{hooper}|{patient_cor_id}"
 
     label_to_print = PrintLabel(
-        number_models_id=data.number_models_id, 
+        model_id=models_id, 
         content=content,
         uuid=data.cassete_id
     )
 
-    print_result = await print_labels(printer_ip=data.printer_ip, labels_to_print=[label_to_print], request=request)
+    print_result = await print_labels(printer_ip=printer_ip, labels_to_print=[label_to_print], request=request)
 
     return print_result
