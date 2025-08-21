@@ -831,7 +831,7 @@ async def handle_report_and_diagnosis(
 #     return response
 
 
-# Подписать заключение в2
+# Подписать заключение в2, с инициацией сессии подписания 
 @router.post(
     "/diagnosis/{diagnosis_entry_id}/report/sign",
     response_model=InitiateSignatureResponse,
@@ -1190,33 +1190,6 @@ async def unified_search(
     raise HTTPException(status_code=404, detail="Patient or Case not found.")
 
 
-# Заявка на подпись
-@router.post("/signing/initiate", response_model=InitiateSignatureResponse, tags=["DoctorSigning"])
-async def initiate_signature(body: InitiateSignatureRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
-    """
-    1) Создаёт сессию подписи (pending, 15 минут)
-    2) Возвращает токен и диплинк для генерации QR на фронте
-    """
-    session_token = uuid.uuid4().hex
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=SESSION_TTL_MINUTES)
-    doctor = await get_doctor(doctor_id=current_user.cor_id, db=db)
-    sess = DoctorSignatureSession(
-        session_token=session_token,
-        doctor_cor_id=doctor.doctor_id,
-        diagnosis_id=body.diagnosis_id,
-        status="pending",
-        expires_at=expires_at,
-    )
-    db.add(sess)
-    await db.commit()
-
-    deep_link = f"{DEEP_LINK_SCHEME}?session_token={session_token}"
-
-    return InitiateSignatureResponse(
-        session_token=session_token,
-        deep_link=deep_link,
-        expires_at=expires_at,
-    )
 
 
 @router.post("/signing/confirm", tags=["DoctorSigning"])

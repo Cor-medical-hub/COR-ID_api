@@ -70,6 +70,8 @@ class ResponseUser(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    session_id: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class NewUserRegistration(BaseModel):
@@ -102,6 +104,17 @@ class LoginResponseModel(BaseModel):
     session_id: Optional[str] = None
     requires_master_key: bool = False
     message: Optional[str] = None
+    device_id: Optional[str] = None
+
+
+class RecoveryResponseModel(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    message: Optional[str] = None
+    confirmation: Optional[bool] = False
+    session_id: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class EmailSchema(BaseModel):
@@ -147,6 +160,8 @@ class UserSessionModel(BaseModel):
     refresh_token: str
     jti: str
     access_token: str
+    app_id: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class UserSessionResponseModel(BaseModel):
@@ -547,6 +562,7 @@ class DoctorCreateResponse(BaseModel):
 class InitiateLoginRequest(BaseModel):
     email: Optional[EmailStr] = None
     cor_id: Optional[str] = None
+    app_id: Optional[str] = None
 
     @model_validator(mode="before")
     def check_either_email_or_cor_id(cls, data: dict):
@@ -604,6 +620,7 @@ class ConfirmCheckSessionResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    device_id: Optional[str] = None
 
 
 # PATIENTS MODELS
