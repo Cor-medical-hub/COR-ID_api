@@ -623,7 +623,7 @@ async def get_user_device_rate_limit_key(request: Request) -> str:
         return f"ip:{request.client.host}_ua:{user_agent}"
 
 
-@router.get("/refresh", response_model=dict,dependencies=[
+@router.get("/refresh_token", response_model=dict,dependencies=[
         Depends(
             RateLimiter(times=1, seconds=5, identifier=get_user_device_rate_limit_key)
         )
