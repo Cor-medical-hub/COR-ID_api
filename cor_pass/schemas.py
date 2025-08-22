@@ -2217,10 +2217,10 @@ class SearchCaseDetailsSimple(BaseModel):
     patient_id: str
 
 class GeneralPrinting(BaseModel):
-    printer_ip: str
-    number_models_id: int
-    clinic_name: str
-    hooper: str
+    printer_ip: Optional[str] = None
+    number_models_id: Optional[str] = None
+    clinic_name: Optional[str] = None
+    hooper: Optional[str] = None
     # printing: bool
 
 class GlassPrinting(BaseModel):
