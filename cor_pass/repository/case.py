@@ -4213,6 +4213,47 @@ async def close_case_service(
         new_status=case_to_close.grossing_status.value,
     )
 
+async def auto_close_case_service(
+    db: AsyncSession, diagnosis_entry_id: str, current_doctor: db_models.Doctor
+):
+    """
+    Закрывает кейс автоматически, меняя его grossing_status на COMPLETED.
+    Требует, чтобы
+    все DoctorDiagnosis имели соответствующие подписи.
+    """
+    diagnosis_entry_result = await db.execute(
+        select(db_models.DoctorDiagnosis)
+        .where(db_models.DoctorDiagnosis.id == diagnosis_entry_id)
+        .options(
+            selectinload(db_models.DoctorDiagnosis.doctor),
+            selectinload(db_models.DoctorDiagnosis.signature),
+            selectinload(db_models.DoctorDiagnosis.report)
+                .selectinload(db_models.Report.case)
+                .options(
+                    selectinload(db_models.Case.case_parameters),
+                    selectinload(db_models.Case.report)
+                )
+        )
+    )
+    diagnosis_entry = diagnosis_entry_result.scalar_one_or_none()
+
+    case_db = diagnosis_entry.report.case
+
+    for diagnosis in case_db.report.doctor_diagnoses:
+        if not diagnosis.signature:
+            return None
+    case_db.grossing_status = db_models.Grossing_status.COMPLETED
+    case_db.closing_date = datetime.now()
+
+    db.add(case_db)
+    await db.commit()
+    await db.refresh(case_db)
+    logger.debug("Case closed")
+    return CaseCloseResponse(
+        message="Case closed successfully.",
+        case_id=str(case_db.id),
+        new_status=case_db.grossing_status.value,
+    )
 
 async def get_case_owner(
     db: AsyncSession, case_id: str, doctor_id: str
