@@ -1223,6 +1223,7 @@ async def approve_signature(body: ActionRequest, db: AsyncSession = Depends(get_
         doctor_signature_id=sess.doctor_signature_id,
         router=router,
     )
+        await case_service.auto_close_case_service(db=db, diagnosis_entry_id=sess.diagnosis_id, current_doctor=doctor.doctor_id)
         await _broadcast_status(sess.session_token, "approved")
         return {"status": "approved"}
     else:
