@@ -1418,6 +1418,37 @@ class ReportCreateSchema(ReportBaseSchema):
 class ReportUpdateSchema(ReportBaseSchema):
     pass
 
+class InitiateSignatureRequest(BaseModel):
+    # doctor_cor_id: str = Field(..., description="COR-ID доктора, который подписывает")
+    diagnosis_id: str = Field(..., description="ID диагноза, который будет подписан")
+    doctor_signature_id: Optional[str] = Field(None, description="ID подписи")
+
+
+class InitiateSignatureResponse(BaseModel):
+    session_token: str
+    deep_link: str
+    expires_at: datetime
+
+
+class ActionRequest(BaseModel):
+    session_token: str
+    status: SessionLoginStatus
+
+
+class StatusResponse(BaseModel):
+    session_token: str
+    status: str
+    expires_at: datetime
+
+
+class PatientResponseForSigning(BaseModel):
+    patient_cor_id: str
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+    birth_date: Optional[date] = None
+    sex: Optional[str] = None
+    age: Optional[int] = None
 
 class DoctorDiagnosisSchema(BaseModel):
     id: str
@@ -1488,6 +1519,7 @@ class PatientFinalReportPageResponse(BaseModel):
     last_case_details: Optional[CaseWithOwner] = None
     case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[FinalReportResponseSchema]
+    current_signings: Optional[StatusResponse] = None
 
     class Config:
         from_attributes = True
@@ -1497,6 +1529,7 @@ class CaseFinalReportPageResponse(BaseModel):
     case_details: CaseWithOwner
     case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[FinalReportResponseSchema]
+    current_signings: Optional[StatusResponse] = None
 
     class Config:
         from_attributes = True
@@ -2279,34 +2312,4 @@ class FeedbackProposalsScheema(BaseModel):
     proposal: str = Field(...,min_length=2,max_length=800, description="Предложения")
 
 
-class InitiateSignatureRequest(BaseModel):
-    # doctor_cor_id: str = Field(..., description="COR-ID доктора, который подписывает")
-    diagnosis_id: str = Field(..., description="ID диагноза, который будет подписан")
-    doctor_signature_id: Optional[str] = Field(None, description="ID подписи")
 
-
-class InitiateSignatureResponse(BaseModel):
-    session_token: str
-    deep_link: str
-    expires_at: datetime
-
-
-class ActionRequest(BaseModel):
-    session_token: str
-    status: SessionLoginStatus
-
-
-class StatusResponse(BaseModel):
-    session_token: str
-    status: str
-    expires_at: datetime
-
-
-class PatientResponseForSigning(BaseModel):
-    patient_cor_id: str
-    first_name: Optional[str] = None
-    middle_name: Optional[str] = None
-    last_name: Optional[str] = None
-    birth_date: Optional[date] = None
-    sex: Optional[str] = None
-    age: Optional[int] = None

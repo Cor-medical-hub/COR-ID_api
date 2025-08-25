@@ -922,7 +922,7 @@ async def get_patient_final_report_full_page_data_route(
         case_id=case_id,
     )
 
-
+ 
 @router.get(
     "/cases/{case_id}/final-report",
     response_model=CaseFinalReportPageResponse,
@@ -1095,7 +1095,7 @@ async def get_current_cases_final_report_full_page_data_route(
     Этот маршрут возвращает список всех кейсов пациента и данные для формирования финального заключения по последнему кейсу
     """
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
-    return await case_service.get_current_cases_final_report_page_data(
+    response =  await case_service.get_current_cases_final_report_page_data(
         db=db,
         router=router,
         skip=skip,
@@ -1103,6 +1103,8 @@ async def get_current_cases_final_report_full_page_data_route(
         current_doctor_id=doctor.doctor_id,
         case_id=case_id,
     )
+    
+    return response
 
 
 # Закрытие кейса
