@@ -38,6 +38,7 @@ from cor_pass.schemas import (
 )
 from cor_pass.services.cipher import decrypt_data
 from cor_pass.config.config import settings
+from cor_pass.services.websocket import _is_expired
 
 
 async def create_doctor(
