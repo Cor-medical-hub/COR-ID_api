@@ -35,7 +35,7 @@ from datetime import date
 
 class UserModel(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=6, max_length=20)
+    password: str = Field(min_length=8, max_length=32)
     birth: Optional[int] = Field(None, ge=1945, le=2100)
     user_sex: Optional[str] = Field(None, max_length=1)
     cor_id: Optional[str] = Field(None, max_length=15)
@@ -128,12 +128,12 @@ class VerificationModel(BaseModel):
 
 class ChangePasswordModel(BaseModel):
     email: Optional[str]
-    password: str = Field(min_length=6, max_length=20)
+    password: str = Field(min_length=8, max_length=32)
 
 
 class ChangeMyPasswordModel(BaseModel):
-    old_password: str = Field(min_length=6, max_length=20)
-    new_password: str = Field(min_length=6, max_length=20)
+    old_password: str = Field(min_length=8, max_length=32)
+    new_password: str = Field(min_length=8, max_length=32)
 
 
 class RecoveryCodeModel(BaseModel):
