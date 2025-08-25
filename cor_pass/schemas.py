@@ -2250,10 +2250,10 @@ class CassettePrinting(BaseModel):
 
 class CassetteResponseForPrinting(BaseModel):
 
-    case_code: str
+    case_code: Optional[str] = None
     sample_number: str
     cassette_number: str
-    patient_cor_id: str
+    patient_cor_id: Optional[str] = None
 
 
 

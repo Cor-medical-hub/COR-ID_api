@@ -208,6 +208,8 @@ async def change_printing_status(
 async def get_cassette_full_info(
     db: AsyncSession, cassette_id: str
 ) -> CassetteResponseForPrinting:
+    
+    db_case = None
 
     result = await db.execute(
         select(db_models.Cassette)
@@ -226,7 +228,8 @@ async def get_cassette_full_info(
         if not db_sample:
             raise ValueError(f"Семпл с ID {db_cassette.sample_id} не найден")
 
-        db_case = await db.get(db_models.Case, db_sample.case_id)
+        # db_case = await db.get(db_models.Case, db_sample.case_id)
+        db_case = await repository_cases.get_single_case(db=db, case_id=db_sample.case_id)
 
 
     response = CassetteResponseForPrinting( 
