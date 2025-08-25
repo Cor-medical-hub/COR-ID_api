@@ -211,26 +211,32 @@ async def get_cassette_full_info(
     
     db_case = None
 
-    result = await db.execute(
-        select(db_models.Cassette)
-        .where(db_models.Cassette.id == cassette_id)
-        .options(selectinload(db_models.Cassette.glass))
-    )
-    db_cassette = result.scalar_one_or_none()
-    if db_cassette:
-
-        sample_result = await db.execute(
-            select(db_models.Sample)
-            .where(db_models.Sample.id == db_cassette.sample_id)
-            .options(selectinload(db_models.Sample.case))
+    cassette_result = await db.execute(
+            select(db_models.Cassette)
+            .where(db_models.Cassette.id == cassette_id)
+            .options(
+                selectinload(db_models.Cassette.sample).selectinload(
+                    db_models.Sample.case
+                )
+            )
         )
-        db_sample = sample_result.scalar_one_or_none()
-        if not db_sample:
-            raise ValueError(f"Семпл с ID {db_cassette.sample_id} не найден")
+    db_cassette = cassette_result.scalar_one_or_none()
+    if not db_cassette:
+        raise ValueError(f"Касету не знайдено")
 
-        # db_case = await db.get(db_models.Case, db_sample.case_id)
-        db_case = await repository_cases.get_single_case(db=db, case_id=db_sample.case_id)
+    sample_result = await db.execute(
+        select(db_models.Sample)
+        .where(db_models.Sample.id == db_cassette.sample_id)
+        .options(selectinload(db_models.Sample.case))
+    )
+    db_sample = sample_result.scalar_one_or_none()
+    if not db_sample:
+        raise ValueError(f"Семпл с ID {db_cassette.sample_id} не найден")
 
+    db_case_id = db_sample.case_id
+    db_case = await repository_cases.get_single_case(db=db, case_id=db_case_id)
+    db_sample = db_sample
+    db_case = db_case
 
     response = CassetteResponseForPrinting( 
     case_code=db_case.case_code,
