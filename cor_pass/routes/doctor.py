@@ -1254,7 +1254,9 @@ async def get_status(session_token: str, db: AsyncSession = Depends(get_db), cur
 
 
 @router.websocket("/ws/signing")
-async def signature_ws(websocket: WebSocket, session_token: str):
+async def signature_ws(websocket: WebSocket, 
+                    #    session_token: str
+                       ):
     """
     Браузер открывает WS на время ожидания подписи.
     Мы шлём события broadcast'ом, включая session_token в payload.
