@@ -197,9 +197,12 @@ class WebSocketEventsManager:
     async def broadcast_event(self, event_data: Dict):
         """
         Рассылает событие всем активным WebSocket-подключениям.
+        Если соединение временно не принимает сообщения, оно остаётся в списке.
         """
         message = json.dumps(event_data)
         connections_to_check = list(self.active_connections.keys())
+        logger.debug(f"Broadcast started. Connections: {connections_to_check}")
+
         for connection_id in connections_to_check:
             conn_data = self.active_connections.get(connection_id)
             if not conn_data:
@@ -210,30 +213,34 @@ class WebSocketEventsManager:
 
             if connection.client_state != WebSocketState.CONNECTED:
                 logger.warning(
-                    f"Skipping disconnected/closing WebSocket ID {connection_id} from {client_ip}. State: {connection.client_state}"
+                    f"WebSocket ID {connection_id} from {client_ip} not connected (state={connection.client_state}). Keeping it alive."
                 )
-                self.active_connections.pop(connection_id, None)
-                continue
+                continue  
 
             try:
                 await connection.send_text(message)
-                logger.debug(f"Event sent to {client_ip}: {message}")
+                logger.debug(f"Event sent to {client_ip} (ID {connection_id}): {message}")
+
             except WebSocketDisconnect:
                 logger.warning(
-                    f"WebSocket disconnected during broadcast: {client_ip}. Removing from list."
+                    f"WebSocket {client_ip} (ID {connection_id}) disconnected. Removing."
                 )
-                self.active_connections.pop(connection_id, None)
-            except RuntimeError as e:
-                logger.warning(
-                    f"RuntimeError sending to WebSocket {client_ip}: {e}. Removing."
-                )
-                self.active_connections.pop(connection_id, None)
-            except Exception as e:
-                logger.error(f"Error sending event to {client_ip}: {e}", exc_info=True)
                 self.active_connections.pop(connection_id, None)
 
+            except RuntimeError as e:
+                logger.warning(
+                    f"RuntimeError sending to WebSocket {client_ip} (ID {connection_id}): {e}. Keeping connection."
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"Error sending event to {client_ip} (ID {connection_id}): {e}",
+                    exc_info=True,
+                )
+                # self.active_connections.pop(connection_id, None)
+
         logger.info(
-            f"Broadcast complete. Total active connections after cleanup: {len(self.active_connections)}"
+            f"Broadcast complete. Total active connections now: {len(self.active_connections)}"
         )
 
 
