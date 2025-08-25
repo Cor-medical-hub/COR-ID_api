@@ -1253,7 +1253,7 @@ async def get_status(session_token: str, db: AsyncSession = Depends(get_db), cur
     return StatusResponse(session_token=session_token, status=status, expires_at=sess.expires_at)
 
 
-@router.websocket("/ws/signing/{session_token}")
+@router.websocket("/ws/signing")
 async def signature_ws(websocket: WebSocket, session_token: str):
     """
     Браузер открывает WS на время ожидания подписи.
