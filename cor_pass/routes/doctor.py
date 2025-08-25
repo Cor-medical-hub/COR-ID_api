@@ -35,6 +35,7 @@ from cor_pass.repository.doctor import (
     get_doctor_signatures,
     get_doctor_single_patient_without_doctor_status,
     get_patients_with_optional_status,
+    get_pending_signings,
     get_signature_data,
     set_default_doctor_signature,
     upload_certificate_service,
@@ -1252,6 +1253,25 @@ async def get_status(session_token: str, db: AsyncSession = Depends(get_db), cur
         status = "expired"
     return StatusResponse(session_token=session_token, status=status, expires_at=sess.expires_at)
 
+@router.get("/signing/status_by_diagnosis/{diagnosis_id}", 
+            response_model=StatusResponse,
+            tags=["DoctorSigning"])
+async def get_status_by_diagnosis_id(diagnosis_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(auth_service.get_current_user)):
+    """
+    Проверка пендинг сессий
+    """
+    sesssions = await get_pending_signings(db=db, diagnosis_id=diagnosis_id)
+    doctor = await get_doctor(doctor_id=current_user.cor_id, db=db)
+    if not sesssions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    for sess in sesssions:
+        if not sess.doctor_cor_id == doctor.doctor_id:
+            raise HTTPException(status_code=400, detail="Invalid doctor id")
+        status = sess.status
+        if status == "pending" and not _is_expired(sess):
+            return StatusResponse(session_token=sess.session_token, status=status, expires_at=sess.expires_at)
+        else:
+            raise HTTPException(status_code=404, detail="Pending session not found")
 
 @router.websocket("/ws/signing")
 async def signature_ws(websocket: WebSocket, 
