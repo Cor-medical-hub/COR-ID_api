@@ -1438,6 +1438,7 @@ class ActionRequest(BaseModel):
 class StatusResponse(BaseModel):
     session_token: str
     status: str
+    deep_link: Optional[str] = None
     expires_at: datetime
 
 

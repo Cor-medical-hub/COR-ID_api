@@ -72,7 +72,7 @@ from loguru import logger
 from cor_pass.config.config import settings
 from string import ascii_uppercase
 
-from cor_pass.services.websocket import _is_expired
+from cor_pass.services.websocket import DEEP_LINK_SCHEME, _is_expired
 
 
 class ErrorCode(str, Enum):
@@ -845,7 +845,8 @@ async def get_pending_signings_for_report(db: AsyncSession, diagnosis_id: str, d
             pass
         status = rec.status
         if status == "pending" and not _is_expired(rec):
-            return StatusResponse(session_token=rec.session_token, status=status, expires_at=rec.expires_at)
+            deep_link = f"{DEEP_LINK_SCHEME}?session_token={rec.session_token}"
+            return StatusResponse(session_token=rec.session_token, deep_link=deep_link, status=status, expires_at=rec.expires_at)
 
 
 
