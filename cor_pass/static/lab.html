@@ -353,32 +353,22 @@
         return searchParams.toString();
     }
     const printGlass = async (workCase, workSample, workCassette, workGlass) => {
-        return getDevicesList()
-            .then(devices => {
-                const currentDevice = devices.find(({device_class}) => device_class === "GlassPrinter")
-
-                return  {
-                    "printer_ip": currentDevice.ip_address,
-                    "model_id": 8,
-                    "clinic_name": "",
-                    "hooper": "",
-                    "printing": true
-                }
-            })
+        return  {
+            // "printer_ip": currentDevice.ip_address,
+            // "model_id": 8,
+            // "clinic_name": "",
+            // "hooper": "",
+            "printing": true
+        }
     }
     const printCassette = async (workCase, workSample, workCassette) => {
-        return getDevicesList()
-            .then(devices => {
-                const currentDevice = devices.find(({device_class}) => device_class === "GlassPrinter")
-
-                return  {
-                    "printer_ip": currentDevice.ip_address,
-                    "model_id": 8,
-                    "clinic_name": "",
-                    "hooper": "",
-                    "printing": true
-                }
-            })
+        return  {
+            // "printer_ip": currentDevice.ip_address,
+            // "model_id": 8,
+            // "clinic_name": "",
+            // "hooper": "",
+            "printing": true
+        }
     }
 
     const changePrintUI = (elementNODE, value) => {
@@ -574,7 +564,7 @@
 
         const currentCase = cases[lastActiveCaseIndex];
 
-        if(currentCase.grossing_status === "COMPLETED"){
+        if(isCaseIsClosed(currentCase?.grossing_status)){
             allPlaceholderNODE.forEach(elem => {
                 if(elem.classList.contains('casePlaceholder')){
                     return;

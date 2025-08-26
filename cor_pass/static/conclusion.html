@@ -124,7 +124,7 @@
     }
 
     const setOwnerInfo = (caseOwner) => {
-        const caseIsClosed = currentCase?.grossing_status === "COMPLETED";
+        const caseIsClosed = isCaseIsClosed(currentCase?.grossing_status);
         const hasOwner = caseOwner?.id
         reportOwnerInfoNODE.innerHTML = ""
 
@@ -215,7 +215,7 @@
         }
     }
     const setReport = (currentReport, workCase, caseOwner) => {
-        const caseIsClosed = workCase.grossing_status === "COMPLETED";
+        const caseIsClosed = isCaseIsClosed(workCase?.grossing_status);
         reportWrapperNODE.innerHTML = ""
 
         const isMyCase = caseOwner?.is_case_owner;
@@ -469,7 +469,7 @@
     }
     const glassTemplate = (currentGlass, activeGlass, caseOwner) => {
         const fileUrl = currentGlass?.preview_url;
-        const caseIsClosed = currentCase.grossing_status === "COMPLETED";
+        const caseIsClosed = isCaseIsClosed(currentCase?.grossing_status);
         const activeGlassIds = activeGlass.map(({id}) => id)
         const glassNewNODE = document.createElement('div');
         glassNewNODE.classList = `glassWrapper ${activeGlassIds.includes(currentGlass.id) ? "active" : ""} ${(!fileUrl || !caseOwner?.is_case_owner || caseIsClosed) ? "disabled" : ""}`;

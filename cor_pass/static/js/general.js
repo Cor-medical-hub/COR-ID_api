@@ -161,7 +161,7 @@ const getShortName = (lastName, firstName, middleName) => {
 }
 
 const getCaseColor = (currentCase) => {
-    if(currentCase?.grossing_status === "COMPLETED"){
+    if(isCaseIsClosed(currentCase?.grossing_status)){
         return "#49AC26"
     }
 
@@ -209,4 +209,9 @@ const getAge = (birthDate) => {
     }
 
     return age;
+}
+
+
+const isCaseIsClosed = (grossingStatus) => {
+    return ["IN_SIGNING_STATUS", "COMPLETED"].includes(grossingStatus)
 }

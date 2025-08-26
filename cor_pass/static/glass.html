@@ -139,7 +139,7 @@
         window.history.replaceState(null, '', `${url.pathname}?${params}`);
     }
     const setCaseEdit = () => {
-        if(currentCase.grossing_status === "COMPLETED"){
+        if(isCaseIsClosed(currentCase?.grossing_status)){
             commentsWrapperButtonNODE.forEach(elem => {
                 elem.closest('.commentsWrapper').style.opacity = 1;
                 elem.previousElementSibling.style.pointerEvents = "none"
@@ -280,7 +280,7 @@
     }
 
 
-    
+
     const glassTemplate = (currentGlass) => {
         const fileUrl = currentGlass?.preview_url;
         const currentPaint = glassPaintList.find(({id}) => id === currentGlass.staining);
@@ -326,7 +326,7 @@
     }
 
     const setOwnerInfo = (caseOwner) => {
-        const caseIsClosed = currentCase?.grossing_status === "COMPLETED";
+        const caseIsClosed = isCaseIsClosed(currentCase?.grossing_status);
         const hasOwner = caseOwner?.id
         reportOwnerInfoNODE.innerHTML = ""
 
@@ -559,7 +559,7 @@
 
     // Функция для открытия просмотрщика в новой вкладке
     const openViewerInNewTab = (currentGlass) => {
-   
+
     const viewerUrl = `/static/dicom/dicom_viewer.html?glass_id=${currentGlass.id}`;
     window.open(viewerUrl, '_blank');
 };
