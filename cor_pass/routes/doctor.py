@@ -397,8 +397,12 @@ async def add_existing_patient_to_doctor(
             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
         )
     user = await repository_person.get_user_by_corid(cor_id=patient_data.cor_id, db=db)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     new_patient_data = ExistingPatientRegistration(
-        email=user.email,
+        email=user.email if user else None,
         birth_date=user.birth,
         sex=user.user_sex,
     )
