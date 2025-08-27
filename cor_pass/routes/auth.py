@@ -565,7 +565,7 @@ async def confirm_login(
             user=user,
             db=db,
         )
-        await websocket_events_manager.send_to_client_cor_energy(
+        await websocket_events_manager.send_to_client(
             session_token=session_token,event=
             {
                 "status": "approved",
@@ -581,7 +581,7 @@ async def confirm_login(
         await repository_session.update_session_status(
             db_session, confirmation_status, db
         )
-        await websocket_events_manager.send_to_client_cor_energy(session_token=session_token, event={"status": "rejected"})
+        await websocket_events_manager.send_to_client(session_token=session_token, event={"status": "rejected"})
         return {"message": "Вход отменен пользователем"}
     else:
         raise HTTPException(

@@ -11,6 +11,7 @@ from fastapi import (
     Query,
     UploadFile,
     WebSocket,
+    WebSocketDisconnect,
     status,
 )
 
@@ -1276,24 +1277,16 @@ async def get_status_by_diagnosis_id(diagnosis_id: str, db: AsyncSession = Depen
             raise HTTPException(status_code=404, detail="Pending session not found")
 
 @router.websocket("/ws/signing")
-async def signature_ws(websocket: WebSocket, 
-                    #    session_token: str
-                       ):
-    """
-    Браузер открывает WS на время ожидания подписи.
-    Мы шлём события broadcast'ом, включая session_token в payload.
-    Фронт фильтрует по своему токену.
-    """
-    connection_id = await websocket_events_manager.connect(websocket)
+async def websocket_signing(websocket: WebSocket):
+    """WebSocket для подписчиков канала подписи."""
+    connection_id = await websocket_events_manager.connect(websocket, session_token=None)
     try:
-        # Можно периодически пинговать или просто ждать закрытия
         while True:
-            # Ничего не ждём от клиента — просто держим соединение живым
-            await asyncio.sleep(60)
-    except Exception:
-        # клиент сам закрыл вкладку/соединение
-        pass
-    finally:
+            await websocket.receive_text()  
+    except WebSocketDisconnect:
+        await websocket_events_manager.disconnect(connection_id)
+    except Exception as e:
+        logger.error(f"Error in ws/signing for {connection_id}: {e}")
         await websocket_events_manager.disconnect(connection_id)
 
 
