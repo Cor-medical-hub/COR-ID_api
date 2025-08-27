@@ -24,7 +24,7 @@ from cor_pass.repository.cerbo_service import (
 from cor_pass.routes import auth, person
 from cor_pass.database.db import get_db, async_session_maker
 from cor_pass.database.redis_db import redis_client
-
+from cor_pass.services.websocket_events_manager import websocket_events_manager
 from cor_pass.routes import (
     auth,
     records,
@@ -127,9 +127,9 @@ app = FastAPI(
     title="COR-ID API",
     description=api_description,
     version="1.0.1",
-    openapi_url="/openapi.json" if settings.app_env == "development" else None,
-    docs_url="/docs" if settings.app_env == "development" else None,
-    redoc_url="/redoc" if settings.app_env == "development" else None,
+    openapi_url="/openapi.json" if settings.app_env in ["development", "lab-neuro"] else None,
+    docs_url="/docs" if settings.app_env in ["development", "lab-neuro"] else None,
+    redoc_url="/redoc" if settings.app_env in ["development", "lab-neuro"] else None,
 )
 
 app.mount("/static", StaticFiles(directory="cor_pass/static"), name="static")
@@ -257,6 +257,7 @@ async def startup():
     asyncio.create_task(cleanup_auth_sessions())
     register_signature_expirer(app, async_session_maker)
     initialize_ip2location()
+    await websocket_events_manager.init_redis_listener()
     if settings.app_env == "development":
         await create_modbus_client(app)
 

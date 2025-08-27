@@ -51,7 +51,7 @@ services:
   #     dockerfile: Dockerfile.scanner_worker
   #   image: scanner_worker:latest
   #   container_name: $CORID_ENV-scanner_worker
-  #   restart: always
+  #   restart: unless-stopped
   #   volumes:
   #     - .:/app
   #   # network_mode: "host"

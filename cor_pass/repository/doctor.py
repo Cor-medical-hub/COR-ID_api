@@ -5,6 +5,8 @@ from fastapi import APIRouter, HTTPException, UploadFile, status
 from sqlalchemy import asc, desc, func, select
 from typing import List, Optional, Tuple, List
 
+import sqlalchemy
+
 
 from cor_pass.database.models import (
     Certificate,
@@ -12,6 +14,7 @@ from cor_pass.database.models import (
     Diploma,
     Doctor,
     DoctorPatientStatus,
+    DoctorSignatureSession,
     Patient,
     PatientClinicStatus,
     PatientClinicStatusModel,
@@ -31,9 +34,11 @@ from cor_pass.schemas import (
     GetAllPatientsResponce,
     PatientDecryptedResponce,
     PatientResponseForGetPatients,
+    StatusResponse,
 )
 from cor_pass.services.cipher import decrypt_data
 from cor_pass.config.config import settings
+from cor_pass.services.websocket import _is_expired
 
 
 async def create_doctor(
@@ -795,3 +800,10 @@ async def get_signature_data(
         select(DoctorSignature).where(DoctorSignature.id == signature_id)
     )
     return result.scalar_one_or_none()
+
+
+async def get_pending_signings(db: AsyncSession, diagnosis_id: str)-> Optional[DoctorSignatureSession]:
+    q = sqlalchemy.select(DoctorSignatureSession).where(DoctorSignatureSession.diagnosis_id == diagnosis_id)
+    res = await db.execute(q)
+    singning_record = res.scalars().all()
+    return singning_record
