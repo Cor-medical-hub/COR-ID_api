@@ -46,6 +46,7 @@ from cor_pass.services.email import (
     send_email_code,
     send_email_code_forgot_password,
 )
+from cor_pass.services.websocket_events_manager import websocket_events_manager
 from cor_pass.services.cipher import decrypt_data, decrypt_user_key, encrypt_data
 from cor_pass.config.config import settings
 from cor_pass.services.access import user_access
@@ -564,8 +565,8 @@ async def confirm_login(
             user=user,
             db=db,
         )
-        await send_websocket_message(
-            session_token,
+        await websocket_events_manager.send_to_client_cor_energy(
+            session_token=session_token,event=
             {
                 "status": "approved",
                 "access_token": access_token,
@@ -580,7 +581,7 @@ async def confirm_login(
         await repository_session.update_session_status(
             db_session, confirmation_status, db
         )
-        await send_websocket_message(session_token, {"status": "rejected"})
+        await websocket_events_manager.send_to_client_cor_energy(session_token=session_token, event={"status": "rejected"})
         return {"message": "Вход отменен пользователем"}
     else:
         raise HTTPException(

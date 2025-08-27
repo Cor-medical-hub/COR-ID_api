@@ -49,36 +49,60 @@ class WebSocketEventsManager:
 
     async def _listen_pubsub(self):
         pubsub = redis_client.pubsub()
-        await pubsub.subscribe("ws:broadcast")
+        await pubsub.subscribe("ws:broadcast", f"ws:direct:{self.worker_id}")
 
         async for message in pubsub.listen():
             if message["type"] != "message":
                 continue
             try:
                 event = json.loads(message["data"])
-                await self._send_to_local(event)
+                if message["channel"] == b"ws:broadcast":
+                    await self._send_to_local(event)
+                elif message["channel"] == f"ws:direct:{self.worker_id}".encode():
+                    await self._send_direct_local(event)
             except Exception as e:
                 logger.error(f"Failed to handle pubsub message: {e}", exc_info=True)
 
-    async def connect(self, websocket: WebSocket) -> str:
-        """Подключение WebSocket клиента."""
+    async def connect(self, websocket: WebSocket, session_token: str | None = None) -> str:
+        """Подключение клиента. Привязка connection_id к session_token в Redis."""
         await websocket.accept()
         connection_id = str(uuid.uuid4())
         connected_at = datetime.now(timezone.utc).isoformat()
         client_ip = get_websocket_client_ip(websocket)
 
+        if not session_token:
+            session_token = str(uuid.uuid4())
+        logger.debug(f"self.active_connections[connection_id] = websocket {connection_id}")
+        logger.debug(f"session_token {session_token}")
         self.active_connections[connection_id] = websocket
+
         await redis_client.hset(
             f"ws:connection:{connection_id}",
             mapping={
                 "worker_id": self.worker_id,
+                "session_token": session_token,
                 "connected_at": connected_at,
                 "client_ip": client_ip,
             },
         )
+        logger.debug(f"redis_client.hset")
         await redis_client.sadd("ws:connections", connection_id)
+        logger.debug(f"redis_client.sadd")
 
-        logger.info(f"WS connected {connection_id} from {client_ip}")
+
+        # связь session_token -> connection_id
+        await redis_client.hset(
+            f"ws:session:{session_token}",
+            mapping={
+                "worker_id": self.worker_id,
+                "connection_id": connection_id,
+                "connected_at": connected_at,
+                "client_ip": client_ip,
+            },
+        )
+        logger.debug(f"redis_client.hset {session_token}")
+
+        logger.info(f"WS connected {connection_id} (session={session_token}) from {client_ip}")
         return connection_id
 
     async def disconnect(self, connection_id: str):
@@ -92,11 +116,20 @@ class WebSocketEventsManager:
 
         logger.info(f"WS disconnected {connection_id}")
 
-    async def broadcast_event(self, event_data: Dict):
-        """Глобальная рассылка события всем воркерам через Redis."""
-        message = json.dumps(event_data)
-        await redis_client.publish("ws:broadcast", message)
-        logger.debug("Event published to Redis channel ws:broadcast")
+    async def broadcast_event(self, event_data: dict) -> None:
+        """
+        Шлём всем: сразу локально (быстрый путь) + публикуем в Redis для других воркеров.
+        Логируем число подписчиков, чтобы сразу видеть проблему (0 → никто не слушает).
+        """
+        await self._send_to_local(event_data)
+        payload = json.dumps(event_data)
+        try:
+            receivers = await redis_client.publish("ws:broadcast", payload)
+            logger.debug(f"Published to ws:broadcast; receivers={receivers}")
+            if receivers == 0:
+                logger.warning("No Redis subscribers on ws:broadcast (receivers=0)")
+        except Exception as e:
+            logger.error(f"publish failed: {e}", exc_info=True)
 
     async def _send_to_local(self, event: Dict):
         """Отправка события всем локальным подключенным клиентам этого воркера."""
@@ -119,218 +152,74 @@ class WebSocketEventsManager:
 
         logger.info(f"Local broadcast complete. Active connections: {len(self.active_connections)}")
 
+    async def send_to_client(self, session_token: str, event: Dict):
+        """Отправка сообщения конкретному клиенту по его session_token."""
+        meta = await redis_client.hgetall(f"ws:session:{session_token}")
+        if not meta:
+            logger.warning(f"Session {session_token} not found in Redis")
+            return
 
+        target_worker = meta.get("worker_id")
+        connection_id = meta.get("connection_id")
 
-# class WebSocketEventsManager:
-#     """
-#     Управляет активными WebSocket-подключениями и рассылкой событий.
-#     """
+        if not target_worker or not connection_id:
+            logger.warning(f"Invalid meta for session {session_token}: {meta}")
+            return
 
-#     def __init__(self, redis_url: str, worker_id: str):
-#         self.active_connections: Dict[str, WebSocket] = {}
-#         self.worker_id = worker_id
-#         self.redis = None
-#         self.redis_url = redis_url
+        message = json.dumps({
+            "type": "direct",
+            "connection_id": connection_id,
+            "event": event,
+        })
 
-#     async def connect(self, websocket: WebSocket) -> str:
-#         """
-#         Устанавливает новое WebSocket-соединение и присваивает ему уникальный ID,
-#         а также сохраняет реальный IP клиента.
-#         Возвращает ID соединения.
-#         """
-#         await websocket.accept()
-#         connection_id = str(uuid.uuid4())
-#         client_ip = get_websocket_client_ip(websocket)
+        if target_worker == self.worker_id:
+            ws = self.active_connections.get(connection_id)
+            if ws and ws.client_state == WebSocketState.CONNECTED:
+                await ws.send_text(message)
+            else:
+                logger.warning(f"Local client {connection_id} not connected")
+        else:
+            await redis_client.publish(f"ws:direct:{target_worker}", message)
 
-#         self.active_connections[connection_id] = {
-#             "websocket": websocket,
-#             "ip": client_ip,
-#             "connected_at": datetime.now(timezone.utc).isoformat(),
-#         }
-#         logger.info(
-#             f"WebSocket connected from {client_ip} with ID: {connection_id}. Total active: {len(self.active_connections)}"
-#         )
-#         return connection_id
+    async def send_to_client_cor_energy(self, session_token: str, event: Dict):
+        """Отправка сообщения конкретному клиенту по его session_token."""
+        meta = await redis_client.hgetall(f"ws:session:{session_token}")
+        if not meta:
+            logger.warning(f"Session {session_token} not found in Redis")
+            return
 
-#     async def disconnect(self, connection_id: str):
-#         """
-#         Закрывает WebSocket-соединение по его ID.
-#         """
-#         conn_data = self.active_connections.pop(connection_id, None)
-#         if conn_data:
-#             websocket = conn_data["websocket"]
-#             client_ip = conn_data["ip"]
-#             if websocket.client_state == WebSocketState.CONNECTED:
-#                 try:
-#                     await websocket.send_json(
-#                         {
-#                             "event_type": "server_disconnect",
-#                             "reason": "Administrative action",
-#                         }
-#                     )
-#                     await websocket.close(code=1000)
-#                     logger.info(
-#                         f"WebSocket with ID {connection_id} actively closed by manager: {client_ip}. Total active: {len(self.active_connections)}"
-#                     )
-#                 except RuntimeError as e:
-#                     logger.warning(
-#                         f"Error when actively closing WebSocket with ID {connection_id} ({client_ip}), might be already closed: {e}"
-#                     )
-#                 except Exception as e:
-#                     logger.error(
-#                         f"Unexpected error during active close of WebSocket with ID {connection_id} ({client_ip}): {e}",
-#                         exc_info=True,
-#                     )
-#             else:
-#                 logger.info(
-#                     f"WebSocket with ID {connection_id} ({client_ip}) already closed or in closing state. Total active: {len(self.active_connections)}"
-#                 )
-#         else:
-#             logger.warning(
-#                 f"Attempted to disconnect non-existent WebSocket with ID: {connection_id}"
-#             )
+        target_worker = meta.get("worker_id")
+        connection_id = meta.get("connection_id")
 
-#     async def disconnect_all(self):
-#         """
-#         Отключает все активные WebSocket-соединения.
-#         """
-#         connection_ids_to_disconnect = list(self.active_connections.keys())
-#         logger.info(
-#             f"Initiating disconnection of {len(connection_ids_to_disconnect)} active WebSocket connections."
-#         )
+        if not target_worker or not connection_id:
+            logger.warning(f"Invalid meta for session {session_token}: {meta}")
+            return
+        
+        message = json.dumps(event)
 
-#         for connection_id in connection_ids_to_disconnect:
-#             conn_data = self.active_connections.get(connection_id)
-#             if conn_data:
-#                 websocket = conn_data["websocket"]
-#                 client_ip = conn_data["ip"]
-#                 try:
-#                     await websocket.send_json(
-#                         {
-#                             "event_type": "server_disconnect",
-#                             "reason": "All connections reset by administrative action",
-#                         }
-#                     )
-#                     await websocket.close(code=status.WS_1000_NORMAL_CLOSURE)
-#                     logger.info(
-#                         f"Force-disconnected WebSocket with ID {connection_id} from {client_ip}."
-#                     )
-#                 except RuntimeError as e:
-#                     logger.warning(
-#                         f"Error closing WebSocket {connection_id} from {client_ip} during disconnect_all: {e} (might be already closed)"
-#                     )
-#                 except Exception as e:
-#                     logger.error(
-#                         f"Unexpected error when closing WebSocket {connection_id} from {client_ip} during disconnect_all: {e}",
-#                         exc_info=True,
-#                     )
-#                 finally:
-#                     self.active_connections.pop(connection_id, None)
-#             else:
-#                 logger.warning(
-#                     f"WebSocket with ID {connection_id} already removed from active_connections during disconnect_all."
-#                 )
+        if target_worker == self.worker_id:
+            ws = self.active_connections.get(connection_id)
+            if ws and ws.client_state == WebSocketState.CONNECTED:
+                await ws.send_text(message)
+            else:
+                logger.warning(f"Local client {connection_id} not connected")
+        else:
+            await redis_client.publish(f"ws:direct:{target_worker}", message)
 
-#         logger.info(
-#             f"All WebSocket connections disconnection attempt complete. Total active: {len(self.active_connections)}"
-#         )
+    async def _send_direct_local(self, event: Dict):
+        """Отправка события конкретному локальному клиенту."""
+        connection_id = event.get("connection_id")
+        ws = self.active_connections.get(connection_id)
 
-#     async def disconnect_by_id_internal(self, connection_id: str):
-#         """
-#         Внутренний метод для отключения по ID, безопасно удаляет из словаря.
-#         """
-#         websocket = self.active_connections.get(connection_id)
-#         if websocket:
-#             try:
-#                 await websocket.send_json(
-#                     {
-#                         "event_type": "disconnect_server_initiated",
-#                         "reason": "Administrative action",
-#                     }
-#                 )
-#                 await websocket.close(code=status.WS_1000_NORMAL_CLOSURE)
-#                 logger.info(
-#                     f"Force-disconnected WebSocket with ID {connection_id}: {websocket.client.host}:{websocket.client.port}"
-#                 )
-#             except RuntimeError as e:
-#                 logger.warning(
-#                     f"Error closing WebSocket {connection_id}: {e} (might be already closed)"
-#                 )
-#             except Exception as e:
-#                 logger.error(
-#                     f"Unexpected error when closing WebSocket {connection_id}: {e}"
-#                 )
-#             finally:
-#                 self.active_connections.pop(connection_id, None)
-#         else:
-#             logger.warning(
-#                 f"Attempted to disconnect non-existent WebSocket (internal) with ID: {connection_id}"
-#             )
+        if not ws or ws.client_state != WebSocketState.CONNECTED:
+            logger.warning(f"Direct send failed, no local client {connection_id}")
+            return
 
-#     def get_active_connection_info(self) -> List[Dict]:
-#         """
-#         Возвращает информацию обо всех активных соединениях.
-#         """
-#         info = []
-#         for conn_id, conn_data in self.active_connections.items():
-#             info.append(
-#                 {
-#                     "connection_id": conn_id,
-#                     "client_host": conn_data["ip"],
-#                     "client_port": conn_data["websocket"].client.port,
-#                     "connected_at": conn_data["connected_at"],
-#                 }
-#             )
-#         return info
-
-#     async def broadcast_event(self, event_data: Dict):
-#         """
-#         Рассылает событие всем активным WebSocket-подключениям.
-#         Если соединение временно не принимает сообщения, оно остаётся в списке.
-#         """
-#         message = json.dumps(event_data)
-#         connections_to_check = list(self.active_connections.keys())
-#         logger.debug(f"Broadcast started. Connections: {connections_to_check}")
-
-#         for connection_id in connections_to_check:
-#             conn_data = self.active_connections.get(connection_id)
-#             if not conn_data:
-#                 continue
-
-#             connection = conn_data["websocket"]
-#             client_ip = conn_data["ip"]
-
-#             if connection.client_state != WebSocketState.CONNECTED:
-#                 logger.warning(
-#                     f"WebSocket ID {connection_id} from {client_ip} not connected (state={connection.client_state}). Keeping it alive."
-#                 )
-#                 continue  
-
-#             try:
-#                 await connection.send_text(message)
-#                 logger.debug(f"Event sent to {client_ip} (ID {connection_id}): {message}")
-
-#             except WebSocketDisconnect:
-#                 logger.warning(
-#                     f"WebSocket {client_ip} (ID {connection_id}) disconnected. Removing."
-#                 )
-#                 self.active_connections.pop(connection_id, None)
-
-#             except RuntimeError as e:
-#                 logger.warning(
-#                     f"RuntimeError sending to WebSocket {client_ip} (ID {connection_id}): {e}. Keeping connection."
-#                 )
-
-#             except Exception as e:
-#                 logger.error(
-#                     f"Error sending event to {client_ip} (ID {connection_id}): {e}",
-#                     exc_info=True,
-#                 )
-#                 # self.active_connections.pop(connection_id, None)
-
-#         logger.info(
-#             f"Broadcast complete. Total active connections now: {len(self.active_connections)}"
-#         )
+        try:
+            await ws.send_text(json.dumps(event["event"]))
+        except Exception as e:
+            logger.error(f"Error sending direct to {connection_id}: {e}")
+            await self.disconnect(connection_id)
 
 
 websocket_events_manager = WebSocketEventsManager(worker_id=socket.gethostname())
