@@ -30,19 +30,19 @@
                     </svg>
                 </button>
                 <div class="role-toggle">
-                    <button class="role-btn doc active">Лікар</button>
-                    <button class="role-btn lab">Лаборант</button>
+                    <button class="role-btn doc active">Doctor</button>
+                    <button class="role-btn lab">Laborant</button>
                 </div>
             </div>
         </div>
         <div class="header-row bottom">
             <div>
                 <div class="tabs">
-                    <button class="tab directionPage active">Направлення</button>
-                    <button class="tab tenderloinPage">Вирізка</button>
-                    <button class="tab glassPage">Скельця</button>
-                    <button class="tab conclusionPage">Заключення</button>
-                    <button class="tab explorationPage">Дослідження</button>
+                    <button class="tab directionPage active">Medical Referral</button>
+                    <button class="tab tenderloinPage">Grossing</button>
+                    <button class="tab glassPage">Glasses</button>
+                    <button class="tab conclusionPage">Report</button>
+                    <button class="tab explorationPage">Report Preview</button>
                 </div>
             </div>
             <div class="meta-info">
@@ -64,7 +64,7 @@
                     <img src="./assets/arrow.svg" alt="arrow">
                 </div>
                 <div>
-                    Поточні кейси
+                    Current Cases
                 </div>
             </div>
             <div class="bottom">
@@ -75,7 +75,7 @@
         </div>
         <div class="middle df fdc">
             <div class="top df aic">
-                Направлення
+                Medical Referral
             </div>
             <div class="bottom df ">
                 <div class="directionWrapper df fdc" id="directionAttachment">
@@ -292,7 +292,7 @@
     }
     const showFiles = files => {
         if(!files?.length) {
-            directionAttachmentNODE.innerHTML = "Немає жодного направлення"
+            directionAttachmentNODE.innerHTML = "You don't have any Medical Referral"
 
             return;
         }

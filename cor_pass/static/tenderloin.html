@@ -30,19 +30,19 @@
                     </svg>
                 </button>
                 <div class="role-toggle">
-                    <button class="role-btn doc active">Лікар</button>
-                    <button class="role-btn lab">Лаборант</button>
+                    <button class="role-btn doc active">Doctor</button>
+                    <button class="role-btn lab">Laborant</button>
                 </div>
             </div>
         </div>
         <div class="header-row bottom">
             <div>
                 <div class="tabs">
-                    <button class="tab directionPage">Направлення</button>
-                    <button class="tab tenderloinPage active">Вирізка</button>
-                    <button class="tab glassPage">Скельця</button>
-                    <button class="tab conclusionPage">Заключення</button>
-                    <button class="tab explorationPage">Дослідження</button>
+                    <button class="tab directionPage">Medical Referral</button>
+                    <button class="tab tenderloinPage active">Grossing</button>
+                    <button class="tab glassPage">Glasses</button>
+                    <button class="tab conclusionPage">Report</button>
+                    <button class="tab explorationPage">Report Preview</button>
                 </div>
             </div>
             <div class="meta-info">
@@ -64,7 +64,7 @@
                     <img src="./assets/arrow.svg" alt="arrow">
                 </div>
                 <div>
-                    Поточні кейси
+                    Current Cases
                 </div>
             </div>
             <div class="bottom">
@@ -74,7 +74,7 @@
         </div>
         <div class="middle df fdc">
             <div class="top df aic">
-                Вирізка
+                Grossing
             </div>
             <div class="bottom df ">
                 <div class="tenderloinContent" id="tenderloinContent"></div>
@@ -190,7 +190,7 @@
         // currentCase.case_parameters.macro_description
 
         if(currentCase.case_parameters.macro_description || sampleInfo){
-            macroDescription += `<div class="tenderloinTitle">Макроопис</div>`
+            macroDescription += `<div class="tenderloinTitle">Macro description</div>`
             macroDescription += `<div class="tenderloinMargin">${currentCase.case_parameters.macro_description || "-"}</div>`
             macroDescription += sampleInfo
         }
@@ -198,7 +198,7 @@
 
         tenderloinContentNODE.innerHTML = `
             <div class="tenderloinTitle">
-                        Загальні параметри вирізки
+                        Grossing parameters
                     </div>
             <div class="df aic" style="margin-bottom: 18px; gap: 16px">
                 <div>

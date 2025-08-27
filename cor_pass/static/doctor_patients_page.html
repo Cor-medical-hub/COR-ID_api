@@ -48,7 +48,7 @@
                                 <path d="M13 17.4831C13 18.0447 12.5523 18.5 12 18.5C11.4477 18.5 11 18.0447 11 17.4831L11 7.51695C11 6.9553 11.4477 6.5 12 6.5C12.5523 6.5 13 6.9553 13 7.51695V17.4831Z"
                                       fill="white"/>
                             </svg>
-                            Добавить пациента
+                            Add Patient
                         </button>
                     </div>
                 </div>
@@ -73,16 +73,15 @@
 
         <div class="filters-bar">
 
-            <!-- <div class="filter" id="filterBtn">
-                <img src="./assets/filter.svg" alt="Фильтр" class="icon">Фильтр
-            </div> -->
+            <div id="filterBtn">
+            </div>
 
             <div style="position:relative">
                 <div class="sort" id="sortBtn">
                     <img src="./assets/sort.svg" alt="Сортировка" class="icon">
-                    <span>Сортировка:</span>&nbsp;
+                    <span>Sorting:</span>&nbsp;
                     <span id="sortLabel">
-            <span>Дата зміни: від нових до старих</span>
+            <span>Change date: new to old</span>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12.7241 16.0865L12.7269 16.0834L18.7453 9.65889L18.7499 9.65396L18.7511 9.65252C19.1032 9.25733 19.0719 8.66929 18.7194 8.30513L18.7167 8.30066L18.7158 8.29968L18.7122 8.29599L18.7114 8.29678C18.3519 7.90305 17.7346 7.90088 17.3434 8.29665L17.3412 8.29895L17.3399 8.30027L17.3377 8.30263L12.0041 13.964L6.66231 8.29402L6.66086 8.2954C6.49594 8.09985 6.23847 8 5.97981 8C5.45224 8 5 8.43581 5 8.99434C5 9.25792 5.09722 9.48996 5.26063 9.65679L5.26438 9.66067L11.3137 16.0847L11.3169 16.0882L11.342 16.1139L11.3527 16.1241L11.3555 16.1268C11.7488 16.488 12.3668 16.4838 12.7241 16.0865Z"
                     fill="#5B4296"/>
@@ -91,18 +90,18 @@
 
                 </div>
                 <div class="dropdown" id="sortDropdown">
-                    <button data-field="date" data-dir="desc">Дата зміни: від нових до старих</button>
-                    <button data-field="date" data-dir="asc">Дата зміни: від старих до нових</button>
-                    <button data-field="name" data-dir="asc">Призвищє: від А до Я</button>
-                    <button data-field="name" data-dir="desc">Призвищє: від Я до А</button>
+                    <button data-field="date" data-dir="desc">Change date: new to old</button>
+                    <button data-field="date" data-dir="asc">Change date: old to new</button>
+                    <button data-field="name" data-dir="asc">Last name: A to Z</button>
+                    <button data-field="name" data-dir="desc">Last name: Z to A</button>
                     <button data-field="id" data-dir="asc">COR ID: ↑</button>
                     <button data-field="id" data-dir="desc">COR ID: ↓</button>
-                    <button data-field="age" data-dir="asc">Вік: ↑</button>
-                    <button data-field="age" data-dir="desc">Вік: ↓</button>
-                    <button data-field="gender" data-dir="asc">Стать: від А до Я</button>
-                    <button data-field="gender" data-dir="desc">Стать: від Я до А</button>
-                    <button data-field="status" data-dir="asc">Статус: від А до Я</button>
-                    <button data-field="status" data-dir="desc">Статус: від Я до А</button>
+                    <button data-field="age" data-dir="asc">Age: ↑</button>
+                    <button data-field="age" data-dir="desc">Age: ↓</button>
+                    <button data-field="gender" data-dir="asc">Gender: A to Z</button>
+                    <button data-field="gender" data-dir="desc">Gender: Z to A</button>
+                    <button data-field="status" data-dir="asc">Status: A до Z</button>
+                    <button data-field="status" data-dir="desc">Status: Z до A</button>
                 </div>
             </div>
         </div>
@@ -113,13 +112,13 @@
                 <table>
                     <thead>
                     <tr>
-                        <th data-field="name">Фамилия, имя, отчество</th>
+                        <th data-field="name">Surname, name, middle name</th>
                         <th data-field="id">COR ID</th>
-                        <th data-field="age">Возраст</th>
-                        <th data-field="gender">Пол</th>
-                        <th data-field="date">Дослідження</th>
-                        <th data-field="date">Дата изменения</th>
-                        <th data-field="status">Статус</th>
+                        <th data-field="age">Age</th>
+                        <th data-field="gender">Gender</th>
+                        <th data-field="date">Cases</th>
+                        <th data-field="date">Date</th>
+                        <th data-field="status">Status</th>
                         <th style="width:32px"></th>
                     </tr>
                     </thead>
@@ -210,7 +209,7 @@
         </div>
     </div>
 
-    <button class="button" id="Add_Patient" data-translate="Add_Patient">Добавить пациента</button>
+    <button class="button" id="Add_Patient" data-translate="Add_Patient">Add Patient</button>
 </div>
 
 
@@ -308,7 +307,7 @@
             }
             tbody.appendChild(tr);
         });
-        footerInfo.textContent = `Всего: ${patientsData.length} пациентов`;
+        footerInfo.textContent = `Total: ${patientsData.length} patients`;
     }
 
     const sortTableRows = (field, dir) =>{
@@ -438,13 +437,12 @@
             if (field === "select") return;
             const dir = currentSort.field === field && currentSort.dir === "asc" ? "desc" : "asc";
             currentSort = {field, dir};
-            sortLabel.textContent = `Сортировка: ${th.textContent.trim()} ${dir === "asc" ? "↑" : "↓"}`;
+            sortLabel.textContent = `Sorting: ${th.textContent.trim()} ${dir === "asc" ? "↑" : "↓"}`;
             sortTableRows(field, dir);
         });
     });
 
     /* Заглушки */
-    document.getElementById("filterBtn").addEventListener("click", () => alert("Здесь будет фильтр по полям"));
     document.getElementById("addPatientBtn").addEventListener("click", function () {
         if (checkToken()) {
             const modal = document.getElementById('addPatientModal');
