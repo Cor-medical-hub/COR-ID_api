@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+import os
 import socket
 from typing import List, Dict
 import uuid
@@ -163,30 +164,30 @@ class WebSocketEventsManager:
             logger.error(f"publish failed: {e}", exc_info=True)
 
     async def _send_to_local(self, event: Dict):
-        """Отправка события всем локальным клиентам с параллельной отправкой и обработкой ошибок."""
         dead_ids = []
         tasks = []
-
         for connection_id, websocket in self.active_connections.items():
             if websocket.client_state != WebSocketState.CONNECTED:
                 dead_ids.append(connection_id)
                 continue
+            # Проверяем, существует ли connection_id в Redis
+            if not await redis_client.exists(f"ws:connection:{connection_id}"):
+                dead_ids.append(connection_id)
+                continue
+            logger.debug(f"Sending broadcast to {connection_id}")
             tasks.append(
                 asyncio.create_task(
                     self._safe_send(websocket, json.dumps(event), connection_id)
                 )
             )
-
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            for result in results:
+            for i, result in enumerate(results):
                 if isinstance(result, Exception):
-                    # Здесь можно логировать, но dead_ids уже обработаны в _safe_send
-                    pass
-
+                    logger.warning(f"Failed to send to {list(self.active_connections.keys())[i]}: {result}")
+                    dead_ids.append(list(self.active_connections.keys())[i])
         for cid in dead_ids:
             await self.disconnect(cid)
-
         logger.info(f"Local broadcast complete. Active: {len(self.active_connections)}")
 
     async def _safe_send(self, websocket: WebSocket, message: str, connection_id: str) -> None:
@@ -270,4 +271,5 @@ class WebSocketEventsManager:
             await self.disconnect(connection_id)
 
 
-websocket_events_manager = WebSocketEventsManager(worker_id=socket.gethostname())
+worker_id = f"{socket.gethostname()}-{os.getpid()}"
+websocket_events_manager = WebSocketEventsManager(worker_id=worker_id)
