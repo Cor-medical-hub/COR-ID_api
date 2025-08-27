@@ -322,5 +322,6 @@ async def main():
         logger.debug("Мониторим файлы")
 
 if __name__ == "__main__":
-    if settings.app_env == "development":
-        asyncio.run(main())
+    if settings.app_env in ["development", "lab-neuro"]:
+        if settings.smb_enabled:
+            asyncio.run(main())

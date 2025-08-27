@@ -14,7 +14,7 @@ from cor_pass.schemas import (
     GlassPrinting
 )
 from cor_pass.repository import glass as glass_service
-from typing import List
+from typing import List, Optional
 
 from cor_pass.services.access import doctor_access
 from loguru import logger
@@ -88,7 +88,7 @@ async def change_glass_staining(
 
 @router.patch(
     "/{glass_id}/printed",
-    response_model=GlassModelScheema,
+    response_model=Optional[GlassModelScheema],
     dependencies=[Depends(doctor_access)],
 )
 async def change_glass_printing_status(

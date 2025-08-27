@@ -376,6 +376,8 @@ class UserSession(Base):
     user_id = Column(String(36), ForeignKey("users.cor_id"), nullable=False)
     device_type = Column(String(250), nullable=True)
     device_info = Column(String(250), nullable=True)
+    app_id = Column(String(250), nullable=True) # Идентификатор апки
+    device_id = Column(String(250), nullable=True) # айди устройства
     ip_address = Column(String(250), nullable=True)
     device_os = Column(String(250), nullable=True)
     jti = Column(
@@ -397,7 +399,6 @@ class UserSession(Base):
     # Индексы
     __table_args__ = (
         Index("idx_user_sessions_user_id", "user_id"),
-        UniqueConstraint("user_id", "device_info", name="uq_user_device_session"),
     )
 
 
@@ -408,6 +409,8 @@ class CorIdAuthSession(Base):
     email = Column(String(255), index=True, nullable=True)
     cor_id = Column(String(250), index=True, nullable=True)
     session_token = Column(String(36), unique=True, index=True, nullable=False)
+    app_id = Column(String(250), nullable=True)
+    device_id = Column(String(250), nullable=True)
     status = Column(
         Enum(AuthSessionStatus), default=AuthSessionStatus.PENDING, nullable=False
     )
