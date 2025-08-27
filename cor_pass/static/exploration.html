@@ -807,6 +807,7 @@
         doctorSignButtonNODE.addEventListener('click', () => {
             signReport(currentDiagnosis?.id)
                 .then(report => {
+                    console.log(report, "reportreportreportreport")
                     showSignProcessModal(report)
                 })
         })

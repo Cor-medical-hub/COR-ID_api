@@ -54,15 +54,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 placeholder: "Choose a type",
                 selectData: [
                     {
-                        id: "патогистология",
+                        id: "Патогістологія",
                         label: "Pathology"
                     },
                     {
-                        id: "иммуногистохимия",
+                        id: "Імуногістохімія",
                         label: "Immunohistochemistry"
                     },
                     {
-                        id: "цитология",
+                        id: "Цитологія",
                         label: "Cytology"
                     },
                     {
