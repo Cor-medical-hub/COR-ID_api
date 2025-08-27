@@ -869,6 +869,7 @@ async def add_signature_to_report_route(
         session_token=session_token,
         deep_link=deep_link,
         expires_at=expires_at,
+        status="pending"
     )
 
 
