@@ -112,6 +112,23 @@ const getImages = async (fileUrl) => {
         })
 }
 
+const getGlassImages = async (currentGlass) => {
+    if(!currentGlass?.id || !currentGlass.preview_url){
+        return null
+    }
+
+    return fetch(`${API_BASE_URL}/api/glasses/${currentGlass.id}/preview`, {
+        method: "GET",
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+    })
+        .then(res => res.blob())
+        .then((blob) => {
+            return blob
+        })
+}
+
 const decodeTokenJWT = (token) => {
     if(!token){
         return null
@@ -144,7 +161,7 @@ const getShortName = (lastName, firstName, middleName) => {
 }
 
 const getCaseColor = (currentCase) => {
-    if(currentCase?.grossing_status === "COMPLETED"){
+    if(isCaseIsClosed(currentCase?.grossing_status)){
         return "#49AC26"
     }
 
@@ -192,4 +209,9 @@ const getAge = (birthDate) => {
     }
 
     return age;
+}
+
+
+const isCaseIsClosed = (grossingStatus) => {
+    return ["IN_SIGNING_STATUS", "COMPLETED"].includes(grossingStatus)
 }

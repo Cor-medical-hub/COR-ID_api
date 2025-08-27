@@ -245,7 +245,7 @@ async def energetic_schedule_task_worker(async_session_maker):
                         charge_battery_value=desired_charge_battery_value,
                     )
                 else:
-                    logger.debug("Inverter parameters match schedule/default values.")
+                    # logger.debug("Inverter parameters match schedule/default values.")
                     pass
 
 

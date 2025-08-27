@@ -24,7 +24,7 @@ from cor_pass.repository.cerbo_service import (
 from cor_pass.routes import auth, person
 from cor_pass.database.db import get_db, async_session_maker
 from cor_pass.database.redis_db import redis_client
-
+from cor_pass.services.websocket_events_manager import websocket_events_manager
 from cor_pass.routes import (
     auth,
     records,
@@ -49,7 +49,8 @@ from cor_pass.routes import (
     energy_managers,
     cerbo_routes,
     blood_pressures,
-    ecg_measurements
+    ecg_measurements,
+    excel_router
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
@@ -59,7 +60,7 @@ from fastapi.responses import JSONResponse
 from collections import defaultdict
 from jose import JWTError, jwt
 
-from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions
+from cor_pass.services.websocket import check_session_timeouts, cleanup_auth_sessions, register_signature_expirer
 
 from cor_pass.services.logger import setup_logging
 
@@ -126,9 +127,9 @@ app = FastAPI(
     title="COR-ID API",
     description=api_description,
     version="1.0.1",
-    openapi_url="/openapi.json" if settings.app_env == "development" else None,
-    docs_url="/docs" if settings.app_env == "development" else None,
-    redoc_url="/redoc" if settings.app_env == "development" else None,
+    openapi_url="/openapi.json" if settings.app_env in ["development", "lab-neuro"] else None,
+    docs_url="/docs" if settings.app_env in ["development", "lab-neuro"] else None,
+    redoc_url="/redoc" if settings.app_env in ["development", "lab-neuro"] else None,
 )
 
 app.mount("/static", StaticFiles(directory="cor_pass/static"), name="static")
@@ -254,7 +255,9 @@ async def startup():
     await FastAPILimiter.init(redis_client, identifier=custom_identifier)
     asyncio.create_task(check_session_timeouts())
     asyncio.create_task(cleanup_auth_sessions())
+    register_signature_expirer(app, async_session_maker)
     initialize_ip2location()
+    await websocket_events_manager.init_redis_listener()
     if settings.app_env == "development":
         await create_modbus_client(app)
 
@@ -293,6 +296,7 @@ app.include_router(cerbo_routes.router, prefix="/api")
 app.include_router(energy_managers.router, prefix="/api")
 app.include_router(blood_pressures.router, prefix="/api")
 app.include_router(ecg_measurements.router, prefix="/api")
+app.include_router(excel_router.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(

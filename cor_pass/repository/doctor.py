@@ -5,6 +5,8 @@ from fastapi import APIRouter, HTTPException, UploadFile, status
 from sqlalchemy import asc, desc, func, select
 from typing import List, Optional, Tuple, List
 
+import sqlalchemy
+
 
 from cor_pass.database.models import (
     Certificate,
@@ -12,6 +14,7 @@ from cor_pass.database.models import (
     Diploma,
     Doctor,
     DoctorPatientStatus,
+    DoctorSignatureSession,
     Patient,
     PatientClinicStatus,
     PatientClinicStatusModel,
@@ -22,6 +25,7 @@ from cor_pass.database.models import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cor_pass.repository.case import get_patient_list_cases
 from cor_pass.repository.patient import get_patient_by_corid
 from cor_pass.repository.person import get_user_by_corid
 from cor_pass.schemas import (
@@ -30,9 +34,11 @@ from cor_pass.schemas import (
     GetAllPatientsResponce,
     PatientDecryptedResponce,
     PatientResponseForGetPatients,
+    StatusResponse,
 )
 from cor_pass.services.cipher import decrypt_data
 from cor_pass.config.config import settings
+from cor_pass.services.websocket import _is_expired
 
 
 async def create_doctor(
@@ -400,6 +406,8 @@ async def get_patients_with_optional_status(
             if clinic_patient_status
             else None
         )
+
+        list_cases = await get_patient_list_cases(db=db, patient_id=patient.patient_cor_id)
         patient_response = PatientResponseForGetPatients(
             id=patient.id,
             patient_cor_id=patient.patient_cor_id,
@@ -414,13 +422,14 @@ async def get_patients_with_optional_status(
             change_date=patient.change_date if patient else None,
             doctor_status=status_for_doctor,
             clinic_status=status_for_clinic,
+            cases = list_cases
         )
         result.append(patient_response)
-
+ 
     response = GetAllPatientsResponce(patients=result, total_count=total_count)
     return response
 
-
+ 
 async def get_doctor_single_patient_with_status(
     patient_cor_id: str,
     db: AsyncSession,
@@ -791,3 +800,10 @@ async def get_signature_data(
         select(DoctorSignature).where(DoctorSignature.id == signature_id)
     )
     return result.scalar_one_or_none()
+
+
+async def get_pending_signings(db: AsyncSession, diagnosis_id: str)-> Optional[DoctorSignatureSession]:
+    q = sqlalchemy.select(DoctorSignatureSession).where(DoctorSignatureSession.diagnosis_id == diagnosis_id)
+    res = await db.execute(q)
+    singning_record = res.scalars().all()
+    return singning_record

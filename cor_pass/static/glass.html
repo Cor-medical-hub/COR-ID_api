@@ -49,12 +49,6 @@
                 </div>
                 <div>
                     <span id="searchCaseId"></span>
-                    <button class="edit-btn" aria-label="Edit case">
-                        <svg class="icon-edit" viewBox="0 0 24 24">
-                            <path d="M4 20h16"/>
-                            <path d="M14.7 5.3l4 4L9 19.3l-4-4L14.7 5.3z"/>
-                        </svg>
-                    </button>
                 </div>
                 <div id="userName"></div>
                 <div id="userGender"></div>
@@ -82,14 +76,6 @@
             <div class="top df aic jcsb">
                 <div>
                     Скельця
-                </div>
-                <div class="topActions df aic">
-                    <div class="topActionsItem open">
-                        Відкрити всі
-                    </div>
-                    <div class="topActionsItem open" id="activeGlassCount" style="display: none">
-                        Відкрити відібрані (<span>0</span>)
-                    </div>
                 </div>
             </div>
             <div class="bottom df ">
@@ -133,13 +119,11 @@
     let currentUserCorId = PATIENT_COR_ID || null;
     let currentCase = null;
     let currentGlasses = null;
-    let activeGlasses = []
 
     const commentsWrapperButtonNODE = document.querySelectorAll('.commentsWrapperButton');
     const reportOwnerInfoNODE = document.querySelector('#reportOwnerInfo')
     const caseContentNODE = document.querySelector("#caseItems");
     const glassContentNODE = document.querySelector("#glassItems");
-    const activeGlassCountNode = document.querySelector('#activeGlassCount');
     const caseLabelNode = document.querySelector('#searchCaseId');
     const caseMicroDescriptionTextareaNODE = document.querySelector('#caseMicroDescription');
     const casePathohistologicalConclusionTextareaNODE = document.querySelector('#casePathohistologicalConclusion');
@@ -155,7 +139,7 @@
         window.history.replaceState(null, '', `${url.pathname}?${params}`);
     }
     const setCaseEdit = () => {
-        if(currentCase.grossing_status === "COMPLETED"){
+        if(isCaseIsClosed(currentCase?.grossing_status)){
             commentsWrapperButtonNODE.forEach(elem => {
                 elem.closest('.commentsWrapper').style.opacity = 1;
                 elem.previousElementSibling.style.pointerEvents = "none"
@@ -269,9 +253,6 @@
                         caseMicroDescriptionTextareaNODE.value = single_case_for_glass_page.microdescription || ""
                         caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
 
-                        activeGlasses = []
-                        activeGlassCountNode.style.display = "none";
-
                         setAllGlasses(single_case_for_glass_page)
                         setCaseEdit()
                         setOwnerInfo(case_owner)
@@ -297,8 +278,11 @@
         });
         return caseNewNODE
     }
+
+
+
     const glassTemplate = (currentGlass) => {
-        const fileUrl = currentGlass?.file_url || "/cases/attachments/eb0f5825-f15e-40d2-bd2c-373690995a87"
+        const fileUrl = currentGlass?.preview_url;
         const currentPaint = glassPaintList.find(({id}) => id === currentGlass.staining);
         const glassNewNODE = document.createElement('div');
         glassNewNODE.classList = `glassWrapper ${!fileUrl ? "disabled" : ""}`;
@@ -310,46 +294,39 @@
             </div>
         `;
 
-        getImages(fileUrl)
-            .then(blob => {
-                if(!blob){
-                    return;
-                }
 
-                const imgNODE = document.createElement('img');
-                imgNODE.src = URL.createObjectURL(blob);
-                imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
-                glassNewNODE.querySelector('.glassWrapperImg').append(imgNODE);
+        if(fileUrl){
+            fetch(`${API_BASE_URL}/api/glasses/${currentGlass.id}/preview`, {
+                method: "GET",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                },
             })
+                .then(res => res.blob())
+                .then((blob) => {
+                    console.log(blob, "blob")
+                    const imgNODE = document.createElement('img');
+                    imgNODE.src = URL.createObjectURL(blob);
+                    imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
+                    glassNewNODE.querySelector('.glassWrapperImg').append(imgNODE);
+                })
+        }
+
 
         glassNewNODE.addEventListener("click", () => {
             if(glassNewNODE.classList.contains('disabled')){
                 return;
             }
 
-            const isActiveGlass =  glassNewNODE.classList.contains('active');
-            const actionMethod = isActiveGlass ? "remove" : "add"
-
-            glassNewNODE.classList[actionMethod]('active')
-
-            const countActiveGlass = document.querySelectorAll('.glassWrapper.active').length
-            activeGlassCountNode.style.display = countActiveGlass ? "block" : "none";
-            activeGlassCountNode.querySelector('span').innerHTML = countActiveGlass;
-
-            if(isActiveGlass){
-                activeGlasses = activeGlasses.filter(glass => glass.id !== currentGlass.id)
-            }
-
-            if(!isActiveGlass){
-                activeGlasses = [...activeGlasses, currentGlass];
-            }
+         // Открываем новую вкладку с SVS/DICOM просмотрщиком
+         openViewerInNewTab(currentGlass);
         });
 
         return glassNewNODE
     }
 
     const setOwnerInfo = (caseOwner) => {
-        const caseIsClosed = currentCase?.grossing_status === "COMPLETED";
+        const caseIsClosed = isCaseIsClosed(currentCase?.grossing_status);
         const hasOwner = caseOwner?.id
         reportOwnerInfoNODE.innerHTML = ""
 
@@ -577,6 +554,15 @@
     });
 </script>
 
+<script>
 
+
+    // Функция для открытия просмотрщика в новой вкладке
+    const openViewerInNewTab = (currentGlass) => {
+
+    const viewerUrl = `/static/dicom/dicom_viewer.html?glass_id=${currentGlass.id}`;
+    window.open(viewerUrl, '_blank');
+};
+</script>
 </body>
 </html>

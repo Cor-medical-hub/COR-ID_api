@@ -188,29 +188,37 @@
  
  </div>
  
-  <!-- Metadata Panel -->
-  <div class="svs-metadata-panel" style="position: absolute; right: 0; top: 0; width: 250px; height: 100%; overflow: auto; background-color: rgba(255, 255, 255, 0.8); color: white; padding: 15px;">
-     <!-- Toolbar -->
-  <div class="svs-toolbar" style="position: absolute; top: 10px; left: 10px; z-index: 10000; display: flex; gap: 5px;">
-    <button class="tool-btn close-btn">×</button>
+ <div class="svs-metadata-panel" style="position: absolute; right: 0; top: 0; width: 350px; height: 100%; overflow: auto; background-color: rgba(255, 255, 255);">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+
+    <div class="modal-header">     
+      <div class="modal-buttons">
+          <button id= "panel-close-btn" class="modal-button close" >✖</button>
+      </div>       
+      <h3>Slide Metadata</h3> 
+    </div>  
+    
   </div>
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h3>Slide Metadata</h3>
-      <button class="metadata-toggle" style="background: none; border: none; color: white; font-size: 1.5em;">≡</button>
-    </div>
-    <div id="svs-metadata-content"></div>
-  </div>
+  <div id="svs-metadata-content"></div>
+  <button id="select-area-btn" style="margin:5px;">📷 Выделить область</button>
 </div>
 
-  <!--Модальное окно загрузки SVS Dicom-->
+<button id="expand-panel-btn" class="tool-btn"><</button>
+<button id="collapse-panel-btn">></button>
+</div>
+   <!--Модальное окно загрузки SVS Dicom-->
 <div id="Dicom_upload_modal" class="modal" style="display: block;">
   <div class="modal-header">     
     <div class="modal-buttons">
         <button class="modal-button close" data-action="close" id="closeDicom_upload_modal">✖</button>
     </div>       
-    <h3 style="margin-top:30; color:#291161;font-size: 17px;">Upload Medical Files</h3>
+    <h3 style="margin-top:30; color:#291161;font-size: 17px;">Загрузка DICOM файлов</h3>
   </div>  
-    
+  <p class="upload-instructions">
+    С помощью кнопки «Выберите файлы», прикрепите их. После чего, запустите загрузку файлов, нажав на кнопку «Загрузить Dicom файлы». 
+    Как только файлы будут загружены, они автоматически будут отображены.
+  </p>
   <div class="dicom-upload-container">
     <input type="file" id="dicom-upload" multiple>
     <button onclick="handleUpload()">Upload DICOM files</button>
@@ -227,17 +235,18 @@
   </div>  
 </div>
 
+  <script src="/static/dicom/dicom_viewer.js"></script>  
   <script src="/static/dicom/SVS_viewer.js"></script>
   <script src="/static/dicom/openseadragon.min.js"></script>
   <script src="/static/COR_ID_Js/translation.js"></script>  
   <script src="/static/COR_ID_Js/general_fun.js"></script> 
-  <script src="/static/dicom/dicom_viewer.js"></script>  
+ 
  
  
   <script>
 
     let viewer = null;
-
+  
     let markers3D = [];
 
     let currentMode = 'auto';
@@ -304,8 +313,42 @@ function formatFileSize(bytes) {
   </script>
  <script> 
  document.addEventListener('DOMContentLoaded', () => { 
+
+  const metadataPanel = document.querySelector('.svs-metadata-panel');
+  const collapseBtn = document.getElementById('collapse-panel-btn');
+  const expandBtn = document.getElementById('expand-panel-btn');
+
+
+  checkToken();
   makeModalDraggable('Dicom_upload_modal');
   document.getElementById('DcmViewerFrame').classList.add('hidden');
+
+  document.getElementById('select-area-btn').addEventListener('click', () => {
+    if (viewer) {
+        enableAreaSelection(viewer);
+    } else {
+        alert("Сначала откройте SVS");
+    }
+});
+  
+  collapseBtn.addEventListener('click', function() {
+    metadataPanel.style.transition = 'transform 0.3s ease';
+    metadataPanel.style.transform = 'translateX(100%)';
+    collapseBtn.style.display = 'none';
+    setTimeout(() => {
+      expandBtn.style.display = 'block';
+    }, 300);
+  });
+  
+  expandBtn.addEventListener('click', function() {
+    metadataPanel.style.transition = 'transform 0.3s ease';
+    metadataPanel.style.transform = 'translateX(0)';
+    expandBtn.style.display = 'none';
+    setTimeout(() => {
+      collapseBtn.style.display = 'block';
+    }, 300);
+  });
+
 
 });
 
@@ -521,7 +564,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 });
-</script>
 
+
+
+</script>
+<script>
+  // Автоматическая загрузка SVS по glass_id при открытии страницы
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded and parsed');
+    
+    // Получаем glass_id из параметров URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const glassId = urlParams.get('glass_id');
+    
+    console.log('URL params:', Array.from(urlParams.entries()));
+    console.log('Glass ID from URL:', glassId);
+    
+    // Проверяем доступность функции
+    console.log('openSVSByGlassId available:', typeof openSVSByGlassId);
+    
+    // Если передан glass_id, автоматически запускаем загрузку SVS
+    if (glassId) {
+        console.log('Auto-loading SVS for glass_id:', glassId);
+        
+        // Ждем немного для инициализации всех компонентов
+        setTimeout(() => {
+            console.log('Calling openSVSByGlassId...');
+            if (typeof openSVSByGlassId === 'function') {
+                openSVSByGlassId(glassId);
+            } else {
+                console.error('openSVSByGlassId is not a function!');
+            }
+        }, 1000);
+    } else {
+        console.log('No glass_id parameter found in URL');
+    }
+});
+  </script>
 </body>
 </html>

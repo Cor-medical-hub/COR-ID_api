@@ -72,21 +72,21 @@ class PatientClinicStatus(enum.Enum):
 
 # Типы макроархива для параметров кейса
 class MacroArchive(enum.Enum):
-    ESS = "ESS - без остатка"
-    RSS = "RSS - остаток"
+    ESS = "ESS - без залишку"
+    RSS = "RSS - залишок"
 
 
 # Типы декальцинации для параметров кейса
 class DecalcificationType(enum.Enum):
-    ABSENT = "Отсутствует"
+    ABSENT = "Відсутня"
     EDTA = "EDTA"
-    ACIDIC = "Кислотная"
+    ACIDIC = "Кислотна"
 
 
 # Типы образцов для параметров кейса
 class SampleType(enum.Enum):
-    NATIVE = "Нативный биоматериал"
-    BLOCKS = "Блоки/Стекла"
+    NATIVE = "Нативний біоматеріал"
+    BLOCKS = "Блоки/Скельця"
 
 
 # Типы материалов (исследований) для параметров кейса
@@ -99,7 +99,7 @@ class MaterialType(enum.Enum):
     S = "Second Opinion"
     A = "Autopsy"
     EM = "Electron Microscopy"
-    OTHER = "Другое"
+    OTHER = "Інше"
 
 
 # Типы срочности для параметров кейса
@@ -116,19 +116,20 @@ class FixationType(enum.Enum):
     BOUIN = "Bouin"
     ALCOHOL = "Alcohol"
     GLUTARALDEHYDE_2 = "2% Glutaraldehyde"
-    OTHER = "Другое"
+    OTHER = "Інше"
 
 
 # Типы исследований для направления
 class StudyType(enum.Enum):
-    CYTOLOGY = "цитология"
-    HISTOPATHOLOGY = "патогистология"
-    IMMUNOHISTOCHEMISTRY = "иммуногистохимия"
+    CYTOLOGY = "Цитологія"
+    HISTOPATHOLOGY = "Патогістологія"
+    IMMUNOHISTOCHEMISTRY = "Імуногістохімія"
     FISH_CISH = "FISH/CISH"
     CB = "Cellblock"
     S = "Second Opinion"
     A = "Autopsy"
     EM = "Electron Microscopy"
+    OTHER = "Інше"
 
 
 # Типы окрашивания для стёкол
@@ -157,6 +158,7 @@ class Grossing_status(enum.Enum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     CREATED = "CREATED"
+    IN_SIGNING_STATUS = "IN_SIGNING_STATUS"
 
 
 class User(Base):
@@ -374,6 +376,8 @@ class UserSession(Base):
     user_id = Column(String(36), ForeignKey("users.cor_id"), nullable=False)
     device_type = Column(String(250), nullable=True)
     device_info = Column(String(250), nullable=True)
+    app_id = Column(String(250), nullable=True) # Идентификатор апки
+    device_id = Column(String(250), nullable=True) # айди устройства
     ip_address = Column(String(250), nullable=True)
     device_os = Column(String(250), nullable=True)
     jti = Column(
@@ -395,7 +399,6 @@ class UserSession(Base):
     # Индексы
     __table_args__ = (
         Index("idx_user_sessions_user_id", "user_id"),
-        UniqueConstraint("user_id", "device_info", name="uq_user_device_session"),
     )
 
 
@@ -406,6 +409,8 @@ class CorIdAuthSession(Base):
     email = Column(String(255), index=True, nullable=True)
     cor_id = Column(String(250), index=True, nullable=True)
     session_token = Column(String(36), unique=True, index=True, nullable=False)
+    app_id = Column(String(250), nullable=True)
+    device_id = Column(String(250), nullable=True)
     status = Column(
         Enum(AuthSessionStatus), default=AuthSessionStatus.PENDING, nullable=False
     )
@@ -659,6 +664,8 @@ class Glass(Base):
     staining = Column(Enum(StainingType), nullable=True)
     glass_data = Column(LargeBinary, nullable=True)
     is_printed = Column(Boolean, nullable=True, default=False)
+    scan_url = Column(String, nullable=True)
+    preview_url = Column(String, nullable=True)
     cassette = relationship("Cassette", back_populates="glass")
 
 
@@ -1084,5 +1091,19 @@ class ECGMeasurement(Base):
     file_name = Column(String, nullable=True) 
 
     user = relationship("User", back_populates="ecg_measurements")
+
+
+class DoctorSignatureSession(Base):
+    __tablename__ = "doctor_signature_sessions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_token = Column(String, unique=True, nullable=False)
+    doctor_cor_id = Column(String(36), nullable=False)
+    diagnosis_id = Column(String(36), nullable=False)
+    doctor_signature_id = Column(String(36), nullable=True)
+    status = Column(String, default="pending")  # pending/approved/rejected/expired
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime,nullable=False,default=func.now())
+
 
 # Base.metadata.create_all(bind=engine)

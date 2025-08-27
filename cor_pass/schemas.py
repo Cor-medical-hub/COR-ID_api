@@ -35,7 +35,7 @@ from datetime import date
 
 class UserModel(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=6, max_length=20)
+    password: str = Field(min_length=8, max_length=32)
     birth: Optional[int] = Field(None, ge=1945, le=2100)
     user_sex: Optional[str] = Field(None, max_length=1)
     cor_id: Optional[str] = Field(None, max_length=15)
@@ -70,6 +70,8 @@ class ResponseUser(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    session_id: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class NewUserRegistration(BaseModel):
@@ -102,6 +104,17 @@ class LoginResponseModel(BaseModel):
     session_id: Optional[str] = None
     requires_master_key: bool = False
     message: Optional[str] = None
+    device_id: Optional[str] = None
+
+
+class RecoveryResponseModel(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    message: Optional[str] = None
+    confirmation: Optional[bool] = False
+    session_id: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class EmailSchema(BaseModel):
@@ -115,12 +128,12 @@ class VerificationModel(BaseModel):
 
 class ChangePasswordModel(BaseModel):
     email: Optional[str]
-    password: str = Field(min_length=6, max_length=20)
+    password: str = Field(min_length=8, max_length=32)
 
 
 class ChangeMyPasswordModel(BaseModel):
-    old_password: str = Field(min_length=6, max_length=20)
-    new_password: str = Field(min_length=6, max_length=20)
+    old_password: str = Field(min_length=8, max_length=32)
+    new_password: str = Field(min_length=8, max_length=32)
 
 
 class RecoveryCodeModel(BaseModel):
@@ -147,6 +160,8 @@ class UserSessionModel(BaseModel):
     refresh_token: str
     jti: str
     access_token: str
+    app_id: Optional[str] = None
+    device_id: Optional[str] = None
 
 
 class UserSessionResponseModel(BaseModel):
@@ -547,6 +562,7 @@ class DoctorCreateResponse(BaseModel):
 class InitiateLoginRequest(BaseModel):
     email: Optional[EmailStr] = None
     cor_id: Optional[str] = None
+    app_id: Optional[str] = None
 
     @model_validator(mode="before")
     def check_either_email_or_cor_id(cls, data: dict):
@@ -604,6 +620,7 @@ class ConfirmCheckSessionResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    device_id: Optional[str] = None
 
 
 # PATIENTS MODELS
@@ -771,6 +788,7 @@ class Glass(GlassBase):
     id: str
     cassette_id: str
     is_printed: Optional[bool]
+    preview_url: Optional[str]
 
     class Config:
         from_attributes = True
@@ -1400,6 +1418,38 @@ class ReportCreateSchema(ReportBaseSchema):
 class ReportUpdateSchema(ReportBaseSchema):
     pass
 
+class InitiateSignatureRequest(BaseModel):
+    # doctor_cor_id: str = Field(..., description="COR-ID доктора, который подписывает")
+    diagnosis_id: str = Field(..., description="ID диагноза, который будет подписан")
+    doctor_signature_id: Optional[str] = Field(None, description="ID подписи")
+
+
+class InitiateSignatureResponse(BaseModel):
+    session_token: str
+    deep_link: str
+    expires_at: datetime
+
+
+class ActionRequest(BaseModel):
+    session_token: str
+    status: SessionLoginStatus
+
+
+class StatusResponse(BaseModel):
+    session_token: str
+    status: str
+    deep_link: Optional[str] = None
+    expires_at: datetime
+
+
+class PatientResponseForSigning(BaseModel):
+    patient_cor_id: str
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+    birth_date: Optional[date] = None
+    sex: Optional[str] = None
+    age: Optional[int] = None
 
 class DoctorDiagnosisSchema(BaseModel):
     id: str
@@ -1470,6 +1520,7 @@ class PatientFinalReportPageResponse(BaseModel):
     last_case_details: Optional[CaseWithOwner] = None
     case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[FinalReportResponseSchema]
+    current_signings: Optional[StatusResponse] = None
 
     class Config:
         from_attributes = True
@@ -1479,6 +1530,7 @@ class CaseFinalReportPageResponse(BaseModel):
     case_details: CaseWithOwner
     case_owner: Optional[CaseOwnerResponse]
     report_details: Optional[FinalReportResponseSchema]
+    current_signings: Optional[StatusResponse] = None
 
     class Config:
         from_attributes = True
@@ -1609,6 +1661,7 @@ class GlassTestModelScheema(BaseModel):
     glass_number: int
     cassette_id: str
     staining: Optional[str] = None
+    preview_url: Optional[str]
 
 
 class CassetteTestForGlassPage(BaseModel):
@@ -1707,6 +1760,7 @@ class PatientResponseForGetPatients(BaseModel):
     change_date: Optional[datetime] = None
     doctor_status: Optional[PatientStatus] = None
     clinic_status: Optional[PatientClinicStatus] = None
+    cases: Optional[List] = None
 
 
 class GetAllPatientsResponce(BaseModel):
@@ -2154,17 +2208,17 @@ class SearchCaseDetailsSimple(BaseModel):
     patient_id: str
 
 class GeneralPrinting(BaseModel):
-    printer_ip: str
-    number_models_id: int
-    clinic_name: str
-    hooper: str
+    printer_ip: Optional[str] = None
+    number_models_id: Optional[str] = None
+    clinic_name: Optional[str] = None
+    hooper: Optional[str] = None
     # printing: bool
 
 class GlassPrinting(BaseModel):
-    printer_ip: str
-    number_models_id: int
-    clinic_name: str
-    hooper: str
+    printer_ip: Optional[str] = None
+    model_id: Optional[str] = None
+    clinic_name: Optional[str] = None
+    hooper: Optional[str] = None
     glass_id: str
     printing: bool
 
@@ -2178,25 +2232,25 @@ class GlassResponseForPrinting(BaseModel):
     patient_cor_id: str
 
 class CassettePrinting(BaseModel):
-    printer_ip: str
-    number_models_id: int
-    clinic_name: str
-    hooper: str
+    printer_ip: Optional[str] = None
+    number_models_id: Optional[int] = None
+    clinic_name: Optional[str] = None
+    hooper: Optional[str] = None
     cassete_id: str
     printing: bool
 
 class CassetteResponseForPrinting(BaseModel):
 
-    case_code: str
+    case_code: Optional[str] = None
     sample_number: str
     cassette_number: str
-    patient_cor_id: str
+    patient_cor_id: Optional[str] = None
 
 
 
 class PrintLabel(BaseModel):
     """Модель для одной метки для печати."""
-    number_models_id: int
+    model_id: int
     content: str
     uuid: str 
 
@@ -2214,3 +2268,6 @@ class FeedbackRatingScheema(BaseModel):
 
 class FeedbackProposalsScheema(BaseModel):
     proposal: str = Field(...,min_length=2,max_length=800, description="Предложения")
+
+
+

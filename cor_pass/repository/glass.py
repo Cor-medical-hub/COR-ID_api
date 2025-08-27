@@ -1,13 +1,24 @@
+import asyncio
+from datetime import datetime, time
+import time as t
+from io import BytesIO
+import os
+import socket
+import tempfile
+from threading import Timer
 from fastapi import HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from cor_pass.repository.printing_device import get_printing_device_by_device_class, get_printing_device_by_device_identifier
 from cor_pass.schemas import ChangeGlassStaining, Glass as GlassModelScheema, GlassPrinting, GlassResponseForPrinting, PrintLabel
 from typing import Any, Dict, List
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from cor_pass.database import models as db_models
 from cor_pass.repository import case as repository_cases
 from cor_pass.services.glass_and_cassette_printing import print_labels
-
+from loguru import logger
+from cor_pass.config.config import settings
+from smb.SMBConnection import SMBConnection
 
 async def get_glass(db: AsyncSession, glass_id: int) -> GlassModelScheema | None:
     """Асинхронно получает конкретное стекло, связанное с кассетой по её ID и номеру."""
@@ -20,6 +31,177 @@ async def get_glass(db: AsyncSession, glass_id: int) -> GlassModelScheema | None
 
     return None
 
+async def get_glass_preview_png(db: AsyncSession, glass_id: str):
+    """
+    Получает запись Glass по ID с проверкой наличия preview_url.
+    """
+    result = await db.execute(
+        select(db_models.Glass)
+        .options(
+            joinedload(db_models.Glass.cassette)
+            .joinedload(db_models.Cassette.sample)
+            .joinedload(db_models.Sample.case)
+        )
+        .where(db_models.Glass.id == glass_id)
+    )
+    glass = result.scalars().first()
+    if glass is None:
+        return None
+    # if not glass.preview_url:
+    #     logger.error(f"preview_url не задан для стекла с ID {glass_id}")
+    #     return None
+    logger.debug(f"Найдено стекло с ID {glass_id}, preview_url: {glass.preview_url}")
+    return glass
+
+async def fetch_file_from_smb(path: str) -> str:
+    """
+    Загружает файл с SMB-сервера во временный файл и возвращает путь к нему.
+    """
+    loop = asyncio.get_running_loop()
+
+    def _read_file():
+        conn = SMBConnection(
+            settings.smb_user,
+            settings.smb_pass,
+            my_name=socket.gethostname(),
+            remote_name=settings.remote_name,
+            use_ntlm_v2=True,
+            is_direct_tcp=True,
+        )
+        if not conn.connect(settings.smb_server_ip, 445):
+            logger.error(f"Не удалось подключиться к SMB-серверу {settings.smb_server_ip}")
+            raise RuntimeError("Failed to connect to SMB server")
+
+        prefix = f"\\\\{settings.smb_server_ip}\\{settings.smb_share}\\"
+        if path.startswith(prefix):
+            relative_path = path[len(prefix):].strip("/\\")
+        else:
+            relative_path = path.strip("/\\")
+
+        logger.debug(f"Загрузка файла с SMB: {relative_path}")
+
+        try:
+            file_info = conn.getAttributes(settings.smb_share, relative_path)
+            filesize = getattr(file_info, "file_size", None)
+            if filesize is None:
+                logger.error(f"Не удалось получить размер файла для {relative_path}")
+                raise ValueError("Cannot get filesize from SMB file_info")
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+                start_time = datetime.now()
+                conn.retrieveFile(settings.smb_share, relative_path, temp_file)
+                temp_file.flush()
+                logger.debug(f"Время загрузки файла: {datetime.now() - start_time} секунд")
+
+                temp_file.seek(0, os.SEEK_END)
+                file_size = temp_file.tell()
+                if file_size != filesize:
+                    logger.error(f"Ожидалось {filesize} байт, но записано {file_size} байт")
+                    raise RuntimeError(f"Expected {filesize} bytes, but wrote {file_size} bytes")
+                
+                return temp_file.name
+        finally:
+            conn.close()
+
+    return await loop.run_in_executor(None, _read_file)
+
+
+async def fetch_file_from_smb_with_timeout(path: str) -> str:
+    """
+    Загружает файл с SMB-сервера во временный файл и возвращает путь к нему.
+    """
+    loop = asyncio.get_running_loop()
+
+    def _read_file():
+        conn = SMBConnection(
+            settings.smb_user,
+            settings.smb_pass,
+            my_name=socket.gethostname(),
+            remote_name=settings.remote_name,
+            use_ntlm_v2=True,
+            is_direct_tcp=True,
+        )
+        if not conn.connect(settings.smb_server_ip, 445):
+            logger.error(f"Не удалось подключиться к SMB-серверу {settings.smb_server_ip}")
+            raise RuntimeError("Failed to connect to SMB server")
+
+
+        prefix = f"\\\\{settings.smb_server_ip}\\{settings.smb_share}\\"
+        if path.startswith(prefix):
+            relative_path = path[len(prefix):].strip("/\\")
+        else:
+            relative_path = path.strip("/\\")
+
+        logger.debug(f"Загрузка файла с SMB: {relative_path}")
+
+        try:
+            file_info = conn.getAttributes(settings.smb_share, relative_path)
+            filesize = getattr(file_info, "file_size", None)
+            if filesize is None:
+                logger.error(f"Не удалось получить размер файла для {relative_path}")
+                raise ValueError("Cannot get filesize from SMB file_info")
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+                start_time = datetime.now()
+                conn.retrieveFile(settings.smb_share, relative_path, temp_file)
+                temp_file.flush()
+                logger.debug(f"Время загрузки файла: {datetime.now() - start_time} секунд")
+
+                temp_file.seek(0, os.SEEK_END)
+                file_size = temp_file.tell()
+                if file_size != filesize:
+                    logger.error(f"Ожидалось {filesize} байт, но записано {file_size} байт")
+                    raise RuntimeError(f"Expected {filesize} bytes, but wrote {file_size} bytes")
+                
+                return temp_file.name
+        finally:
+            conn.close()
+
+
+    return await loop.run_in_executor(None, _read_file)
+
+
+async def fetch_png_from_smb(path: str) -> BytesIO:
+    """
+    Загружает PNG-файл с SMB-сервера и возвращает его содержимое в BytesIO.
+    """
+    try:
+        temp_file_path = await fetch_file_from_smb_with_timeout(path)
+        try:
+            with open(temp_file_path, "rb") as f:
+                buf = BytesIO(f.read())
+                logger.debug(f"PNG-файл успешно загружен в память: {path}")
+                return buf
+        finally:
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+                logger.debug(f"Временный файл {temp_file_path} удалён")
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке PNG-файла {path}: {str(e)}")
+        raise
+
+async def get_glass_svs(db: AsyncSession, glass_id: str):
+    """
+    Получает запись Glass по ID с проверкой наличия scan_url.
+    """
+    result = await db.execute(
+        select(db_models.Glass)
+        .options(
+            joinedload(db_models.Glass.cassette)
+            .joinedload(db_models.Cassette.sample)
+            .joinedload(db_models.Sample.case)
+        )
+        .where(db_models.Glass.id == glass_id)
+    )
+    glass = result.scalars().first()
+    if glass is None:
+        logger.error(f"Стекло с ID {glass_id} не найдено")
+        return None
+    if not glass.scan_url:
+        logger.error(f"scan_url не задан для стекла с ID {glass_id}")
+        return None
+    logger.debug(f"Найдено стекло с ID {glass_id}, scan_url: {glass.scan_url}")
+    return glass
 
 async def create_glass(
     db: AsyncSession,
@@ -245,30 +427,33 @@ async def get_full_glass_info(db: AsyncSession, glass_id: str) -> GlassResponseF
     return response
 
 
+
 async def print_glass_data(
     data: GlassPrinting, db: AsyncSession, request: Request
 ):
     db_glass = await get_full_glass_info(db, data.glass_id)
     if db_glass is None:
         raise HTTPException(status_code=404, detail=f"Стекло с ID {data.glass_id} не найдено в базе данных")
-
-    clinic_name = data.clinic_name
+    device = await get_printing_device_by_device_class(db=db, device_class="GlassPrinter")
+    model_id = data.model_id if data.model_id else "8"
+    printer_ip = data.printer_ip if data.printer_ip else device.ip_address
+    clinic_name = data.clinic_name if data.clinic_name else "FF"
     case_code = db_glass.case_code
     sample_number=db_glass.sample_number
     cassette_number=db_glass.cassette_number
     glass_number=db_glass.glass_number
     staining=db_glass.staining
-    hooper=data.hooper
+    hooper=data.hooper if data.hooper else "?"
     patient_cor_id=db_glass.patient_cor_id
         
     content = f"{clinic_name}|{case_code}|{sample_number}|{cassette_number}|L{glass_number}|{staining}|{hooper}|{patient_cor_id}"
 
     label_to_print = PrintLabel(
-        number_models_id=data.number_models_id, 
+        model_id=model_id, 
         content=content,
         uuid=data.glass_id
     )
-
-    print_result = await print_labels(printer_ip=data.printer_ip, labels_to_print=[label_to_print], request=request)
+ 
+    print_result = await print_labels(printer_ip=printer_ip, labels_to_print=[label_to_print], request=request)
 
     return print_result
