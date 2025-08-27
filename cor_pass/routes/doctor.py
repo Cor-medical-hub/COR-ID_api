@@ -1279,7 +1279,7 @@ async def get_status_by_diagnosis_id(diagnosis_id: str, db: AsyncSession = Depen
 @router.websocket("/ws/signing")
 async def websocket_signing(websocket: WebSocket):
     """WebSocket для подписчиков канала подписи."""
-    connection_id = await websocket_events_manager.connect(websocket, session_token=None)
+    connection_id = await websocket_events_manager.connect(websocket)
     try:
         while True:
             await websocket.receive_text()  
