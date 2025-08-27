@@ -81,7 +81,7 @@ ALGORITHM = settings.algorithm
 @router.post(
     "/signup",
     response_model=ResponseUser,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
     dependencies=[Depends(RateLimiter(times=10, seconds=60))],
 )
 async def signup(
