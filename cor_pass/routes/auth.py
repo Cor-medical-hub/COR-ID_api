@@ -452,7 +452,7 @@ async def check_session_status(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
-        device_id=db_session.device_id,
+        device_id=db_session.device_id if not existing_sessions else device_information["device_info"]
     )
     return response
 
