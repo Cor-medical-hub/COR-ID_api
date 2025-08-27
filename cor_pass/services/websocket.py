@@ -17,50 +17,50 @@ from cor_pass.services.websocket_events_manager import websocket_events_manager
 active_connections: dict[str, WebSocket] = {}
 
 
-# async def send_websocket_message(session_token: str, message: dict):
-#     """Отправляет сообщение через WebSocket конкретному клиенту."""
-#     if session_token in active_connections:
-#         await active_connections[session_token].send_json(message)
-
 async def send_websocket_message(session_token: str, message: dict):
-    """
-    Отправка сообщения всем WebSocket-клиентам, связанным с session_token.
-    """
-    key = f"ws:session:{session_token}"
-    session_data = await redis_client.hgetall(key)
+    """Отправляет сообщение через WebSocket конкретному клиенту."""
+    if session_token in active_connections:
+        await active_connections[session_token].send_json(message)
 
-    if not session_data:
-        logger.warning(f"Нет активных соединений для session_token={session_token}")
-        return
+# async def send_websocket_message(session_token: str, message: dict):
+#     """
+#     Отправка сообщения всем WebSocket-клиентам, связанным с session_token.
+#     """
+#     key = f"ws:session:{session_token}"
+#     session_data = await redis_client.hgetall(key)
 
-    connection_id = session_data.get("connection_id")
-    if not connection_id:
-        logger.warning(f"Для session_token={session_token} не найден connection_id")
-        return
+#     if not session_data:
+#         logger.warning(f"Нет активных соединений для session_token={session_token}")
+#         return
 
-    # достаём инфу по connection_id
-    conn_info = await redis_client.hgetall(f"ws:connection:{connection_id}")
-    if not conn_info:
-        logger.warning(f"connection_id={connection_id} не найден в Redis")
-        return
+#     connection_id = session_data.get("connection_id")
+#     if not connection_id:
+#         logger.warning(f"Для session_token={session_token} не найден connection_id")
+#         return
 
-    worker_id = conn_info.get("worker_id")
-    if not worker_id:
-        logger.warning(f"Для connection_id={connection_id} не указан worker_id")
-        return
+#     # достаём инфу по connection_id
+#     conn_info = await redis_client.hgetall(f"ws:connection:{connection_id}")
+#     if not conn_info:
+#         logger.warning(f"connection_id={connection_id} не найден в Redis")
+#         return
 
-    # публикуем сообщение в Redis-канал для конкретного воркера
-    channel = f"ws:messages:{worker_id}"
-    await redis_client.publish(
-        channel,
-        json.dumps({
-            "session_token": session_token,
-            "connection_id": connection_id,
-            "message": message,
-        }),
-    )
+#     worker_id = conn_info.get("worker_id")
+#     if not worker_id:
+#         logger.warning(f"Для connection_id={connection_id} не указан worker_id")
+#         return
 
-    logger.info(f"Сообщение отправлено в канал {channel} для session={session_token}")
+#     # публикуем сообщение в Redis-канал для конкретного воркера
+#     channel = f"ws:messages:{worker_id}"
+#     await redis_client.publish(
+#         channel,
+#         json.dumps({
+#             "session_token": session_token,
+#             "connection_id": connection_id,
+#             "message": message,
+#         }),
+#     )
+
+#     logger.info(f"Сообщение отправлено в канал {channel} для session={session_token}")
 
 async def close_websocket_connection(session_token: str):
     """Закрывает WebSocket-соединение и удаляет его из активных."""
