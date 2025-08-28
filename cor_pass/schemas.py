@@ -1428,6 +1428,7 @@ class InitiateSignatureResponse(BaseModel):
     session_token: str
     deep_link: str
     expires_at: datetime
+    status: Optional[str] = None
 
 
 class ActionRequest(BaseModel):
@@ -1438,6 +1439,7 @@ class ActionRequest(BaseModel):
 class StatusResponse(BaseModel):
     session_token: str
     status: str
+    deep_link: Optional[str] = None
     expires_at: datetime
 
 

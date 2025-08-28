@@ -46,6 +46,7 @@ from cor_pass.services.email import (
     send_email_code,
     send_email_code_forgot_password,
 )
+from cor_pass.services.websocket_events_manager import websocket_events_manager
 from cor_pass.services.cipher import decrypt_data, decrypt_user_key, encrypt_data
 from cor_pass.config.config import settings
 from cor_pass.services.access import user_access
@@ -81,7 +82,7 @@ ALGORITHM = settings.algorithm
 @router.post(
     "/signup",
     response_model=ResponseUser,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
     dependencies=[Depends(RateLimiter(times=10, seconds=60))],
 )
 async def signup(
@@ -325,6 +326,7 @@ async def login(
     }
 
 
+
 # вызываем в кор енерджи
 @router.post(
     "/v1/initiate-login",
@@ -452,7 +454,7 @@ async def check_session_status(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
-        device_id=db_session.device_id,
+        device_id=db_session.device_id if not existing_sessions else device_information["device_info"]
     )
     return response
 
@@ -564,23 +566,33 @@ async def confirm_login(
             user=user,
             db=db,
         )
-        await send_websocket_message(
-            session_token,
-            {
+        # await send_websocket_message(
+        #     session_token=session_token,message=
+        #     {
+        #         "status": "approved",
+        #         "access_token": access_token,
+        #         "refresh_token": refresh_token,
+        #         "token_type": "bearer",
+        #         "device_id": db_session.device_id,
+        #     },
+        # )
+        data = {
                 "status": "approved",
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "token_type": "bearer",
                 "device_id": db_session.device_id,
-            },
-        )
+            }
+        await websocket_events_manager.send_to_session(session_id=session_token, event_data=data)
         return {"message": "Вход успешно подтвержден"}
 
     elif confirmation_status == SessionLoginStatus.rejected.value.lower():
         await repository_session.update_session_status(
             db_session, confirmation_status, db
         )
-        await send_websocket_message(session_token, {"status": "rejected"})
+        data = {"status": "rejected"}
+        #await send_websocket_message(session_token=session_token, message={"status": "rejected"})
+        await websocket_events_manager.send_to_session(session_id=session_token, event_data=data)
         return {"message": "Вход отменен пользователем"}
     else:
         raise HTTPException(
