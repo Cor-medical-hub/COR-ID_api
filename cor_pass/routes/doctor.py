@@ -11,6 +11,7 @@ from fastapi import (
     Query,
     UploadFile,
     WebSocket,
+    WebSocketDisconnect,
     status,
 )
 
@@ -396,8 +397,12 @@ async def add_existing_patient_to_doctor(
             status_code=status.HTTP_404_NOT_FOUND, detail="Doctor not found"
         )
     user = await repository_person.get_user_by_corid(cor_id=patient_data.cor_id, db=db)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     new_patient_data = ExistingPatientRegistration(
-        email=user.email,
+        email=user.email if user else None,
         birth_date=user.birth,
         sex=user.user_sex,
     )
@@ -868,6 +873,7 @@ async def add_signature_to_report_route(
         session_token=session_token,
         deep_link=deep_link,
         expires_at=expires_at,
+        status="pending"
     )
 
 
@@ -1276,24 +1282,16 @@ async def get_status_by_diagnosis_id(diagnosis_id: str, db: AsyncSession = Depen
             raise HTTPException(status_code=404, detail="Pending session not found")
 
 @router.websocket("/ws/signing")
-async def signature_ws(websocket: WebSocket, 
-                    #    session_token: str
-                       ):
-    """
-    Браузер открывает WS на время ожидания подписи.
-    Мы шлём события broadcast'ом, включая session_token в payload.
-    Фронт фильтрует по своему токену.
-    """
+async def websocket_signing(websocket: WebSocket):
+    """WebSocket для подписчиков канала подписи."""
     connection_id = await websocket_events_manager.connect(websocket)
     try:
-        # Можно периодически пинговать или просто ждать закрытия
         while True:
-            # Ничего не ждём от клиента — просто держим соединение живым
-            await asyncio.sleep(60)
-    except Exception:
-        # клиент сам закрыл вкладку/соединение
-        pass
-    finally:
+            await websocket.receive_text()  
+    except WebSocketDisconnect:
+        await websocket_events_manager.disconnect(connection_id)
+    except Exception as e:
+        logger.error(f"Error in ws/signing for {connection_id}: {e}")
         await websocket_events_manager.disconnect(connection_id)
 
 

@@ -257,7 +257,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 .then(res => res.json())
                 .then(() => {
                     caseSettingsModal.classList.remove('open')
-                    alert('Параметри кейсу успішно оновлені')
+                    alert('Case parameters successfully updated')
                 })
         })
 

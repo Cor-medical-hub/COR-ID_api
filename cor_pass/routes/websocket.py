@@ -37,7 +37,7 @@ async def websocket_endpoint(
         )
         return
 
-    connection_id = await websocket_events_manager.connect(websocket, session_token)
+    connection_id = await websocket_events_manager.connect(websocket=websocket, session_id=session_token)
     try:
         while True:
             data = await websocket.receive_text()

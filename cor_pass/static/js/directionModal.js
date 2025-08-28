@@ -18,8 +18,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 <div class="upload-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 4v10M7 9l5-5 5 5"/><rect x="4" y="18" width="16" height="2" rx="1"/></svg>
                 </div>
-                <span>Перетягніть сюди свої файли<br><b>або скануйте</b></span>
-                <small class="note">до 5 файлів</small>
+                <span>Drag your files here<br><b>or scan</b></span>
+                <small class="note">up to 5 filesдо</small>
                 <input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden>
             </div>`
         )
@@ -47,23 +47,23 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const drawForm = ( formData ) => {
         const formDrawData = [
             {
-                label: "Вид дослідження",
+                label: "Case's type",
                 field: "research_type",
                 required: true,
                 elementType: "select",
-                placeholder: "Оберіть вид",
+                placeholder: "Choose a type",
                 selectData: [
                     {
-                        id: "патогистология",
-                        label: "Патгістологія"
+                        id: "Патогістологія",
+                        label: "Pathology"
                     },
                     {
-                        id: "иммуногистохимия",
-                        label: "Імуногістохімія"
+                        id: "Імуногістохімія",
+                        label: "Immunohistochemistry"
                     },
                     {
-                        id: "цитология",
-                        label: "Цитологія"
+                        id: "Цитологія",
+                        label: "Cytology"
                     },
                     {
                         id: "FISH/CISH",
@@ -71,12 +71,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     },
                     {
                         id: "Інше",
-                        label: "Інше"
+                        label: "Other"
                     },
                 ]
             },
             {
-                label: "Кількість контейнерів",
+                label: "Number of containers",
                 field: "container_count",
                 required: true,
                 elementType: "input",
@@ -84,35 +84,35 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 placeholder: "0",
             },
             {
-                label: "Дата забору біоматеріалу",
+                label: "Date of biomaterial collection",
                 field: "biomaterial_date",
                 elementType: "input",
                 type: "date",
             },
             {
-                label: "Медкарта №",
+                label: "Medical card №",
                 field: "medical_card_number",
                 elementType: "input",
                 type: "text",
                 placeholder: "",
             },
             {
-                label: "Клінічні дані",
+                label: "Clinical data",
                 field: "clinical_data",
                 elementType: "textarea",
             },
             {
-                label: "Клінічний діагноз",
+                label: "Clinical diagnosis",
                 field: "clinical_diagnosis",
                 elementType: "input",
                 type: "text",
                 placeholder: "",
             },
             {
-                label: "Медичний заклад",
+                label: "Medical facility",
                 field: "medical_institution",
                 elementType: "select",
-                placeholder: "Оберіть медичний заклад",
+                placeholder: "Choose a medical facility",
                 selectData: [
                     {
                         id: "Феофанія",
@@ -120,42 +120,42 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     },
                     {
                         id: "Інститут раку",
-                        label: "Інститут раку"
+                        label: "Cancer Institute"
                     },
                 ]
             },
             {
-                label: "Відділення",
+                label: "Department",
                 field: "department",
                 elementType: "select",
-                placeholder: "Оберіть відділення",
+                placeholder: "Choose a branch",
                 selectData: [
                     {
                         id: "Хірургія",
-                        label: "Хірургія"
+                        label: "Surgery"
                     },
                     {
                         id: "Терапія",
-                        label: "Терапія"
+                        label: "Therapy"
                     },
                 ]
             },
             {
-                label: "Лікуючий лікар ПІБ",
+                label: "Attending physician Full name",
                 field: "attending_doctor",
                 elementType: "input",
                 type: "text",
                 placeholder: "",
             },
             {
-                label: "Контакти лікаря",
+                label: "Doctor's contacts",
                 field: "doctor_contacts",
                 elementType: "input",
                 type: "text",
                 placeholder: "+380"
             },
             {
-                label: "Медична процедура/операція",
+                label: "Medical procedure/surgery",
                 field: "medical_procedure",
                 elementType: "input",
                 type: "text",

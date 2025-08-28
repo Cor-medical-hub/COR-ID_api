@@ -32,19 +32,19 @@
                     </svg>
                 </button>
                 <div class="role-toggle">
-                    <button class="role-btn doc active">Лікар</button>
-                    <button class="role-btn lab">Лаборант</button>
+                    <button class="role-btn doc active">Doctor</button>
+                    <button class="role-btn lab">Laborant</button>
                 </div>
             </div>
         </div>
         <div class="header-row bottom">
             <div>
                 <div class="tabs">
-                    <button class="tab directionPage">Направлення</button>
-                    <button class="tab tenderloinPage">Вирізка</button>
-                    <button class="tab glassPage">Скельця</button>
-                    <button class="tab conclusionPage">Заключення</button>
-                    <button class="tab explorationPage active">Дослідження</button>
+                    <button class="tab directionPage">Medical Referral</button>
+                    <button class="tab tenderloinPage">Grossing</button>
+                    <button class="tab glassPage">Glasses</button>
+                    <button class="tab conclusionPage">Report</button>
+                    <button class="tab explorationPage active">Report Preview</button>
                 </div>
             </div>
             <div class="meta-info">
@@ -66,7 +66,7 @@
                     <img src="./assets/arrow.svg" alt="arrow">
                 </div>
                 <div>
-                    Поточні кейси
+                    Current Cases
                 </div>
             </div>
             <div class="bottom">
@@ -76,14 +76,14 @@
         <div class="middle df fdc">
             <div class="top df aic jcsb">
                 <div>
-                    Скельця
+                    Glasses
                 </div>
                 <div class="topActions df aic">
                     <div class="topActionsItem" id="doctorSignModalBtn">
-                        Підписати
+                        Sign
                     </div>
                     <div class="topActionsItem open" id="printReport">
-                        Друкувати дослідження
+                        Print Report Preview
                     </div>
                 </div>
             </div>
@@ -116,10 +116,10 @@
                         </div>
                         <div class="df aic jcc gap4">
                             <div class="doctorSignButton">
-                                Підписати
+                                Sign
                             </div>
                             <div id="openCreateDoctorSign" class="doctorSignButton">
-                                Cтворити підпис
+                                Create signature
                             </div>
                         </div>
                     </div>
@@ -164,18 +164,18 @@
                     </svg>
                 </div>
                 <div class="waitingSignatureQRTitle">
-                    Вам необхідно підтвердити дію
+                    You need to confirm the action.
                 </div>
                 <div class="waitingSignatureQRDescription">
-                    Будь ласка, відскануйте QR-код нижче та виконайте всі кроки підтвердження в додатку COR ID
+                    Please scan the QR code below and follow all verification steps in the COR ID app.
                 </div>
                 <div id="waitingSignatureQR">
                 </div>
                 <div class="waitingSignatureQRLoading">
-                    Очікування...
+                    Expectation...
                 </div>
                 <div id="waitingSignatureQRBtn">
-                    Підписати примусово
+                    Sign forcibly
                 </div>
             </div>
         </div>
@@ -381,96 +381,96 @@
 
                 <div class="report-content">
 
-                    <h1 class="main-title">Патоморфологічне дослідження</h1>
+                    <h1 class="main-title">Pathomorphological report</h1>
                     <div class="doc-subtitle">
-                        <strong>МЕДИЧНА ДОКУМЕНТАЦІЯ 014/о</strong> Затверджена наказом МОЗ України 29.05.2013 р. № 435
+                        <strong>MEDICAL DOCUMENTATION 014/o</strong> Approved by order of the Ministry of Health of Ukraine dated 05/29/2013 No. 435
                     </div>
                     <div class="report-number">№ ${currentReport.case_code}</div>
-                    <div class="report-type">Патогістологія</div>
+                    <div class="report-type">Pathohistology</div>
                     <hr>
 
                     <section class="report-dates">
-                        <div><strong>Дата біопсії:</strong> ${currentReport.biopsy_date || ""}</div>
-                        <div><strong>Дата надходження:</strong> ${currentReport.arrival_date || ""}</div>
-                        <div><strong>Дата завершення:</strong> ${currentReport.report_date || ""}</div>
+                        <div><strong>Biopsy date:</strong> ${currentReport.biopsy_date || ""}</div>
+                        <div><strong>Date of receipt:</strong> ${currentReport.arrival_date || ""}</div>
+                        <div><strong>Completion date:</strong> ${currentReport.report_date || ""}</div>
                     </section>
                     <hr>
 
                     <section class="patient-section">
                         <div class="patient-name">
-                            <strong>Пацієнт:</strong> ${`${currentReport.patient_surname} ${currentReport.patient_first_name} ${currentReport.patient_middle_name}`}
+                            <strong>Patient:</strong> ${`${currentReport.patient_surname} ${currentReport.patient_first_name} ${currentReport.patient_middle_name}`}
                         </div>
                         <hr class="patient-hr">
                         <div class="patient-details">
-                            <span><strong>Стать:</strong> ${currentReport.patient_sex === "F"? "Жін": "Чол" }</span>
-                            <span><strong>Д/н:</strong> ${new Date(currentReport.patient_birth_date).toLocaleDateString()}</span>
-                            <span><strong>Вік:</strong> ${getAge(currentReport.patient_birth_date)} років</span>
-                            <span><strong>Контакт:</strong> ${currentReport.patient_phone_number}, ${currentReport.patient_email}</span>
+                            <span><strong>Gender:</strong> ${currentReport.patient_sex === "F"? "Жін": "Чол" }</span>
+                            <span><strong>B/d:</strong> ${new Date(currentReport.patient_birth_date).toLocaleDateString()}</span>
+                            <span><strong>Age:</strong> ${getAge(currentReport.patient_birth_date)} років</span>
+                            <span><strong>Contacts:</strong> ${currentReport.patient_phone_number}, ${currentReport.patient_email}</span>
                         </div>
                     </section>
                     <hr>
 
                     <section class="case-info">
                         <div class="info-item">
-                            <div class="info-label"><strong>Медична карта:</strong></div>
+                            <div class="info-label"><strong>Medical card:</strong></div>
                             <div class="info-value">№ ${currentReport.medical_card_number || ""}</div>
                         </div>
                         <div class="info-item">
-                            <div class="info-label"><strong>Медичний заклад:</strong></div>
+                            <div class="info-label"><strong>Medical facility:</strong></div>
                             <div class="info-value">${currentReport.medical_institution || ""}</div>
                         </div>
                         <div class="info-item">
-                            <div class="info-label"><strong>Відділення:</strong></div>
+                            <div class="info-label"><strong>Department:</strong></div>
                             <div class="info-value">${currentReport.medical_department || ""}</div>
                         </div>
                         <div class="info-item">
-                            <div class="info-label"><strong>Лікуючий лікар:</strong></div>
+                            <div class="info-label"><strong>Treating doctor:</strong></div>
                             <div class="info-value">${currentReport.attending_doctor || ""}</div>
                         </div>
                     </section>
                     <hr>
 
                     <section class="clinical-section">
-                        <p><strong>Клінічні дані:</strong> ${currentReport.clinical_data || ""}</p>
+                        <p><strong>Clinical data:</strong> ${currentReport.clinical_data || ""}</p>
                         <hr class="mini-hr">
-                        <p><strong>Клінічний діагноз:</strong> ${currentReport.clinical_diagnosis || ""}</p>
+                        <p><strong>Clinical diagnosis:</strong> ${currentReport.clinical_diagnosis || ""}</p>
                     </section>
                     <hr>
 
                     <section class="stats-section">
                         <div class="stats-item">
-                            <strong>Кількість контейнерів:</strong>
+                            <strong>Number of containers:</strong>
                             <div class="stats-line">
-                                <strong>Отримано</strong> <span class="stats-value">${currentReport.containers_recieved || ""}</span>
-                                <strong>Заявлено</strong> <span class="stats-value">${currentReport.containers_actual || ""}</span>
+                                <strong>Received</strong> <span class="stats-value">${currentReport.containers_recieved || ""}</span>
+                                <strong>Declared</strong> <span class="stats-value">${currentReport.containers_actual || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
-                            <strong>Кількість блоків:</strong>
+                            <strong>Number of blocks:</strong>
                             <div class="stats-line">
                                 <span class="stats-value">${currentReport.num_blocks || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
-                            <strong>Фіксація:</strong>
+                            <strong>Fixation:</strong>
                             <div class="stats-line">
                                 <span class="stats-value">${currentReport.fixation || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
-                            <strong>Декальцинація:</strong>
+                            <strong>Decalcification:</strong>
                             <div class="stats-line">
                                 <span class="stats-value">${currentReport.decalcification || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
-                            <strong>Макроархів:</strong>
+                            <strong>Macroarchive:</strong>
                             <div class="stats-line">
                                 <span class="stats-value">${currentReport.macroarchive || ""}</span>
                             </div>
                         </div>
                         <div class="stats-item">
-                            <strong>Фарбування:</strong>
+                            <strong>Dyeing:</strong>
                             <div class="stats-line">
                                 ${currentReport.painting.map( paint => `<span class="stats-value">${paint}</span>`)}
                             </div>
@@ -479,31 +479,31 @@
                     <hr>
 
                     <section class="text-section">
-                        <p><strong>Макроскопічний опис:</strong> ${caseOwnerDiagnosis?.report_macrodescription || currentReport.concatenated_macro_description || ""}</p>
+                        <p><strong>Macroscopic description:</strong> ${caseOwnerDiagnosis?.report_macrodescription || currentReport.concatenated_macro_description || ""}</p>
                     </section>
                     <hr>
                     <section class="text-section">
-                        <p><strong>Мікроскопічний опис:</strong> ${currentCase.microdescription || ""}</p>
+                        <p><strong>Microscopic description:</strong> ${currentCase.microdescription || ""}</p>
                     </section>
                     <hr>
                     ${immunohistochemicalProfile ? (`
                     <section class="text-section">
-                        <p><strong>Імуногістохімічний профіль:</strong> ${immunohistochemicalProfile || ""}</p>
+                        <p><strong>Immunohistochemical profile:</strong> ${immunohistochemicalProfile || ""}</p>
                     </section>
                     `) : ""}
                     ${molecularGeneticProfile ? (`
                     <section class="text-section">
-                        <p><strong>Молекулярно-генетичний профіль:</strong> ${molecularGeneticProfile || ""}</p>
+                        <p><strong>Molecular genetic profile:</strong> ${molecularGeneticProfile || ""}</p>
                     </section>
                     `) : ""}
                     ${pathomorphologicalDiagnosis ? (`
                     <section class="text-section">
-                        <p><strong>Патогістологічний висновок:</strong> ${pathomorphologicalDiagnosis || ""}</p>
+                        <p><strong>Pathohistological report:</strong> ${pathomorphologicalDiagnosis || ""}</p>
                     </section>
                     `) : ""}
                     ${(immunohistochemicalProfile || molecularGeneticProfile || pathomorphologicalDiagnosis) && `<hr>`}
                     <section class="text-section">
-                        <p><strong>Коментар:</strong> ${caseOwnerDiagnosis?.comment || ""}</p>
+                        <p><strong>Comment:</strong> ${caseOwnerDiagnosis?.comment || ""}</p>
                     </section>
                     <hr>
 
@@ -516,9 +516,9 @@
                 </div>
                 <div class="doc-footer">
                     <div class="footer-left">
-                        <strong>МЕДИЧНА ДОКУМЕНТАЦІЯ 014/о</strong> Затверджена наказом МОЗ України 29.05.2013 р. № 435
+                        <strong>MEDICAL DOCUMENTATION 014/o</strong> Approved by order of the Ministry of Health of Ukraine dated 05/29/2013 No. 435
                     </div>
-                    <div class="footer-right">Документ створено ПЗ COR-Lab</div>
+                    <div class="footer-right">The document was created by COR-Lab software</div>
                 </div>
             </div>
         `
@@ -553,7 +553,7 @@
                     div.classList = "signoff-section"
                     div.innerHTML = `
                     <div class="signoff-left">
-                        <strong>Лікар: </strong>${currentDoctor.doctor.last_name} ${currentDoctor.doctor.first_name} ${currentDoctor.doctor.middle_name}
+                        <strong>Doctor: </strong>${currentDoctor.doctor.last_name} ${currentDoctor.doctor.first_name} ${currentDoctor.doctor.middle_name}
                     </div>
                     ${currentDoctor.signature ? `<div className="signoff-right"><strong>Дата:</strong> ${new Date(currentDoctor.signature.signed_at).toLocaleDateString()}</div>` : ""}
                     `;
@@ -769,18 +769,18 @@
                             </svg>
                         </div>
                         <div class="waitingSignatureQRTitle">
-                            Вам необхідно підтвердити дію
+                            You need to confirm the action.
                         </div>
                         <div class="waitingSignatureQRDescription">
-                            Будь ласка, відскануйте QR-код нижче та виконайте всі кроки підтвердження в додатку COR ID
+                            Please scan the QR code below and follow all verification steps in the COR ID app.
                         </div>
                         <div id="waitingSignatureQR">
                         </div>
                         <div class="waitingSignatureQRLoading">
-                            Очікування...
+                            Expectation...
                         </div>
                         <div id="waitingSignatureQRBtn">
-                            Підписати примусово
+                            Sign forcibly
                         </div>
                         `
             document.querySelector("#doctorSign").classList.remove('open')
@@ -807,6 +807,7 @@
         doctorSignButtonNODE.addEventListener('click', () => {
             signReport(currentDiagnosis?.id)
                 .then(report => {
+                    console.log(report, "reportreportreportreport")
                     showSignProcessModal(report)
                 })
         })
