@@ -326,6 +326,7 @@ async def login(
     }
 
 
+
 # вызываем в кор енерджи
 @router.post(
     "/v1/initiate-login",
@@ -565,23 +566,31 @@ async def confirm_login(
             user=user,
             db=db,
         )
-        await send_websocket_message(
-            session_token=session_token,message=
-            {
-                "status": "approved",
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "token_type": "bearer",
-                "device_id": db_session.device_id,
-            },
-        )
+        # await send_websocket_message(
+        #     session_token=session_token,message=
+        #     {
+        #         "status": "approved",
+        #         "access_token": access_token,
+        #         "refresh_token": refresh_token,
+        #         "token_type": "bearer",
+        #         "device_id": db_session.device_id,
+        #     },
+        # )
+        data = {
+            "status": "approved"
+        }
+        await websocket_events_manager.send_to_session(session_id=session_token, event_data=data)
         return {"message": "Вход успешно подтвержден"}
 
     elif confirmation_status == SessionLoginStatus.rejected.value.lower():
         await repository_session.update_session_status(
             db_session, confirmation_status, db
         )
-        await send_websocket_message(session_token=session_token, message={"status": "rejected"})
+        data = {
+            "status": "approved"
+        }
+        #await send_websocket_message(session_token=session_token, message={"status": "rejected"})
+        await websocket_events_manager.send_to_session(session_id=session_token, event_data=data)
         return {"message": "Вход отменен пользователем"}
     else:
         raise HTTPException(
