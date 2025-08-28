@@ -577,8 +577,12 @@ async def confirm_login(
         #     },
         # )
         data = {
-            "status": "approved"
-        }
+                "status": "approved",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "bearer",
+                "device_id": db_session.device_id,
+            }
         await websocket_events_manager.send_to_session(session_id=session_token, event_data=data)
         return {"message": "Вход успешно подтвержден"}
 
@@ -586,9 +590,7 @@ async def confirm_login(
         await repository_session.update_session_status(
             db_session, confirmation_status, db
         )
-        data = {
-            "status": "approved"
-        }
+        data = {"status": "rejected"}
         #await send_websocket_message(session_token=session_token, message={"status": "rejected"})
         await websocket_events_manager.send_to_session(session_id=session_token, event_data=data)
         return {"message": "Вход отменен пользователем"}
