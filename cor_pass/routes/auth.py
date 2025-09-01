@@ -29,14 +29,13 @@ from cor_pass.schemas import (
     SessionLoginStatus,
     UserModel,
     ResponseUser,
-    TokenModel,
     EmailSchema,
     VerificationModel,
     LoginResponseModel,
     RecoveryCodeModel,
     UserSessionModel,
 )
-from cor_pass.database.models import User, UserSession
+from cor_pass.database.models import User
 from cor_pass.repository import person as repository_person
 from cor_pass.repository import user_session as repository_session
 from cor_pass.repository import cor_id as repository_cor_id
