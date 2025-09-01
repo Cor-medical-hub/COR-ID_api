@@ -1,6 +1,9 @@
 
 
 
+
+
+
 // Добавляем элемент для выбора количества страниц
 function initPagesPerScreenControl() {
     // Проверяем, не добавлен ли уже элемент
@@ -129,6 +132,259 @@ async function loadDataForTimeRange(range) {
 
 
 
+// Функция для загрузки энергетических данных по временному диапазону
+async function loadEnergyDataForTimeRange(range, objectName = null) {
+    const now = new Date();
+    let startDate;
+    let intervals = 24; // по умолчанию почасово за сутки
+
+    switch(range) {
+        case '1d': // почасово за сутки
+            startDate = new Date(now.getTime() - 24 * 3600000);
+            intervals = 24;
+            break;
+        case '7d': // посуточно за неделю
+            startDate = new Date(now.getTime() - 7 * 24 * 3600000);
+            intervals = 7;
+            break;
+        case '30d': // посуточно за месяц
+            startDate = new Date(now.getTime() - 30 * 24 * 3600000);
+            intervals = 30;
+            break;
+        default:
+            console.error('Неверный диапазон:', range);
+            return;
+    }
+
+    try {
+        isLoading = true;
+        document.getElementById('loadingIndicator').style.display = 'inline';
+
+        // форматируем даты без миллисекунд
+        const formatDateForAPI = (date) => {
+            return date.toISOString().replace(/\.\d{3}Z$/, '');
+        };
+
+        const params = new URLSearchParams({
+            start_date: formatDateForAPI(startDate),
+            end_date: formatDateForAPI(now),
+            intervals: intervals
+        });
+
+        if (objectName) {
+            params.append('object_name', objectName);
+        }
+
+        const url = `/api/modbus/measurements/energy/?${params.toString()}`;
+        // console.log('Fetching energy data from:', url);
+
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (e) {
+                errorData = { detail: response.statusText };
+            }
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        // console.log('Energy data received:', data);
+
+        if (data && data.length > 0) {
+            // Формируем данные для графика (bar chart)
+            const chartData = data.map(item => ({
+                interval: item.interval_start,        // подпись по оси X
+                solar: item.solar_energy_kwh,         // энергия солнца
+                load: item.load_energy_kwh,           // нагрузка
+                grid: item.grid_energy_kwh,           // сеть
+                battery: item.battery_energy_kwh      // батарея
+            }));
+
+            // Передаём в функцию обновления диаграммы
+            updateBarChart(chartData);
+        }
+    } catch (error) {
+        console.error('Error loading energy data:', error);
+        alert(`Ошибка загрузки данных: ${error.message}`);
+    } finally {
+        isLoading = false;
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+}
+
+
+
+
+async function loadEnergyDataForCustomRange(startDate, endDate, objectName = null) {
+    try {
+        isLoading = true;
+        document.getElementById('loadingIndicator').style.display = 'inline';
+
+        const durationDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+        let intervals = Math.ceil(durationDays); // по одному интервалу в день
+
+        const formatDateForAPI = (date) => date.toISOString().replace(/\.\d{3}Z$/, '');
+        const params = new URLSearchParams({
+            start_date: formatDateForAPI(startDate),
+            end_date: formatDateForAPI(endDate),
+            intervals: intervals
+        });
+
+        if (objectName) params.append('object_name', objectName);
+
+        const url = `/api/modbus/measurements/energy/?${params.toString()}`;
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Ошибка при загрузке данных');
+        }
+
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+            const chartData = data.map(item => ({
+                interval: item.interval_start,
+                solar: item.solar_energy_kwh,
+                load: item.load_energy_kwh,
+                grid: item.grid_energy_kwh,
+                battery: item.battery_energy_kwh
+            }));
+            updateBarChart(chartData);
+        }
+    } catch (error) {
+        console.error('Error loading custom energy data:', error);
+        alert(`Ошибка загрузки данных: ${error.message}`);
+    } finally {
+        isLoading = false;
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+}
+
+
+
+
+
+function initChartTypeControl() {
+    const chartTypeSelect = document.getElementById('chartTypeSelect');
+    if (!chartTypeSelect) return; // если вдруг элемент не найден
+
+    chartTypeSelect.addEventListener('change', function() {
+        currentChartType = this.value;
+
+        // сначала всё останавливаем
+        stopChartUpdates();
+
+        // Уничтожаем оба графика, если они есть
+        if (powerChart) { powerChart.destroy(); powerChart = null; }
+        if (energyChart) { energyChart.destroy(); energyChart = null;}
+
+        // обновляем селектор периодов под выбранный тип
+        updateTimeRangeOptions(currentChartType);
+
+        if (currentChartType === 'line') {
+            initPowerChart();   // заново создаём line chart
+            startLiveUpdates(); // включаем live режим
+        } else if (currentChartType === 'bar') {
+            loadEnergyDataForTimeRange('1d'); // рисуем bar chart
+        }
+    });
+}
+
+
+function updateBarChart(chartData) {
+    const ctx = document.getElementById('powerChart').getContext('2d');
+
+    if (energyChart) {
+        energyChart.destroy();
+    }
+
+    energyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartData.map(d => new Date(d.interval).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit' })),
+            datasets: [
+                {
+                    label: 'Солнечная энергия (кВт·ч)',
+                    data: chartData.map(d => d.solar),
+                    backgroundColor: 'rgba(255, 206, 86, 0.7)'
+                },
+                {
+                    label: 'Нагрузка (кВт·ч)',
+                    data: chartData.map(d => d.load),
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                },
+                {
+                    label: 'Сеть (кВт·ч)',
+                    data: chartData.map(d => d.grid),
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                },
+                {
+                    label: 'Батарея (кВт·ч)',
+                    data: chartData.map(d => d.battery),
+                    backgroundColor: 'rgba(153, 102, 255, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw.toFixed(2)} кВт·ч`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true
+                },
+                y: {
+                    stacked: false,
+                    title: {
+                        display: true,
+                        text: 'Энергия (кВт·ч)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+
+function updateTimeRangeOptions(chartType) {
+    const timeRangeSelect = document.getElementById('timeRangeSelect');
+    if (!timeRangeSelect) return;
+
+    // очищаем старые опции
+    timeRangeSelect.innerHTML = '';
+
+    const ranges = chartType === 'line' ? lineTimeRanges : barTimeRanges;
+
+    ranges.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.value;
+        opt.textContent = r.label;
+        timeRangeSelect.appendChild(opt);
+    });
+
+    // выбираем первую опцию по умолчанию
+    timeRangeSelect.value = ranges[0].value;
+}
+
+
 function initTimeRangeControl() {
     // Установим текущую дату в кастомных полях
     const now = new Date();
@@ -147,6 +403,7 @@ function initTimeRangeControl() {
         document.querySelector('.time-display').style.display = isRealtime ? 'block' : 'none';
         document.getElementById('customDateRange').style.display = isCustom ? 'flex' : 'none';
         
+        /*
         if (isRealtime) {
             startLiveUpdates();
         } else if (isCustom) {
@@ -156,7 +413,27 @@ function initTimeRangeControl() {
             // Загружаем данные для выбранного диапазона
             stopChartUpdates();
             loadDataForTimeRange(this.value);
+        }  */
+
+        if (currentChartType === 'line') {
+            if (isRealtime) {
+                startLiveUpdates();
+            } else if (isCustom) {
+                stopChartUpdates();
+            } else {
+                stopChartUpdates();
+                loadDataForTimeRange(this.value);
+            }
+        } else if (currentChartType === 'bar') {
+            if (isCustom) {
+                stopChartUpdates();
+            } else {
+                currentBarTimeRange = this.value;
+                loadEnergyDataForTimeRange(currentBarTimeRange);
+            }
         }
+
+
     });
     
     // Обработчик для кастомного диапазона
@@ -175,7 +452,14 @@ function initTimeRangeControl() {
         }
         
         stopChartUpdates();
-        fetchAveragedMeasurements(startDate, endDate);
+      //  fetchAveragedMeasurements(startDate, endDate);
+
+        if (currentChartType === 'line') {
+            fetchAveragedMeasurements(startDate, endDate);
+        } else if (currentChartType === 'bar') {
+            loadEnergyDataForCustomRange(startDate, endDate);
+        }
+
     });
     
     // Запускаем режим реального времени по умолчанию
@@ -581,12 +865,19 @@ async function startChartUpdates() {
     initPowerChart();
     initPageSlider();
     initTimeRangeControl();
+    initChartTypeControl(); // переключатель
     
     // Инициализация массива измерений
     allMeasurements = new Array(100);
     
     // Запуск режима реального времени
-    startLiveUpdates();
+    //startLiveUpdates();
+
+    if (currentChartType === 'line') {
+        startLiveUpdates();
+    } else if (currentChartType === 'bar') {
+        loadEnergyDataForTimeRange('7d');
+    }
 }
 
 function startLiveUpdates() {
