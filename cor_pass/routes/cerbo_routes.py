@@ -4,7 +4,6 @@ from typing import List, Optional
 from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_schedule, decode_signed_16, decode_signed_32, delete_schedule, get_all_schedules, get_device_measurements_paginated,get_averaged_measurements_service,get_energy_measurements_service, get_modbus_client, get_schedule_by_id, register_modbus_error, update_schedule
 from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from cor_pass.database.db import get_db
 from math import ceil
 from loguru import logger

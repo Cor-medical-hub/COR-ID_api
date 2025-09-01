@@ -1,4 +1,4 @@
-import asyncio
+
 from datetime import datetime, timedelta, timezone
 import uuid
 from fastapi import (
@@ -16,14 +16,12 @@ from fastapi import (
 )
 
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from cor_pass.database.db import get_db
 from cor_pass.database.models import (
     DoctorSignatureSession,
-    Grossing_status,
     PatientClinicStatus,
     PatientStatus,
     User,
@@ -58,12 +56,10 @@ from cor_pass.repository.patient import (
 from cor_pass.schemas import (
     ActionRequest,
     CaseCloseResponse,
-    CaseCreate,
     CaseFinalReportPageResponse,
     CaseIDReportPageResponse,
     ExistingPatientRegistration,
     GetAllPatientsResponce,
-    InitiateSignatureRequest,
     InitiateSignatureResponse,
     PatientCreationResponse,
     PatientFinalReportPageResponse,
