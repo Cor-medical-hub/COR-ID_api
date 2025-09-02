@@ -291,6 +291,8 @@ async def login(
         data=token_data, expires_delta=expires_delta
     )
 
+    if not device_id:
+        device_id = str(uuid4())
     # ---- Создание новой сессии ----
     session_data = {
         "user_id": user.cor_id,
