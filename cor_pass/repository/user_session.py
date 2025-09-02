@@ -60,6 +60,8 @@ async def create_user_session(
         existing_session.access_token = encrypted_access_token
         existing_session.device_os = body.device_os
         existing_session.device_info = body.device_info
+        existing_session.app_id = body.app_id
+        existing_session.device_id = body.device_id
         try:
             db.add(existing_session)
             await db.commit()
