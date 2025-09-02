@@ -335,12 +335,15 @@ async def login(
     dependencies=[Depends(RateLimiter(times=5, seconds=60))],
 )
 async def initiate_login(
-    body: InitiateLoginRequest, db: AsyncSession = Depends(get_db)
+    body: InitiateLoginRequest, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """
     Инициирует процесс входа пользователя через Cor-ID.
     Получает email и/или cor-id, генерирует session_token и сохраняет информацию о сессии CorIdAuthSession.
     """
+    device_information = di.get_device_info(request)
+    if not body.app_id:
+        body.app_id = device_information["app_id"]
 
     session_token = await repository_session.create_auth_session(request=body, db=db)
 
