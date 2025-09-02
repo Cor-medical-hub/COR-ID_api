@@ -153,6 +153,21 @@ class StainingType(enum.Enum):
     GIEMSA = "Giemsa"
     OTHAR = "Othar"
 
+    def abbr(self) -> str:
+        """Возвращает сокращение для печати"""
+        overrides = {
+            "H&E": "H&E",
+            "PAMS": "PAM",
+            "Othar": "O",
+        }
+        if self.value in overrides:
+            return overrides[self.value]
+
+        parts = self.value.replace("-", " ").replace("'", "").split()
+        abbr = "".join(word[0].upper() for word in parts)
+
+        return abbr[:3]
+
 
 class Grossing_status(enum.Enum):
     PROCESSING = "PROCESSING"
