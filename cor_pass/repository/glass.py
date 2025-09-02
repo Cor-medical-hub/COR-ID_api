@@ -426,7 +426,7 @@ async def get_full_glass_info(db: AsyncSession, glass_id: str) -> GlassResponseF
 
     return response
 
-
+ 
 
 async def print_glass_data(
     data: GlassPrinting, db: AsyncSession, request: Request
@@ -442,7 +442,7 @@ async def print_glass_data(
     sample_number=db_glass.sample_number
     cassette_number=db_glass.cassette_number
     glass_number=db_glass.glass_number
-    staining=db_glass.staining
+    staining= db_models.StainingType(db_glass.staining).abbr()
     hooper=data.hooper if data.hooper else "?"
     patient_cor_id=db_glass.patient_cor_id
         
@@ -453,7 +453,9 @@ async def print_glass_data(
         content=content,
         uuid=data.glass_id
     )
+    logger.debug(content)
  
-    print_result = await print_labels(printer_ip=printer_ip, labels_to_print=[label_to_print], request=request)
+    # print_result = await print_labels(printer_ip=printer_ip, labels_to_print=[label_to_print], request=request)
 
-    return print_result
+    # return print_result
+    return content
