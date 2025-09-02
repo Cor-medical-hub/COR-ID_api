@@ -156,7 +156,7 @@ def list_files_for_current_date(conn, share, base_path, include_yesterday=True):
         base_path_clean = base_path.lstrip("/")
         entries = conn.listPath(share, base_path_clean)
         date_folders = [entry.filename for entry in entries if entry.isDirectory and entry.filename not in ['.', '..']]
-        logger.info(f"Доступные папки с датами в {share}/{base_path_clean}: {date_folders}")
+        # logger.info(f"Доступные папки с датами в {share}/{base_path_clean}: {date_folders}")
     except Exception as e:
         logger.error(f"Ошибка при получении списка папок в {share}/{base_path_clean}: {str(e)}")
         return files
@@ -194,13 +194,13 @@ async def update_scan_urls():
 
         try:
             shares = conn.listShares()
-            logger.info(f"Доступные шары на {SMB_SERVER_IP}: {[share.name for share in shares]}")
+            # logger.info(f"Доступные шары на {SMB_SERVER_IP}: {[share.name for share in shares]}")
         except Exception as e:
             logger.error(f"Ошибка при получении списка шар: {str(e)}")
 
         try:
             root_entries = conn.listPath(SMB_SHARE, "")
-            logger.info(f"Содержимое корня шары {SMB_SHARE}: {[entry.filename for entry in root_entries if entry.filename not in ['.', '..']]}")
+            # logger.info(f"Содержимое корня шары {SMB_SHARE}: {[entry.filename for entry in root_entries if entry.filename not in ['.', '..']]}")
         except Exception as e:
             logger.error(f"Ошибка при сканировании корня шары {SMB_SHARE}: {str(e)}")
 
@@ -223,7 +223,7 @@ async def update_scan_urls():
 
         try:
             scanner_entries = conn.listPath("scanner", "")
-            logger.info(f"Содержимое корня шары scanner: {[entry.filename for entry in scanner_entries if entry.filename not in ['.', '..']]}")
+            # logger.info(f"Содержимое корня шары scanner: {[entry.filename for entry in scanner_entries if entry.filename not in ['.', '..']]}")
         except Exception as e:
             logger.error(f"Ошибка при сканировании корня шары scanner: {str(e)}")
 
@@ -232,7 +232,7 @@ async def update_scan_urls():
         return files
 
     smb_files = await asyncio.to_thread(sync_scan)
-    logger.info(f"Найдено файлов в папках текущей и вчерашней даты: {len(smb_files)}")
+    # logger.info(f"Найдено файлов в папках текущей и вчерашней даты: {len(smb_files)}")
     for file in smb_files:
         logger.debug(f"Обнаружен файл: {file}")
 
@@ -310,7 +310,7 @@ async def update_scan_urls():
                         break
 
         await session.commit()
-        logger.info(f"Обновлено {updated} записей, пропущено {skipped} записей")
+        # logger.info(f"Обновлено {updated} записей, пропущено {skipped} записей")
 
 async def main():
     while True:

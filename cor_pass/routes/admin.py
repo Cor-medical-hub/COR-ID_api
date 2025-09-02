@@ -15,7 +15,6 @@ from cor_pass.schemas import (
     DiplomaResponse,
     DoctorCreate,
     DoctorCreateResponse,
-    DoctorResponse,
     DoctorWithRelationsResponse,
     FullUserInfoResponse,
     NewUserRegistration,
