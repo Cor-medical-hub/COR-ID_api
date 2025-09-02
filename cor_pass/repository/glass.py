@@ -455,7 +455,7 @@ async def print_glass_data(
     )
     logger.debug(content)
  
-    # print_result = await print_labels(printer_ip=printer_ip, labels_to_print=[label_to_print], request=request)
+    print_result = await print_labels(printer_ip=printer_ip, labels_to_print=[label_to_print], request=request)
 
-    # return print_result
-    return content
+    return print_result
+    # return content
