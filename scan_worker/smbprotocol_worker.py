@@ -1,4 +1,5 @@
 import asyncio
+import enum
 import socket
 import os
 import re
@@ -65,6 +66,7 @@ class StainingType(enum.Enum):
         abbr = "".join(word[0].upper() for word in parts)
         return abbr[:3]
 
+# Генерируем список всех возможных сокращений для окрашиваний
 STAINING_ABBREVIATIONS = [staining.abbr() for staining in StainingType]
 logger.debug(f"Сгенерированные сокращения окрашиваний: {STAINING_ABBREVIATIONS}")
 
@@ -78,7 +80,7 @@ filename_pattern = re.compile(
     r"(?P<staining>" + "|".join(re.escape(abbr) for abbr in STAINING_ABBREVIATIONS) + ")"  # staining
     r"(?P<cor_id>[A-Z0-9]+(?:-[A-Z0-9]+)?)"  # cor_id (основная часть + необязательная часть после дефиса)
     r"\d{4}-\d{2}-\d{2}_\d{2}_\d{2}_\d{2}"  # timestamp pattern (not captured)
-    r"\.svs$"                             # extension
+    # r"\.svs$"                             # extension
 )
 
 def parse_filename(filename):
