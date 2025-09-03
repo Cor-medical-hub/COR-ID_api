@@ -15,6 +15,7 @@ import tempfile
 import time
 from cor_pass.database.models import Cassette, Glass, Sample 
 from cor_pass.config.config import settings
+import enum
 
 SMB_USER = settings.smb_user
 SMB_PASS = settings.smb_pass
@@ -30,13 +31,51 @@ engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
+class StainingType(enum.Enum):
+    HE = "H&E"
+    ALCIAN_PAS = "Alcian PAS"
+    CONGO_RED = "Congo red"
+    MASSON_TRICHROME = "Masson Trichrome"
+    VAN_GIESON = "van Gieson"
+    ZIEHL_NEELSEN = "Ziehl Neelsen"
+    WARTHIN_STARRY_SILVER = "Warthin-Starry Silver"
+    GROCOTT_METHENAMINE_SILVER = "Grocott's Methenamine Silver"
+    TOLUIDINE_BLUE = "Toluidine Blue"
+    PERLS_PRUSSIAN_BLUE = "Perls Prussian Blue"
+    PAMS = "PAMS"
+    PICROSIRIUS = "Picrosirius"
+    SIRIUS_RED = "Sirius red"
+    THIOFLAVIN_T = "Thioflavin T"
+    TRICHROME_AFOG = "Trichrome AFOG"
+    VON_KOSSA = "von Kossa"
+    GIEMSA = "Giemsa"
+    OTHAR = "Othar"
+
+    def abbr(self) -> str:
+        """Возвращает сокращение для печати"""
+        overrides = {
+            "H&E": "H&E",
+            "PAMS": "PAM",
+            "Othar": "O",
+        }
+        if self.value in overrides:
+            return overrides[self.value]
+
+        parts = self.value.replace("-", " ").replace("'", "").split()
+        abbr = "".join(word[0].upper() for word in parts)
+        return abbr[:3]
+
+# Генерируем список всех возможных сокращений для окрашиваний
+STAINING_ABBREVIATIONS = [staining.abbr() for staining in StainingType]
+
+# Обновляем регулярное выражение для парсинга имени файла
 filename_pattern = re.compile(
     r"^(?P<case_code>S\d{2}R\d{5})"       # case_code
     r"(?P<sample>[A-Z])"                  # sample (одна буква)
     r"(?P<cassette>\d)"                   # cassette (одна цифра)
     r"(?P<hospital>[A-Z]{2,3})"           # hospital code (2-3 буквы)
     r"L(?P<glass_number>\d)"              # L + номер стекла
-    r"(?P<staining>H&E)"                  # staining
+    r"(?P<staining>" + "|".join(STAINING_ABBREVIATIONS) + ")"  # staining (сокращения из StainingType)
     r"(?P<cor_id>.*?)"                    # cor-id (non-greedy capture until timestamp)
     r"\d{4}-\d{2}-\d{2}_\d{2}_\d{2}_\d{2}"  # timestamp pattern (not captured)
     r"\.svs$"                             # extension
