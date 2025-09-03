@@ -31,17 +31,20 @@ AsyncSessionLocal = sessionmaker(engine, expire_on_commit=False, class_=AsyncSes
 
 
 filename_pattern = re.compile(
-    r"(?P<case_code>S\d{2}R\d{5})"       # case_code
+    r"^(?P<case_code>S\d{2}R\d{5})"       # case_code
     r"(?P<sample>[A-Z])"                  # sample (одна буква)
     r"(?P<cassette>\d)"                   # cassette (одна цифра)
     r"(?P<hospital>[A-Z]{2,3})"           # hospital code (2-3 буквы)
     r"L(?P<glass_number>\d)"              # L + номер стекла
     r"(?P<staining>H&E)"                  # staining
+    r"(?P<cor_id>.*?)"                    # cor-id (non-greedy capture until timestamp)
+    r"\d{4}-\d{2}-\d{2}_\d{2}_\d{2}_\d{2}"  # timestamp pattern (not captured)
+    r"\.svs$"                             # extension
 )
 
 def parse_filename(filename):
     base = os.path.basename(filename)
-    m = filename_pattern.search(base)
+    m = filename_pattern.match(base)
     if not m:
         logger.debug(f"Файл {base} не соответствует регулярному выражению")
         return None
@@ -51,7 +54,8 @@ def parse_filename(filename):
         "cassette": m.group("cassette"),
         "hospital": m.group("hospital"),
         "glass_number": int(m.group("glass_number")),
-        "staining": m.group("staining")
+        "staining": m.group("staining"),
+        "cor_id": m.group("cor_id")
     }
 
 async def fetch_file_from_smb(path: str) -> str:
@@ -263,7 +267,9 @@ async def update_scan_urls():
             sample_number = glass.cassette.sample.sample_number
             cassette_number = glass.cassette.cassette_number
             glass_number = glass.glass_number
-            staining = glass.staining.value if glass.staining else None
+            # staining = glass.staining.value if glass.staining else None
+            cor_id = glass.cassette.sample.case.patient_id
+            logger.debug(f"cor_id - {cor_id}")  # Предполагаем, что cor_id хранится в модели Case; скорректируйте при необходимости
 
             for file in smb_files:
                 info = parse_filename(file)
@@ -276,7 +282,8 @@ async def update_scan_urls():
                     info["sample"] == sample_number and
                     info["cassette"] == cassette_last_digit and
                     info["glass_number"] == glass_number and
-                    info["staining"] == staining
+                    # info["staining"] == staining and
+                    info["cor_id"] == cor_id
                 ):
                     if file.lower().endswith('.svs'):
                         scan_url = f"\\\\{SMB_SERVER_IP}\\{SMB_SHARE}\\{file}"
