@@ -241,13 +241,11 @@ async def update_scan_urls():
 
         try:
             shares = conn.listShares()
-            # logger.info(f"Доступные шары на {SMB_SERVER_IP}: {[share.name for share in shares]}")
         except Exception as e:
             logger.error(f"Ошибка при получении списка шар: {str(e)}")
 
         try:
             root_entries = conn.listPath(SMB_SHARE, "")
-            # logger.info(f"Содержимое корня шары {SMB_SHARE}: {[entry.filename for entry in root_entries if entry.filename not in ['.', '..']]}")
         except Exception as e:
             logger.error(f"Ошибка при сканировании корня шары {SMB_SHARE}: {str(e)}")
 
@@ -270,7 +268,6 @@ async def update_scan_urls():
 
         try:
             scanner_entries = conn.listPath("scanner", "")
-            # logger.info(f"Содержимое корня шары scanner: {[entry.filename for entry in scanner_entries if entry.filename not in ['.', '..']]}")
         except Exception as e:
             logger.error(f"Ошибка при сканировании корня шары scanner: {str(e)}")
 
@@ -279,7 +276,6 @@ async def update_scan_urls():
         return files
 
     smb_files = await asyncio.to_thread(sync_scan)
-    # logger.info(f"Найдено файлов в папках текущей и вчерашней даты: {len(smb_files)}")
     for file in smb_files:
         logger.debug(f"Обнаружен файл: {file}")
 
@@ -310,22 +306,27 @@ async def update_scan_urls():
             sample_number = glass.cassette.sample.sample_number
             cassette_number = glass.cassette.cassette_number
             glass_number = glass.glass_number
-            # staining = glass.staining.value if glass.staining else None
+            staining = glass.staining.abbr() if glass.staining else None
             cor_id = glass.cassette.sample.case.patient_id
-            logger.debug(f"cor_id - {cor_id}")  # Предполагаем, что cor_id хранится в модели Case; скорректируйте при необходимости
+
+            logger.debug(f"Проверяем стекло {glass.id}: case_code={case_code}, sample={sample_number}, cassette={cassette_number}, glass_number={glass_number}, staining={staining}, cor_id={cor_id}")
 
             for file in smb_files:
                 info = parse_filename(file)
                 if not info:
                     continue
-                cassette_last_digit = cassette_number[-1] if cassette_number else None
+
+                # Учитываем, что cassette_number в базе данных может быть длиннее, но нам нужна только последняя буква + цифра
+                cassette_last = cassette_number[-2:] if cassette_number and len(cassette_number) >= 2 else None
+
+                logger.debug(f"Сравниваем с файлом {file}: {info}")
 
                 if (
                     info["case_code"] == case_code and
                     info["sample"] == sample_number and
-                    info["cassette"] == cassette_last_digit and
+                    info["cassette"] == cassette_last and
                     info["glass_number"] == glass_number and
-                    # info["staining"] == staining and
+                    info["staining"] == staining and
                     info["cor_id"] == cor_id
                 ):
                     if file.lower().endswith('.svs'):
