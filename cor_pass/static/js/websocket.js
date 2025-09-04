@@ -1,4 +1,4 @@
-const WS_URL = "wss://dev-corid.cor-medical.ua/api/doctor/ws/signing" || API_BASE_URL; // <-- replace
+const WS_URL = "wss://prod01.cor-id.cor-medical.ua/api/doctor/ws/signing" || API_BASE_URL; // <-- replace
 const SESSION_TOKEN = '';      // <-- replace
 
 let ws, heartbeat, reconnectTimer;
