@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-import httpx
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
@@ -10,13 +9,11 @@ from cor_pass.schemas import (
     CassetteUpdateComment,
     DeleteCassetteRequest,
     DeleteCassetteResponse,
-    PrintLabel,
 )
 from cor_pass.repository import cassette as cassette_service
 from typing import List, Optional
 
 from cor_pass.services.access import doctor_access
-from cor_pass.services.glass_and_cassette_printing import print_labels
 
 router = APIRouter(prefix="/cassettes", tags=["Cassette"])
 

@@ -29,19 +29,19 @@
                     </svg>
                 </button>
                 <div class="role-toggle">
-                    <button class="role-btn doc active">Doctor</button>
-                    <button class="role-btn lab">Laborant</button>
+                    <button class="role-btn doc active">Лікар</button>
+                    <button class="role-btn lab">Лаборант</button>
                 </div>
             </div>
         </div>
         <div class="header-row bottom">
             <div>
                 <div class="tabs">
-                    <button class="tab directionPage">Medical Referral</button>
-                    <button class="tab tenderloinPage">Grossing</button>
-                    <button class="tab glassPage active">Glasses</button>
-                    <button class="tab conclusionPage">Report</button>
-                    <button class="tab explorationPage">Report Preview</button>
+                    <button class="tab directionPage">Направлення</button>
+                    <button class="tab tenderloinPage">Вирізка</button>
+                    <button class="tab glassPage active">Скельця</button>
+                    <button class="tab conclusionPage">Заключення</button>
+                    <button class="tab explorationPage">Дослідження</button>
                 </div>
             </div>
             <div class="meta-info">
@@ -63,7 +63,7 @@
                     <img src="./assets/arrow.svg" alt="arrow">
                 </div>
                 <div>
-                    Current Cases
+                    Поточні кейси
                 </div>
             </div>
             <div class="bottom">
@@ -89,7 +89,7 @@
             <div style="height: 50%" class="df fdc">
                 <div class="commentsWrapper df fdc" style="height: 100%">
                     <div class="commentsWrapperTop">
-                        Pathohistological report
+                        Патогістологічний висновок
                     </div>
                     <textarea id="casePathohistologicalConclusion"></textarea>
                     <button class="commentsWrapperButton">Зберегти</button>
@@ -98,7 +98,7 @@
             <div style="height: 50%" class="df fdc">
                 <div class="commentsWrapper df fdc" style="height: 100%">
                     <div class="commentsWrapperTop">
-                        Micro Description
+                        Мікроопис
                     </div>
                     <textarea id="caseMicroDescription"></textarea>
                     <button class="commentsWrapperButton">Зберегти</button>
@@ -201,7 +201,7 @@
                 })
                     .then(res => res.json())
                     .then(() => {
-                        showSuccessAlert('Report successfully updated')
+                        showSuccessAlert('Заключення успішно оновленно')
                     })
             }
         })
@@ -251,7 +251,7 @@
                         caseLabelNode.innerHTML = single_case_for_glass_page.case_code
                         caseLabelNode.style.color = getCaseColor(single_case_for_glass_page)
                         caseMicroDescriptionTextareaNODE.value = single_case_for_glass_page.microdescription || ""
-                        caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "In order to write a microdescription, you must be the owner of the case." : ""
+                        caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
 
                         setAllGlasses(single_case_for_glass_page)
                         setCaseEdit()
@@ -371,7 +371,7 @@
                                 caseLabelNode.style.color = getCaseColor({grossing_status: "CREATED"})
                                 document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "CREATED"})
                                 caseMicroDescriptionTextareaNODE.value = ""
-                                caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "In order to write a microdescription, you must be the owner of the case." : ""
+                                caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
                             })
                     }
                 })
@@ -402,7 +402,7 @@
                             caseLabelNode.style.color = getCaseColor({grossing_status: "PROCESSING"})
                             document.querySelector('.caseItem.active .caseItemLabel').style.color = getCaseColor({grossing_status: "PROCESSING"})
                             caseMicroDescriptionTextareaNODE.value = ""
-                            caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "In order to write a microdescription, you must be the owner of the case." : ""
+                            caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
                         })
                 }
             })
@@ -466,7 +466,7 @@
                    caseLabelNode.innerHTML = first_case_details_for_glass.case_code
                    caseLabelNode.style.color = getCaseColor(first_case_details_for_glass)
                    caseMicroDescriptionTextareaNODE.value = first_case_details_for_glass.microdescription || ""
-                   caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "In order to write a microdescription, you must be the owner of the case." : ""
+                   caseMicroDescriptionTextareaNODE.placeholder = !case_owner?.id ? "Для того щоб писати мікроописв ви повині бути власником кейсу." : ""
 
                    fetch(`${API_BASE_URL}/api/doctor/patients/${first_case_details_for_glass.patient_cor_id}`, {
                        method: "GET",

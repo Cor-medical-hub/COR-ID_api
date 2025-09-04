@@ -29,14 +29,13 @@ from cor_pass.schemas import (
     SessionLoginStatus,
     UserModel,
     ResponseUser,
-    TokenModel,
     EmailSchema,
     VerificationModel,
     LoginResponseModel,
     RecoveryCodeModel,
     UserSessionModel,
 )
-from cor_pass.database.models import User, UserSession
+from cor_pass.database.models import User
 from cor_pass.repository import person as repository_person
 from cor_pass.repository import user_session as repository_session
 from cor_pass.repository import cor_id as repository_cor_id
@@ -292,6 +291,8 @@ async def login(
         data=token_data, expires_delta=expires_delta
     )
 
+    if not device_id:
+        device_id = str(uuid4())
     # ---- Создание новой сессии ----
     session_data = {
         "user_id": user.cor_id,
@@ -334,12 +335,15 @@ async def login(
     dependencies=[Depends(RateLimiter(times=5, seconds=60))],
 )
 async def initiate_login(
-    body: InitiateLoginRequest, db: AsyncSession = Depends(get_db)
+    body: InitiateLoginRequest, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """
     Инициирует процесс входа пользователя через Cor-ID.
     Получает email и/или cor-id, генерирует session_token и сохраняет информацию о сессии CorIdAuthSession.
     """
+    device_information = di.get_device_info(request)
+    if not body.app_id:
+        body.app_id = device_information["app_id"]
 
     session_token = await repository_session.create_auth_session(request=body, db=db)
 

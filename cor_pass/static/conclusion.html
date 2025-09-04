@@ -32,19 +32,19 @@
                     </svg>
                 </button>
                 <div class="role-toggle">
-                    <button class="role-btn doc active">Doctor</button>
-                    <button class="role-btn lab">Laborant</button>
+                    <button class="role-btn doc active">Лікар</button>
+                    <button class="role-btn lab">Лаборант</button>
                 </div>
             </div>
         </div>
         <div class="header-row bottom">
             <div>
                 <div class="tabs">
-                    <button class="tab directionPage">Medical Referral</button>
-                    <button class="tab tenderloinPage">Grossing</button>
-                    <button class="tab glassPage">Glasses</button>
-                    <button class="tab conclusionPage active">Report</button>
-                    <button class="tab explorationPage">Report Preview</button>
+                    <button class="tab directionPage">Направлення</button>
+                    <button class="tab tenderloinPage">Вирізка</button>
+                    <button class="tab glassPage">Скельця</button>
+                    <button class="tab conclusionPage active">Заключення</button>
+                    <button class="tab explorationPage">Дослідження</button>
                 </div>
             </div>
             <div class="meta-info">
@@ -66,7 +66,7 @@
                     <img src="./assets/arrow.svg" alt="arrow">
                 </div>
                 <div>
-                    Current Cases
+                    Поточні кейси
                 </div>
             </div>
             <div class="bottom">
@@ -77,7 +77,7 @@
         </div>
         <div class="middle df fdc">
             <div class="top df aic">
-                Report
+                Заключення
             </div>
             <div class="bottom df ">
                 <div class="conclusionContent">
@@ -272,13 +272,13 @@
         </div>
         <div class="conclusionFormGroup"  style="${!isMyCase ? disabledStyle : ""}">
             <div class="conclusionFormGroupLabel">
-                Macro description
+                Макроопис
             </div>
             <input type="text" class="conclusionFormGroupInput" name="report_macrodescription" value="${caseOwnerReport?.report_macrodescription || currentReport.concatenated_macro_description || ""}">
         </div>
         <div class="conclusionFormGroup"  style="${!isMyCase ? disabledStyle : ""}">
             <div class="conclusionFormGroupLabel">
-                Micro Description
+                Мікроопис
             </div>
             <input type="text" class="conclusionFormGroupInput" name="report_microdescription" value="${currentReport.microdescription_from_case || ""}">
         </div>
@@ -298,20 +298,20 @@
         </div>
         <div class="conclusionFormGroup">
             <div class="conclusionFormGroupLabel">
-                Pathohistological report
+                Патогістологічний висновок
             </div>
             ${pathomorphologicalDiagnosis}
             <input type="text" name="pathomorphological_diagnosis" class="conclusionFormGroupInput" value="${myReportData?.pathomorphological_diagnosis || ""}">
         </div>
         <div class="conclusionFormGroup" style="${!isMyCase ? disabledStyle : ""}">
             <div class="conclusionFormGroupLabel">
-                Code ICD
+                Код ICD
             </div>
             <input type="text" name="icd_code" class="conclusionFormGroupInput" placeholder="ICD - №: код" value="${caseOwnerReport?.icd_code || ""}">
         </div>
         <div class="conclusionFormGroup" style="${!isMyCase ? disabledStyle : ""}">
             <div class="conclusionFormGroupLabel">
-                Comment
+                Коментар
             </div>
             <input type="text" name="comment" class="conclusionFormGroupInput" value="${caseOwnerReport?.comment || ""}">
         </div>
@@ -551,7 +551,7 @@
                 })
                     .then(res => res.json())
                     .then(() => {
-                        showSuccessAlert('Report successfully updated')
+                        showSuccessAlert('Заключення успішно оновленно')
                     })
 
             }

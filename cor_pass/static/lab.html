@@ -155,8 +155,8 @@
                                 <div id="userAge"></div>
                             </div>
                             <div class="tabs">
-                                <button class="tab" id="directionModalBtn">Medical Referral</button>
-                                <button class="tab" id="caseSettingsModalBtn">Case parameters</button>
+                                <button class="tab" id="directionModalBtn">Направлення</button>
+                                <button class="tab" id="caseSettingsModalBtn">Параметри кейсу</button>
                             </div>
                         </div>
                         <div class="infoHeader">
@@ -223,7 +223,7 @@
                 </div>
                 <div class="commentsWrapper df fdc">
                     <div class="commentsWrapperTop">
-                        Macro description
+                        Макроопис
                     </div>
                     <textarea id="sampleMacroDescription"></textarea>
                     <button class="commentsWrapperButton">Зберегти</button>
@@ -234,7 +234,7 @@
     <div id="caseSettingsModal" class="modalCustom">
         <div class="modalWrapper">
             <div class="modalContent">
-                <div class="modalTitle">Case parameters</div>
+                <div class="modalTitle">Параметри кейсу</div>
                 <div class="caseSettings">
                     <div class="df">
                         <div class="caseSettingsContent df">
@@ -242,7 +242,7 @@
                         </div>
                         <div class="commentsWrapper df fdc">
                             <div class="commentsWrapperTop">
-                                Macro description
+                                Макроопис
                             </div>
                             <textarea id="caseSettingsComments"></textarea>
                         </div>
@@ -270,7 +270,7 @@
     <div id="caseDirection" class="modalCustom">
         <div class="modalWrapper">
             <div class="modalContent">
-                <div class="modalTitle">Medical Referral</div>
+                <div class="modalTitle">Направлення</div>
                 <div class="directorModalTop">
                     <!-- cor-id -->
                     <b>S25B01251</b>
@@ -284,8 +284,8 @@
                             <div class="upload-icon">
                                 <svg viewBox="0 0 24 24"><path d="M12 4v10M7 9l5-5 5 5"/><rect x="4" y="18" width="16" height="2" rx="1"/></svg>
                             </div>
-                            <span>Drag your files here<br><b>or scan</b></span>
-                            <small class="note">up to 5 filesдо</small>
+                            <span>Перетягніть сюди свої файли<br><b>або скануйте</b></span>
+                            <small class="note">до 5 файлів</small>
                             <input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden>
                         </div>
                     </div>
@@ -1805,8 +1805,8 @@
             toggleDiv.classList.add('role-toggle')
             toggleDiv.innerHTML = `
             <div class="role-toggle">
-                <button class="role-btn doc">Doctor</button>
-                <button class="role-btn lab active">Laborant</button>
+                <button class="role-btn doc">Лікар</button>
+                <button class="role-btn lab active">Лаборант</button>
             </div>
             `
             headerNODE.append(toggleDiv)
