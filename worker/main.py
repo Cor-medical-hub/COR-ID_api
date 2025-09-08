@@ -16,7 +16,7 @@ from worker.data_collector import (
     collect_battery_data,
     collect_inverter_power_data,
     collect_ess_ac_data,
-    collect_solarchargers_data,
+    # collect_solarchargers_data,
     get_solarchargers_current_sum,
     get_battery_status,
     read_dvcc_max_charge_current,
