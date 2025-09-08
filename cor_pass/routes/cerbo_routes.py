@@ -597,7 +597,7 @@ async def get_solarchargers_status(request: Request):
     
 
 
-
+ 
 @router.get("/solarchargers_sum")
 async def get_solarchargers_current_sum(request: Request):
     """
