@@ -184,7 +184,8 @@ async def login(
     :param db: AsyncSession: Get the database session
     :return: A dictionary with the access_token, refresh_token, token type, is_admin and session_id
     """
-    client_ip = request.client.host
+    device_information = di.get_device_info(request)
+    client_ip = device_information["ip_address"]
 
     # ---- Блокировки по IP (rate limit) ----
     blocked_until_str = await redis_client.get(f"{IP_BLOCKED_PREFIX}{client_ip}")
@@ -241,7 +242,7 @@ async def login(
         await redis_client.delete(f"{IP_BLOCKED_PREFIX}{client_ip}")
 
     # ---- Информация об устройстве ----
-    device_information = di.get_device_info(request)
+    
 
     # 🔹 Новое: различаем app_id / device_id
     app_id = device_information.get("app_id")
