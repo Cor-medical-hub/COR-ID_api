@@ -1002,6 +1002,35 @@ async def verify_access_token(
         )
     return {"detail": "Token is valid"}
 
+@router.get("/verify_session")
+async def verify_access_token(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **The verify_access_token function is used to verify the access token. / Маршрут для проверки валидности токена доступа **\n
+
+    :param credentials: HTTPAuthorizationCredentials: Get the credentials from the request header
+    :param db: AsyncSession: Pass the database session to the function
+    :return: JSON message
+
+    """
+    token = credentials.credentials
+    user = await auth_service.get_current_user(token=token, db=db)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token"
+        )
+    decoded_jti = jwt.decode(
+    token,
+    key="",  
+    options={"verify_signature": False, "verify_exp": False}
+)
+    jti = decoded_jti.get("jti")
+    user_session = await repository_session.get_session_by_jti(user=user, db=db, jti=jti)
+    return {"detail": "Token is valid",
+            "session_id": user_session.device_id}
+
 
 @router.post(
     "/send_verification_code",
