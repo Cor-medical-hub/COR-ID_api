@@ -67,7 +67,7 @@ async function printLabel(printerIp, templateNumber, content, resultElement = nu
     async function checkPrinterAvailability(ip = PRINTER_IP) {
         try {
             console.log(`[checkPrinterAvailability] Проверка IP: ${ip}`);
-            const response = await fetch(`/api/check_printer?ip=${encodeURIComponent(ip)}`);
+            const response = await fetch(`/api/printer/check_printer?ip=${encodeURIComponent(ip)}`);
             console.log(`[checkPrinterAvailability] HTTP статус: ${response.status}`);
 
             const data = await response.json();
@@ -294,13 +294,7 @@ async function loadDevicesList() {
         // Сохраняем все устройства для отображения в таблице
         allPrinters = devices;
         
-        // Фильтруем только принтеры для тестовой формы
-        availablePrinters = devices.filter(device => 
-            device.device_class === 'GlassPrinter' || 
-            device.device_class === 'CassetPrinter' ||
-            device.device_class === 'CassetPrinterHopper'||
-            device.device_class ===`scanner`
-        );
+        availablePrinters = devices;
         
         // Обновляем выпадающий список в тестовой форме
         updatePrinterDropdown();
@@ -479,53 +473,7 @@ async function deleteDevice(deviceId) {
     }
 }
 
-function updatePrinterDropdown() {
-    const printerInput = document.getElementById('printerIp');
-    const datalist = document.getElementById('printerIps');
-    if (!printerInput || !datalist) return;
 
-    if (!Array.isArray(availablePrinters)) {
-        console.error('availablePrinters не является массивом:', availablePrinters);
-        availablePrinters = [];
-    }
-
-    const currentValue = printerInput.value;
-    datalist.innerHTML = '';
-    
-    if (availablePrinters.length > 0) {
-        availablePrinters.forEach(printer => {
-            const option = document.createElement('option');
-            option.value = printer.ip_address;
-            option.textContent = `${printer.ip_address}${printer.location ? ` (${printer.location})` : ''}`;
-            option.dataset.type = printer.device_class;
-            datalist.appendChild(option);
-        });
-    }
-    
-    if (currentValue) {
-        printerInput.value = currentValue;
-    }
-
-    // Обработчик изменения выбора принтера
-    printerInput.addEventListener('input', function() {
-        const selectedOption = Array.from(datalist.options).find(opt => opt.value === this.value);
-        const hopperNumberContainer = document.getElementById('hopperNumberContainer');
-        
-        if (selectedOption) {
-            // Показываем поле для хоппера только для принтеров типа CassetPrinterHopper
-            if (selectedOption.dataset.type === 'CassetPrinterHopper') {
-                hopperNumberContainer.style.display = 'block';
-            } else {
-                hopperNumberContainer.style.display = 'none';
-            }
-        } else {
-            hopperNumberContainer.style.display = 'none';
-        }
-    });
-    
-    // Вызываем событие input для обновления состояния при загрузке
-    printerInput.dispatchEvent(new Event('input'));
-}
 
 
 function sendToPrint() {

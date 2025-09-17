@@ -35,7 +35,7 @@ async def create_new_printing_device(
     body: CreatePrintingDevice, db: AsyncSession = Depends(get_db)
 ):
     """Создает новое устройство печати."""
-    if body.device_class not in ["GlassPrinter", "scanner", "CassetPrinter", "CassetPrinterHopper"]:
+    if body.device_class not in ["GlassPrinter", "scanner_docs", "CassetPrinter", "CassetPrinterHopper", "StickerPrinter"]:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Device class not allowed")
     existing_device = await get_printing_device_by_device_identifier(
         device_identifier=body.device_identifier, db=db

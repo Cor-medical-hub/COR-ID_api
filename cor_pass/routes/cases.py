@@ -1,11 +1,15 @@
+from datetime import datetime
+import io
 from click import File
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from cor_pass.database.models import User
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import get_patient_by_corid
+from cor_pass.repository.printing_device import get_printing_device_by_device_class
 from cor_pass.schemas import (
     CaseCreate,
     CaseDetailsResponse,
@@ -23,9 +27,13 @@ from cor_pass.schemas import (
 )
 from cor_pass.repository import case as case_service
 
+from starlette.datastructures import Headers
+
 from cor_pass.services.access import doctor_access
 from cor_pass.services.auth import auth_service
 from cor_pass.services.document_validation import validate_document_file
+from loguru import logger
+from cor_pass.config.config import settings
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
 
@@ -275,6 +283,99 @@ async def upload_referral_attachment(
         ),
     )
 
+
+USERNAME = None                  # если  с паролем 
+PASSWORD = None
+SAVE_DIR = "/scans"
+
+async def get_client():
+    if USERNAME and PASSWORD:
+        return httpx.AsyncClient(auth=(USERNAME, PASSWORD))
+    return httpx.AsyncClient()
+
+@router.post(
+    "/{referral_id}/scan-and-attach",
+    response_model=ReferralAttachmentResponse,
+    dependencies=[Depends(doctor_access)],
+)
+async def scan_and_attach_referral(
+    referral_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **Сканирование и прикрепление документа к направлению**
+    Сканирует изображение через eSCL и сохраняет как вложение.
+    Работает только локально.
+    """
+    scan_settings = """<?xml version="1.0" encoding="UTF-8"?>
+    <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03">
+      <scan:InputSource>Platen</scan:InputSource>
+      <scan:DocumentFormat>image/jpeg</scan:DocumentFormat>
+      <scan:ColorMode>RGB24</scan:ColorMode>
+      <scan:XResolution>300</scan:XResolution>
+      <scan:YResolution>300</scan:YResolution>
+    </scan:ScanSettings>
+    """
+
+    if not settings.smb_enabled:
+        logger.debug("Сканирование недоступно")
+        raise HTTPException(
+            status_code=status.HTTP_202_ACCEPTED,
+            detail="You are not in the Lab now / can not scan referral",
+        )
+
+    device = await get_printing_device_by_device_class(db=db, device_class="scanner_docs")
+    if not device:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сканер не найден в системе",
+        )
+
+    async with await get_client() as client:
+        try:
+            r = await client.post(
+                f"http://{device.ip_address}:8080/eSCL/ScanJobs",
+                content=scan_settings,
+                headers={"Content-Type": "application/xml"},
+                timeout=20,
+            )
+            r.raise_for_status()
+            job_url = r.headers.get("Location")
+            if not job_url:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Сканер не вернул Location",
+                )
+
+            doc = await client.get(
+                f"http://{device.ip_address}:8080{job_url}/NextDocument"
+            )
+            doc.raise_for_status()
+            image_bytes = doc.content
+
+        except Exception as e:
+            logger.error(f"Ошибка при обращении к сканеру: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ошибка сканирования",
+            )
+
+    fake_file = UploadFile(
+        filename=f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
+        file=io.BytesIO(image_bytes),
+        headers=Headers({"content-type": "image/jpeg"}),
+    )
+
+    db_attachment = await case_service.upload_attachment(db, referral_id, fake_file)
+
+    return ReferralAttachmentResponse(
+        id=db_attachment.id,
+        filename=db_attachment.filename,
+        content_type=db_attachment.content_type,
+        file_url=router.url_path_for(
+            "get_referral_attachment", attachment_id=db_attachment.id
+        ),
+    )
 
 @router.get("/attachments/{attachment_id}", dependencies=[Depends(doctor_access)])
 async def get_referral_attachment(
