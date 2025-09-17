@@ -1,14 +1,8 @@
 
-
-
-
-
 from fastapi import APIRouter, Response, HTTPException
 import httpx
 from loguru import logger
 import os
-
-
 
 router = APIRouter(prefix="/scanner", tags=["Scanner"])
 

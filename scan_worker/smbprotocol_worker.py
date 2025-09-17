@@ -66,11 +66,11 @@ class StainingType(enum.Enum):
         abbr = "".join(word[0].upper() for word in parts)
         return abbr[:3]
 
-
+# Генерируем список всех возможных сокращений для окрашиваний
 STAINING_ABBREVIATIONS = [staining.abbr() for staining in StainingType]
-# logger.debug(f"Сгенерированные сокращения окрашиваний: {STAINING_ABBREVIATIONS}")
+logger.debug(f"Сгенерированные сокращения окрашиваний: {STAINING_ABBREVIATIONS}")
 
-
+# Обновляем регулярное выражение для парсинга имени файла
 filename_pattern = re.compile(
     r"^(?P<case_code>S\d{2}R\d{5})"       # case_code (SXXRXXXXX)
     r"(?P<cassette>[A-Z]\d)"              # cassette (буква + цифра, например B1)
@@ -87,7 +87,7 @@ def parse_filename(filename):
     base = os.path.basename(filename)
     m = filename_pattern.match(base)
     if not m:
-        # logger.debug(f"Файл {base} не соответствует регулярному выражению: {filename_pattern.pattern}")
+        logger.debug(f"Файл {base} не соответствует регулярному выражению: {filename_pattern.pattern}")
         return None
     parsed = {
         "case_code": m.group("case_code"),
@@ -98,7 +98,7 @@ def parse_filename(filename):
         "staining": m.group("staining"),
         "cor_id": m.group("cor_id")
     }
-    # logger.debug(f"Разобранное имя файла {base}: {parsed}")
+    logger.debug(f"Разобранное имя файла {base}: {parsed}")
     return parsed
 
 async def fetch_file_from_smb(path: str) -> str:
@@ -122,25 +122,25 @@ async def fetch_file_from_smb(path: str) -> str:
         else:
             relative_path = path.strip("/\\")
 
-        # logger.debug(f"relative_path: {relative_path}")
+        logger.debug(f"relative_path: {relative_path}")
 
         try:
             file_info = conn.getAttributes(SMB_SHARE, relative_path)
-            # logger.debug(f"file_info: {file_info}, type: {type(file_info)}")
+            logger.debug(f"file_info: {file_info}, type: {type(file_info)}")
             filesize = getattr(file_info, "file_size", None)
             if filesize is None:
                 raise ValueError("Cannot get filesize from SMB file_info")
-            # logger.debug(f"filesize: {filesize}, type: {type(filesize)}")
+            logger.debug(f"filesize: {filesize}, type: {type(filesize)}")
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".svs") as temp_file:
                 start_time = time.time()
                 conn.retrieveFile(SMB_SHARE, relative_path, temp_file)
                 temp_file.flush()
-                # logger.debug(f"Time to retrieve file to disk: {time.time() - start_time} seconds")
+                logger.debug(f"Time to retrieve file to disk: {time.time() - start_time} seconds")
 
                 temp_file.seek(0, os.SEEK_END)
                 file_size = temp_file.tell()
-                # logger.debug(f"Total bytes written to temp file: {file_size}")
+                logger.debug(f"Total bytes written to temp file: {file_size}")
                 if file_size != filesize:
                     raise RuntimeError(f"Expected {filesize} bytes, but wrote {file_size} bytes")
                 
@@ -171,11 +171,11 @@ async def save_file_to_smb(data: BytesIO, path: str) -> None:
         else:
             relative_path = path.strip("/\\")
 
-        # logger.debug(f"Saving file to SMB: {relative_path}")
+        logger.debug(f"Saving file to SMB: {relative_path}")
         try:
             data.seek(0)
             conn.storeFile(SMB_SHARE, relative_path, data)
-            # logger.debug(f"Successfully saved file to {relative_path}")
+            logger.debug(f"Successfully saved file to {relative_path}")
         finally:
             conn.close()
 
@@ -183,11 +183,11 @@ async def save_file_to_smb(data: BytesIO, path: str) -> None:
 
 def list_files_in_folder(conn, share, folder_path):
     files = []
-    # logger.debug(f"Сканируем папку: {share}/{folder_path}")
+    logger.debug(f"Сканируем папку: {share}/{folder_path}")
     try:
         entries = conn.listPath(share, folder_path)
         folder_contents = [entry.filename for entry in entries if entry.filename not in ['.', '..']]
-        # logger.info(f"Содержимое папки {share}/{folder_path}: {folder_contents}")
+        logger.info(f"Содержимое папки {share}/{folder_path}: {folder_contents}")
         for entry in entries:
             if entry.filename in [".", ".."]:
                 continue
@@ -205,7 +205,7 @@ def list_files_for_current_date(conn, share, base_path, include_yesterday=True):
         date_folders = [entry.filename for entry in entries if entry.isDirectory and entry.filename not in ['.', '..']]
         # logger.info(f"Доступные папки с датами в {share}/{base_path_clean}: {date_folders}")
     except Exception as e:
-        # logger.error(f"Ошибка при получении списка папок в {share}/{base_path_clean}: {str(e)}")
+        logger.error(f"Ошибка при получении списка папок в {share}/{base_path_clean}: {str(e)}")
         return files
 
     current_date = datetime.now().strftime("%Y-%m-%d")
@@ -233,11 +233,11 @@ async def update_scan_urls():
             use_ntlm_v2=True,
             is_direct_tcp=True
         )
-        # logger.debug(f"Попытка подключения к SMB-серверу: {SMB_SERVER_IP}, share: {SMB_SHARE}, remote_name: {REMOTE_NAME}")
+        logger.debug(f"Попытка подключения к SMB-серверу: {SMB_SERVER_IP}, share: {SMB_SHARE}, remote_name: {REMOTE_NAME}")
         connected = conn.connect(SMB_SERVER_IP, 445)
         if not connected:
             raise RuntimeError("Не удалось подключиться к SMB-серверу")
-        # logger.info("Успешно подключились к SMB-серверу")
+        logger.info("Успешно подключились к SMB-серверу")
 
         try:
             shares = conn.listShares()
@@ -253,16 +253,16 @@ async def update_scan_urls():
         current_path = ""
         for part in path_parts:
             current_path = f"{current_path}/{part}".lstrip("/")
-            # logger.debug(f"Проверка папки: {SMB_SHARE}/{current_path}")
+            logger.debug(f"Проверка папки: {SMB_SHARE}/{current_path}")
             try:
                 entries = conn.listPath(SMB_SHARE, current_path)
-                # logger.info(f"Содержимое папки {SMB_SHARE}/{current_path}: {[entry.filename for entry in entries if entry.filename not in ['.', '..']]}")
+                logger.info(f"Содержимое папки {SMB_SHARE}/{current_path}: {[entry.filename for entry in entries if entry.filename not in ['.', '..']]}")
                 for entry in entries:
                     if entry.filename in [".", ".."]:
                         continue
-                    # logger.debug(f"Права для {entry.filename}: isDirectory={entry.isDirectory}, read={entry.isReadOnly is False}")
+                    logger.debug(f"Права для {entry.filename}: isDirectory={entry.isDirectory}, read={entry.isReadOnly is False}")
             except Exception as e:
-                # logger.error(f"Ошибка при сканировании папки {SMB_SHARE}/{current_path}: {str(e)}")
+                logger.error(f"Ошибка при сканировании папки {SMB_SHARE}/{current_path}: {str(e)}")
                 if "Unable to open directory" in str(e):
                     logger.warning(f"Папка {SMB_SHARE}/{current_path} не существует или недоступна")
 
@@ -277,8 +277,7 @@ async def update_scan_urls():
 
     smb_files = await asyncio.to_thread(sync_scan)
     for file in smb_files:
-        pass
-        # logger.debug(f"Обнаружен файл: {file}")
+        logger.debug(f"Обнаружен файл: {file}")
 
     async with AsyncSessionLocal() as session:
         try:
@@ -300,7 +299,7 @@ async def update_scan_urls():
         for glass in glasses:
             if glass.scan_url and glass.preview_url:
                 skipped += 1
-                # logger.debug(f"[SKIP] Стекло {glass.id} уже имеет scan_url: {glass.scan_url} и preview_url: {glass.preview_url}")
+                logger.debug(f"[SKIP] Стекло {glass.id} уже имеет scan_url: {glass.scan_url} и preview_url: {glass.preview_url}")
                 continue
 
             case_code = glass.cassette.sample.case.case_code
@@ -310,14 +309,17 @@ async def update_scan_urls():
             staining = glass.staining.abbr() if glass.staining else None
             cor_id = glass.cassette.sample.case.patient_id
 
-            # logger.debug(f"Проверяем стекло {glass.id}: case_code={case_code}, sample={sample_number}, cassette={cassette_number}, glass_number={glass_number}, staining={staining}, cor_id={cor_id}")
+            logger.debug(f"Проверяем стекло {glass.id}: case_code={case_code}, sample={sample_number}, cassette={cassette_number}, glass_number={glass_number}, staining={staining}, cor_id={cor_id}")
 
             for file in smb_files:
                 info = parse_filename(file)
                 if not info:
                     continue
+
+                # Учитываем, что cassette_number в базе данных может быть длиннее, но нам нужна только последняя буква + цифра
                 cassette_last = cassette_number[-2:] if cassette_number and len(cassette_number) >= 2 else None
-                # logger.debug(f"Сравниваем с файлом {file}: {info}")
+
+                logger.debug(f"Сравниваем с файлом {file}: {info}")
 
                 if (
                     info["case_code"] == case_code and
@@ -330,7 +332,7 @@ async def update_scan_urls():
                     if file.lower().endswith('.svs'):
                         scan_url = f"\\\\{SMB_SERVER_IP}\\{SMB_SHARE}\\{file}"
                         glass.scan_url = scan_url
-                        # logger.debug(f"[OK] Стекло {glass.id} → scan_url: {scan_url}")
+                        logger.debug(f"[OK] Стекло {glass.id} → scan_url: {scan_url}")
 
                         if not glass.preview_url:
                             try:
@@ -346,11 +348,11 @@ async def update_scan_urls():
                                     preview_path = scan_url.replace('.svs', '.png').replace('.SVS', '.png')
                                     await save_file_to_smb(buf, preview_path)
                                     glass.preview_url = preview_path
-                                    # logger.debug(f"[OK] Стекло {glass.id} → preview_url: {preview_path}")
+                                    logger.debug(f"[OK] Стекло {glass.id} → preview_url: {preview_path}")
                                 finally:
                                     if os.path.exists(temp_file_path):
                                         os.unlink(temp_file_path)
-                                        # logger.debug(f"Temporary file {temp_file_path} deleted")
+                                        logger.debug(f"Temporary file {temp_file_path} deleted")
                             except Exception as e:
                                 logger.error(f"Ошибка при генерации или сохранении превью для {file}: {str(e)}")
                                 continue
@@ -359,7 +361,7 @@ async def update_scan_urls():
                         break
 
         await session.commit()
-        logger.debug(f"Обновлено {updated} записей, пропущено {skipped} записей")
+        # logger.info(f"Обновлено {updated} записей, пропущено {skipped} записей")
 
 async def main():
     while True:
