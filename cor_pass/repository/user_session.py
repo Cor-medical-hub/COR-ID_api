@@ -237,6 +237,21 @@ async def get_session_by_id(
     user_session = result.scalar_one_or_none()
     return user_session
 
+async def get_session_by_jti(
+    user: User, db: AsyncSession, jti: str
+) -> UserSession | None:
+    """
+    Асинхронно получает сессию пользователя по ее ID, проверяя принадлежность пользователя.
+    """
+    stmt = (
+        select(UserSession)
+        .join(User, UserSession.user_id == User.cor_id)
+        .where(and_(UserSession.jti == jti, User.cor_id == user.cor_id))
+    )
+    result = await db.execute(stmt)
+    user_session = result.scalar_one_or_none()
+    return user_session
+
 
 async def get_all_user_sessions(
     db: AsyncSession, user_id: str, skip: int, limit: int
