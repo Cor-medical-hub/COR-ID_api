@@ -34,32 +34,32 @@ services:
         max-file: "3"
     command: gunicorn main:app --workers 5 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level info --error-logfile - --access-logfile -
     restart: unless-stopped
+  # modbus_worker:
+  #     build:
+  #       context: . 
+  #       dockerfile: Dockerfile.modbus_worker
+  #     image: modbus-worker:latest 
+  #     container_name: $CORID_ENV-modbus_worker 
+  #     env_file:
+  #       - $CORID_ENV-corid.cor-medical.ua.env
+  #     depends_on:
+  #       - postgres 
 
-  modbus_worker:
-      build:
-        context: . 
-        dockerfile: Dockerfile.modbus_worker
-      image: modbus-worker:latest 
-      container_name: $CORID_ENV-modbus_worker 
-      env_file:
-        - $CORID_ENV-corid.cor-medical.ua.env
-      depends_on:
-        - postgres 
-      restart: unless-stopped
-  # scanner_worker:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.scanner_worker
-  #   image: scanner_worker:latest
-  #   container_name: $CORID_ENV-scanner_worker
-  #   restart: unless-stopped
-  #   volumes:
-  #     - .:/app
-  #   # network_mode: "host"
-  #   env_file:
-  #     - $CORID_ENV-corid.cor-medical.ua.env
-  #   depends_on:
-  #     - postgres 
+  #     restart: unless-stopped
+  scanner_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.scanner_worker
+    image: scanner_worker:latest
+    container_name: $CORID_ENV-scanner_worker
+    restart: unless-stopped
+    volumes:
+      - .:/app
+    # network_mode: "host"
+    env_file:
+      - $CORID_ENV-corid.cor-medical.ua.env
+    depends_on:
+      - postgres 
   redis:
     image: redis:alpine
     container_name: $CORID_ENV-redis
