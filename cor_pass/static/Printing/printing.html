@@ -11,13 +11,14 @@
     <link rel="stylesheet" type="text/css" href="/static/COR_ID_css/styles.css">
     <link rel="stylesheet" type="text/css" href="/static/COR_ID_css/modal.css">
     <link rel="stylesheet" type="text/css" href="/static/Printing/printers.css">
+
     <title>Управление устройствами</title>
     
 </head>
 <body>
 
     <div class="main-container"> 
-        <h1>Управление устройствами печати</h1>   
+        <h1>Управление аппаратным окружением</h1>   
         <div class="print-container">
             <button id="devicesBtn">Устройства и принтеры</button>
             <button id="testBtn">Тест</button>
@@ -50,7 +51,7 @@
             <div class="modal-buttons">
               <button class="modal-button close" data-action="close" id="closetestModal">✖</button>
             </div>
-             <h3 style="margin-top:30; color:#291161;font-size: 17px;">Тест печати</h3>
+             <h3 style="margin-top:30; color:#291161;font-size: 17px;">Тест устройств</h3>
         </div> 
         <div class="modal-content">
            
@@ -64,6 +65,11 @@
 
             <textarea id="labelText"></textarea>
             <button onclick="sendToPrint()">Печать</button>
+            <div id="scannerContainer" style="display:none;">
+                <p>Миниатюра последнего сканирования:</p>
+                <img id="scanPreview" style="max-width:300px; max-height:300px;" alt="Скан не выполнен"/>
+            </div>
+
 
             <div class="form">
                 <label for="deviceId">Шаблон № (0-65535):</label>
@@ -113,7 +119,7 @@
                     <input type="text" id="patientCorId" value="TDAJ92Z7-1983M">
                 </div>
             </div>
-            <button id="sendLabelButton">Отправить тестовую метку</button>
+            <button id="sendLabelButton">Тестировать</button>
             <div id="testResult" style="margin-top: 15px;"></div>
         </div>
     </div>
@@ -134,7 +140,8 @@
                     <option value="GlassPrinter">Принтер стёкол</option>
                     <option value="CassetPrinter">Принтер кассет</option>
                     <option value="CassetPrinterHopper">Принтер-хоппер кассет</option>
-                    <option value="scanner">Сканер</option>
+                    <option value="StickerPrinter">Принтер наклеек</option>
+                    <option value="scanner_docs">Сканер документов</option>
                     <option value="other">Другое</option>
                 </select>
             </div>
@@ -157,6 +164,7 @@
     </div>
 
     <script src="/static/Printing/printers.js"></script>
+    <script src="/static/Printing/devices.js"></script>
     <script src="/static/COR_ID_Js/translation.js"></script>   
     <script src="/static/COR_ID_Js/general_fun.js"></script>  
     <script>
@@ -195,12 +203,7 @@
                 }
             }
             
-            // Закрытие модальных окон при клике вне окна
-       //     window.onclick = function(event) {
-       //         if (event.target.className === 'modal') {
-       //             event.target.style.display = 'none';
-       //         }
-       //     }
+      
             
                 makeModalDraggable('addDeviceModal');
                 makeModalDraggable('devicesModal');

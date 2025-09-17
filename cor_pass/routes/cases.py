@@ -324,7 +324,7 @@ async def scan_and_attach_referral(
             detail="You are not in the Lab now / can not scan referral",
         )
 
-    device = await get_printing_device_by_device_class(db=db, device_class="scanner")
+    device = await get_printing_device_by_device_class(db=db, device_class="scanner_docs")
     if not device:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -334,7 +334,7 @@ async def scan_and_attach_referral(
     async with await get_client() as client:
         try:
             r = await client.post(
-                f"http://{device.ip_address}:{device.port}/eSCL/ScanJobs",
+                f"http://{device.ip_address}:8080/eSCL/ScanJobs",
                 content=scan_settings,
                 headers={"Content-Type": "application/xml"},
                 timeout=20,
@@ -348,7 +348,7 @@ async def scan_and_attach_referral(
                 )
 
             doc = await client.get(
-                f"http://{device.ip_address}:{device.port}{job_url}/NextDocument"
+                f"http://{device.ip_address}:8080{job_url}/NextDocument"
             )
             doc.raise_for_status()
             image_bytes = doc.content
