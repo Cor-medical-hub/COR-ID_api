@@ -304,7 +304,8 @@ async def scan_and_attach_referral(
 ):
     """
     **Сканирование и прикрепление документа к направлению**
-    Сканирует изображение через eSCL и сохраняет как вложение. Работает только локально
+    Сканирует изображение через eSCL и сохраняет как вложение.
+    Работает только локально.
     """
     scan_settings = """<?xml version="1.0" encoding="UTF-8"?>
     <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03">
@@ -316,36 +317,48 @@ async def scan_and_attach_referral(
     </scan:ScanSettings>
     """
 
+    if not settings.smb_enabled:
+        logger.debug("Сканирование недоступно")
+        raise HTTPException(
+            status_code=status.HTTP_202_ACCEPTED,
+            detail="You are not in the Lab now / can not scan referral",
+        )
+
+    device = await get_printing_device_by_device_class(db=db, device_class="scanner")
+    if not device:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сканер не найден в системе",
+        )
+
     async with await get_client() as client:
         try:
-            if not settings.smb_enabled:
-                logger.debug("Вы не подключены к сканеру")
+            r = await client.post(
+                f"http://{device.ip_address}:{device.port}/eSCL/ScanJobs",
+                content=scan_settings,
+                headers={"Content-Type": "application/xml"},
+                timeout=20,
+            )
+            r.raise_for_status()
+            job_url = r.headers.get("Location")
+            if not job_url:
                 raise HTTPException(
-            status_code=status.HTTP_202_ACCEPTED, detail="You are not in the Lab now / can not scan referral"
-        )   
-            else:
-                device = await get_printing_device_by_device_class(db=db, device_class="scanner")
-                if device:
-                    r = await client.post(
-                        f"http://{device.ip_address}:{device.port}/eSCL/ScanJobs",
-                        content=scan_settings,
-                        headers={"Content-Type": "application/xml"},
-                        timeout=20,
-                    )
-                    r.raise_for_status()
-                    job_url = r.headers.get("Location")
-                    if not job_url:
-                        raise HTTPException(status_code=500, detail="Сканер не вернул Location")
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Сканер не вернул Location",
+                )
 
-                    doc = await client.get(
-                        f"http://{device.ip_address}:{device.port}{job_url}/NextDocument"
-                    )
-                    doc.raise_for_status()
-                    image_bytes = doc.content
+            doc = await client.get(
+                f"http://{device.ip_address}:{device.port}{job_url}/NextDocument"
+            )
+            doc.raise_for_status()
+            image_bytes = doc.content
 
         except Exception as e:
-            logger.error(f"Ошибка сканирования: {e}")
-            raise HTTPException(status_code=500, detail="Ошибка сканирования")
+            logger.error(f"Ошибка при обращении к сканеру: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ошибка сканирования",
+            )
 
     fake_file = UploadFile(
         filename=f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
