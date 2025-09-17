@@ -60,6 +60,8 @@ async def create_user_session(
         existing_session.access_token = encrypted_access_token
         existing_session.device_os = body.device_os
         existing_session.device_info = body.device_info
+        existing_session.app_id = body.app_id
+        existing_session.device_id = body.device_id
         try:
             db.add(existing_session)
             await db.commit()
@@ -230,6 +232,21 @@ async def get_session_by_id(
         select(UserSession)
         .join(User, UserSession.user_id == User.cor_id)
         .where(and_(UserSession.id == session_id, User.cor_id == user.cor_id))
+    )
+    result = await db.execute(stmt)
+    user_session = result.scalar_one_or_none()
+    return user_session
+
+async def get_session_by_jti(
+    user: User, db: AsyncSession, jti: str
+) -> UserSession | None:
+    """
+    Асинхронно получает сессию пользователя по ее ID, проверяя принадлежность пользователя.
+    """
+    stmt = (
+        select(UserSession)
+        .join(User, UserSession.user_id == User.cor_id)
+        .where(and_(UserSession.jti == jti, User.cor_id == user.cor_id))
     )
     result = await db.execute(stmt)
     user_session = result.scalar_one_or_none()

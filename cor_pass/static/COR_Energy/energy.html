@@ -23,12 +23,16 @@
     <script src="/static/COR_Energy/scripts.js"></script>
     <script src="/static/COR_Energy/power-settings.js"></script>
     <script src="/static/COR_Energy/chart.js"></script>
+    <script src="/static/COR_Energy/line_chart.js"></script>
+    <script src="/static/COR_Energy/chart_settings.js"></script>
     <script src="/static/COR_Energy/timetable.js"></script>
     <script src="/static/COR_ID_Js/general_fun.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="/static/COR_Energy/xlsx.full.min.js"></script>
+    <script src="/static/COR_Energy/chart.min.js"></script>
+  <!-- <script src="/static/COR_Energy/eruda.min.js"></script>
 
-    <!-- Подключаем библиотеку Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>eruda.init();</script>  --> 
+
 </head>
 <body>
     <div class="energy-container">
@@ -364,11 +368,23 @@
             <!-- Контейнер для графика -->
             <div id="chartContainer">
                 <canvas id="powerChart"></canvas>
+
+                <div id="chartLoadingOverlay" class="chart-loading-overlay" style="display: none;">
+                    <div class="chart-loading-spinner"></div>
+                    <span>Загрузка...</span>
+                </div>
             </div>
             
             <!-- Блок управления периодом -->
             <div class="chart-controls">
                 <div class="time-range-control">
+                    <div class="chart-type-control">
+                        <select id="chartTypeSelect">
+                            <option value="line">Мощности (линия)</option>
+                            <option value="bar">Энергия (столбцы)</option>
+                        </select>
+                    </div>
+
                     <label>Период:</label>
                     <select id="timeRangeSelect">
                         <option value="realtime">В реальном времени</option>
@@ -385,15 +401,10 @@
                     <div id="customDateRange" style="display: none;">
                         <input type="datetime-local" id="startDate">
                         <input type="datetime-local" id="endDate">
-                        <button id="applyCustomRange">Применить</button>
+                        <button id="applyCustomRange" class="apply-button">Применить</button>
                     </div>
 
-                    <div class="chart-type-control">
-                        <select id="chartTypeSelect">
-                            <option value="line">Мощности (линия)</option>
-                            <option value="bar">Энергия (столбцы)</option>
-                        </select>
-                    </div>
+                    
                     <!-- Блок пагинации (только для реального времени) -->
                     <div class="pages-control" style="display: none;">
                         <label>Страниц на экран:</label>
@@ -405,10 +416,28 @@
                             <option value="20">20</option>
                             <option value="50">50</option>
                         </select>
-                    </div>
+                    </div>  
                 </div>
                 
-                
+                <!-- Контейнер для суммарных энергий -->
+                <div id="energyTotals" class="totals-container">
+                    <div class="total-box">
+                        <label>Солнечная генерация:</label>
+                        <span id="totalSolar">0</span>
+                    </div>
+                    <div class="total-box">
+                        <label>Нагрузка:</label>
+                        <span id="totalLoad">0</span>
+                    </div>
+                    <div class="total-box">
+                        <label>Импорт сети:</label>
+                        <span id="totalGridImport">0</span>
+                    </div>
+                    <div class="total-box">
+                        <label>Экспорт сети:</label>
+                        <span id="totalGridExport">0</span>
+                    </div>
+                </div>
                
                 
                 <div class="time-range-slider-container" style="display: none;">
@@ -843,6 +872,8 @@
             ];
 
             const barTimeRanges = [
+                { value: 'today', label: 'За сегодня' },
+                { value: 'this_week', label: 'За эту неделю' },
                 { value: '1d', label: 'За сутки' },
                 { value: '7d', label: 'За неделю' },
                 { value: '30d', label: 'За месяц ' },
@@ -999,31 +1030,39 @@ document.getElementById('ChargingCurrentSlider').addEventListener('input', funct
 
 <script>
   
-		
- 
-    
-        // Функция для переключения вкладок
-        function openTab(event, tabName) {
-            var i, tabcontent, tabs;
-            
-            // Скрываем все вкладки
-            tabcontent = document.getElementsByClassName("tabcontent");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].classList.remove("active");
-            }
-            
-            // Убираем активный класс с вкладок
-            tabs = document.getElementsByClassName("tab");
-            for (i = 0; i < tabs.length; i++) {
-                tabs[i].classList.remove("active");
-            }
-            
-            // Показываем текущую вкладку
-            document.getElementById(tabName).classList.add("active");
-            event.currentTarget.classList.add("active");
-        }
 
+function openTab(event, tabName) {
+    var i, tabcontent, tabs;
 
+    // Скрываем все вкладки
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].classList.remove("active");
+    }
+
+    // Убираем активный класс с вкладок
+    tabs = document.getElementsByClassName("tab");
+    for (i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove("active");
+    }
+
+    // Показываем текущую вкладку
+    document.getElementById(tabName).classList.add("active");
+    event.currentTarget.classList.add("active");
+
+    // 🔹 Если открыта вкладка Мониторинг → обновляем графики
+    if (tabName === "monitor") {
+        console.log("Обновление графика (вкладка Мониторинг)");
+       // initChartTypeControl();
+
+        /*
+        if (currentChartType === "line") {
+            startLiveUpdates();
+        } else if (currentChartType === "bar") {
+            loadEnergyDataForTimeRange("7d");
+        } */
+    }
+}
 	
 
 // Функция для получения текущего времени в формате HH:MM:SS
@@ -1060,13 +1099,14 @@ function getCurrentTimeFormatted() {
      setInterval(() => {
         tick++;
         
-        if (tick % 13 === 0) fetchSolarChargerStatus();
+        if (tick % 33 === 0) fetchSolarChargerStatus();
         if (tick % 3 === 0) fetchInverterPowerStatus();
         if (tick % 4 === 0) fetchEssAcStatus();
         if (tick % 5 === 0) fetchVebusStatus();
         if (tick % 6 === 0) fetchEss();
         if (tick % 7 === 0) fetchEssAdvancedSettings();
         if (tick % 9 === 0) fetchStatus();
+        if (tick % 10 === 0) fetchSolarChargersSum();
         if (tick % 30 === 0) checkConnectionStatus();
         if (tick % 11 === 0) fetchDynamicEssSettings();
         if (tick >= 60) tick = 0;
@@ -1080,6 +1120,7 @@ function getCurrentTimeFormatted() {
         fetchVebusStatus(); 
         fetchEssAdvancedSettings();
         fetchSolarChargerStatus();
+        fetchSolarChargersSum();
         checkConnectionStatus();
         fetchDynamicEssSettings();
     </script>

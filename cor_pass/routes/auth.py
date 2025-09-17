@@ -184,7 +184,8 @@ async def login(
     :param db: AsyncSession: Get the database session
     :return: A dictionary with the access_token, refresh_token, token type, is_admin and session_id
     """
-    client_ip = request.client.host
+    device_information = di.get_device_info(request)
+    client_ip = device_information["ip_address"]
 
     # ---- Блокировки по IP (rate limit) ----
     blocked_until_str = await redis_client.get(f"{IP_BLOCKED_PREFIX}{client_ip}")
@@ -241,7 +242,7 @@ async def login(
         await redis_client.delete(f"{IP_BLOCKED_PREFIX}{client_ip}")
 
     # ---- Информация об устройстве ----
-    device_information = di.get_device_info(request)
+    
 
     # 🔹 Новое: различаем app_id / device_id
     app_id = device_information.get("app_id")
@@ -335,12 +336,15 @@ async def login(
     dependencies=[Depends(RateLimiter(times=5, seconds=60))],
 )
 async def initiate_login(
-    body: InitiateLoginRequest, db: AsyncSession = Depends(get_db)
+    body: InitiateLoginRequest, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """
     Инициирует процесс входа пользователя через Cor-ID.
     Получает email и/или cor-id, генерирует session_token и сохраняет информацию о сессии CorIdAuthSession.
     """
+    device_information = di.get_device_info(request)
+    if not body.app_id:
+        body.app_id = device_information["app_id"]
 
     session_token = await repository_session.create_auth_session(request=body, db=db)
 
@@ -997,6 +1001,35 @@ async def verify_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token"
         )
     return {"detail": "Token is valid"}
+
+@router.get("/verify_session")
+async def verify_access_token(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    **The verify_access_token function is used to verify the access token. / Маршрут для проверки валидности токена доступа **\n
+
+    :param credentials: HTTPAuthorizationCredentials: Get the credentials from the request header
+    :param db: AsyncSession: Pass the database session to the function
+    :return: JSON message
+
+    """
+    token = credentials.credentials
+    user = await auth_service.get_current_user(token=token, db=db)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token"
+        )
+    decoded_jti = jwt.decode(
+    token,
+    key="",  
+    options={"verify_signature": False, "verify_exp": False}
+)
+    jti = decoded_jti.get("jti")
+    user_session = await repository_session.get_session_by_jti(user=user, db=db, jti=jti)
+    return {"detail": "Token is valid",
+            "session_id": user_session.device_id}
 
 
 @router.post(
