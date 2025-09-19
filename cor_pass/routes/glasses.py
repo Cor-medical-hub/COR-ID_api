@@ -175,9 +175,7 @@ async def upload_glass_file(
             status_code=status.HTTP_202_ACCEPTED,
             detail="You are not connected to NAS / can not save svs scan",
         )
-
     try:
-
         data = BytesIO(await file.read())
         today = datetime.now().strftime("%Y-%m-%d")
         svs_path = f"{settings.base_path}/{today}/{file.filename}"
