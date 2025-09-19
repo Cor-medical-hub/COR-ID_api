@@ -181,6 +181,50 @@ async def save_file_to_smb(data: BytesIO, path: str) -> None:
 
     await loop.run_in_executor(None, _write_file)
 
+async def save_file_to_smb_manual(data: BytesIO, path: str) -> None:
+    loop = asyncio.get_running_loop()
+
+    def _write_file():
+        conn = SMBConnection(
+            SMB_USER,
+            SMB_PASS,
+            my_name=socket.gethostname(),
+            remote_name=REMOTE_NAME,
+            use_ntlm_v2=True,
+            is_direct_tcp=True,
+        )
+        if not conn.connect(SMB_SERVER_IP, 445):
+            raise RuntimeError("Failed to connect to SMB server")
+
+        prefix = f"\\\\{SMB_SERVER_IP}\\{SMB_SHARE}\\"
+        if path.startswith(prefix):
+            relative_path = path[len(prefix):].strip("/\\")
+        else:
+            relative_path = path.strip("/\\")
+
+        dir_path, filename = os.path.split(relative_path)
+
+        # создаём директории если их нет
+        if dir_path:
+            parts = dir_path.replace("\\", "/").split("/")
+            current = ""
+            for part in parts:
+                current = f"{current}/{part}" if current else part
+                try:
+                    conn.createDirectory(SMB_SHARE, current)
+                except Exception:
+                    # игнорируем, если уже есть
+                    pass
+
+        try:
+            data.seek(0)
+            conn.storeFile(SMB_SHARE, relative_path, data)
+        finally:
+            conn.close()
+
+    await loop.run_in_executor(None, _write_file)
+
+
 def list_files_in_folder(conn, share, folder_path):
     files = []
     logger.debug(f"Сканируем папку: {share}/{folder_path}")

@@ -1,9 +1,14 @@
 import asyncio
+from datetime import datetime
 from io import BytesIO
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import os
+import tempfile
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
+from openslide import OpenSlide
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
+from cor_pass.database.models import Glass
 from cor_pass.schemas import (
     ChangeGlassStaining,
     DeleteGlassesRequest,
@@ -18,6 +23,7 @@ from typing import List, Optional
 from cor_pass.services.access import doctor_access
 from loguru import logger
 from cor_pass.config.config import settings
+from scan_worker.smbprotocol_worker import save_file_to_smb, save_file_to_smb_manual
 
 router = APIRouter(prefix="/glasses", tags=["Glass"])
 
@@ -150,3 +156,60 @@ async def get_glass_preview(glass_id: str, db: AsyncSession = Depends(get_db)):
             placeholder_buf = BytesIO(f.read())
             placeholder_buf.seek(0)
             return StreamingResponse(placeholder_buf, media_type="image/png")
+        
+
+
+@router.post("/upload-glass/{glass_id}",
+    dependencies=[Depends(doctor_access)])
+async def upload_glass_file(
+    glass_id: str,
+    file: UploadFile,
+    db: AsyncSession = Depends(get_db),
+):
+    if not file.filename.lower().endswith(".svs"):
+        raise HTTPException(status_code=400, detail="Можно загрузить только .svs")
+    
+    if not settings.smb_enabled:
+        logger.debug("Загрузка скана недоступна")
+        raise HTTPException(
+            status_code=status.HTTP_202_ACCEPTED,
+            detail="You are not connected to NAS / can not save svs scan",
+        )
+    try:
+        data = BytesIO(await file.read())
+        today = datetime.now().strftime("%Y-%m-%d")
+        svs_path = f"{settings.base_path}/{today}/{file.filename}"
+        smb_full_path = f"\\\\{settings.smb_server_ip}\\{settings.smb_share}\\{svs_path}"
+
+        await save_file_to_smb_manual(data, smb_full_path)
+
+        data.seek(0)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".svs") as tmp:
+            tmp.write(data.read())
+            tmp.flush()
+            slide = OpenSlide(tmp.name)
+            preview = slide.get_thumbnail((512, 512))
+
+        buf = BytesIO()
+        preview.save(buf, format="PNG")
+        buf.seek(0)
+
+        preview_path = smb_full_path.replace(".svs", ".png")
+        await save_file_to_smb_manual(buf, preview_path)
+
+        glass = await db.get(Glass, glass_id)
+        if not glass:
+            raise HTTPException(status_code=404, detail="Стекло не найдено")
+
+        glass.scan_url = smb_full_path
+        glass.preview_url = preview_path
+        await db.commit()
+
+        return {"scan_url": smb_full_path, "preview_url": preview_path}
+
+    except Exception as e:
+        logger.exception(f"Ошибка при загрузке SVS: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при обработке файла")
+    finally:
+        if 'tmp' in locals() and os.path.exists(tmp.name):
+            os.unlink(tmp.name)
