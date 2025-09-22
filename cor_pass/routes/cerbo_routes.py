@@ -1,8 +1,8 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from typing import List, Optional
-from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_schedule, decode_signed_16, decode_signed_32, delete_schedule, get_all_schedules, get_device_measurements_paginated,get_averaged_measurements_service,get_energy_measurements_service, get_modbus_client, get_schedule_by_id, register_modbus_error, update_schedule
-from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl
+from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_energetic_object, create_schedule, decode_signed_16, decode_signed_32, delete_energetic_object, delete_schedule, get_all_energetic_objects, get_all_schedules, get_device_measurements_paginated,get_averaged_measurements_service, get_energetic_object,get_energy_measurements_service, get_modbus_client, get_schedule_by_id, register_modbus_error, update_energetic_object, update_schedule
+from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticObjectCreate, EnergeticObjectResponse, EnergeticObjectUpdate, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from cor_pass.database.db import get_db
@@ -904,3 +904,34 @@ async def delete_energetic_schedule_api(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
     return
 
+
+# CRUD роуты по энергетическим обьектам / инверторам
+
+@router.post("/", response_model=EnergeticObjectResponse, tags=["Energetic Object CRUD"])
+async def create_object(obj_data: EnergeticObjectCreate, db: AsyncSession = Depends(get_db)):
+    return await create_energetic_object(db, obj_data)
+
+@router.get("/", response_model=list[EnergeticObjectResponse], tags=["Energetic Object CRUD"])
+async def list_objects(db: AsyncSession = Depends(get_db)):
+    return await get_all_energetic_objects(db)
+
+@router.get("/{object_id}", response_model=EnergeticObjectResponse, tags=["Energetic Object CRUD"])
+async def read_object(object_id: str, db: AsyncSession = Depends(get_db)):
+    obj = await get_energetic_object(db, object_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Object not found")
+    return obj
+
+@router.put("/{object_id}", response_model=EnergeticObjectResponse, tags=["Energetic Object CRUD"])
+async def update_object(object_id: str, obj_data: EnergeticObjectUpdate, db: AsyncSession = Depends(get_db)):
+    obj = await update_energetic_object(db, object_id, obj_data)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Object not found")
+    return obj
+
+@router.delete("/{object_id}", tags=["Energetic Object CRUD"])
+async def delete_object(object_id: str, db: AsyncSession = Depends(get_db)):
+    success = await delete_energetic_object(db, object_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Object not found")
+    return {"status": "deleted"}

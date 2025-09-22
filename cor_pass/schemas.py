@@ -2317,4 +2317,23 @@ class FeedbackProposalsScheema(BaseModel):
     proposal: str = Field(...,min_length=2,max_length=800, description="Предложения")
 
 
+class EnergeticObjectBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    modbus_registers: Optional[dict] = None
+    is_active: bool
 
+class EnergeticObjectCreate(EnergeticObjectBase):
+    pass
+
+class EnergeticObjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    modbus_registers: Optional[dict] = None
+    is_active: Optional[bool] = None
+
+class EnergeticObjectResponse(EnergeticObjectBase):
+    id: str
+
+    class Config:
+        orm_mode = True

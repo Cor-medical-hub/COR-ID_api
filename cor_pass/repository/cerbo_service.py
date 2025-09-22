@@ -6,9 +6,11 @@ from sqlalchemy import UUID, delete, func, select, update
 from typing import Any, Dict, List, Optional, Tuple
 from math import ceil
 
-from cor_pass.database.models import CerboMeasurement, EnergeticSchedule
+from cor_pass.database.models import CerboMeasurement, EnergeticObject, EnergeticSchedule
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import (
+    EnergeticObjectCreate,
+    EnergeticObjectUpdate,
     EnergeticScheduleBase,
     EnergeticScheduleCreate,
     FullDeviceMeasurementCreate,
@@ -866,3 +868,42 @@ async def get_energy_measurements_service(
             "battery_energy_total": round(total_battery, 0),
         }
     }
+
+
+# CRUD по энергетическим обьектам / инверторам
+
+async def create_energetic_object(db: AsyncSession, obj_data: EnergeticObjectCreate) -> EnergeticObject:
+    db_obj = EnergeticObject(**obj_data.model_dump())
+    db.add(db_obj)
+    await db.commit()
+    await db.refresh(db_obj)
+    return db_obj
+
+async def get_energetic_object(db: AsyncSession, object_id: str) -> EnergeticObject | None:
+    result = await db.execute(select(EnergeticObject).where(EnergeticObject.id == object_id))
+    return result.scalars().first()
+
+async def get_all_energetic_objects(db: AsyncSession) -> list[EnergeticObject]:
+    result = await db.execute(select(EnergeticObject))
+    return result.scalars().all()
+
+async def update_energetic_object(
+    db: AsyncSession,
+    object_id: str,
+    obj_data: EnergeticObjectUpdate
+) -> EnergeticObject | None:
+    db_obj = await get_energetic_object(db, object_id)
+    if not db_obj:
+        return None
+    update_data = obj_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
+
+    await db.commit()
+    await db.refresh(db_obj)
+    return db_obj
+
+async def delete_energetic_object(db: AsyncSession, object_id: str) -> bool:
+    result = await db.execute(delete(EnergeticObject).where(EnergeticObject.id == object_id))
+    await db.commit()
+    return result.rowcount > 0
