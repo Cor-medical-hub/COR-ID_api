@@ -51,11 +51,6 @@ async def main_worker_entrypoint():
                 for energy_obj in active_objects:
                     object_id = energy_obj.id
                     object_name = energy_obj.name
-                    logger.debug("----------------------------------------------------")
-                    logger.debug(energy_obj)
-                    logger.debug(energy_obj.id)
-                    logger.debug(energy_obj.name)
-                    logger.debug("----------------------------------------------------")
                     if energy_obj.id not in worker_manager.tasks:
                         await worker_manager.start_worker(object_id=object_id, object_name=object_name)
 
