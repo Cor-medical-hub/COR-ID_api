@@ -5,13 +5,13 @@
 async function loadEnergyDataForTimeRange(range, objectName = null) {
     const now = new Date();
     let startDate;
-    let intervals = 24; // по умолчанию почасово за сутки
+    let intervalMinutes = 30; // по умолчанию 30 минут
 
     switch(range) {
         case 'today':
             startDate = new Date(now);
             startDate.setHours(0, 0, 0, 0);
-            intervals = 24;
+            intervalMinutes = 30;
             break;
 
         case 'this_week':
@@ -20,22 +20,22 @@ async function loadEnergyDataForTimeRange(range, objectName = null) {
             const diff = (day === 0 ? -6 : 1) - day;
             startDate.setDate(startDate.getDate() + diff);
             startDate.setHours(0, 0, 0, 0);
-            intervals = 7;
+            intervalMinutes = 30 * 24; // 1 день в минутах
             break;
 
         case '1d':
             startDate = new Date(now.getTime() - 24 * 3600000);
-            intervals = 24;
+            intervalMinutes = 30;
             break;
 
         case '7d':
             startDate = new Date(now.getTime() - 7 * 24 * 3600000);
-            intervals = 7;
+            intervalMinutes = 60 * 12; // 12 Часов в минутах
             break;
 
         case '30d':
             startDate = new Date(now.getTime() - 30 * 24 * 3600000);
-            intervals = 30;
+            intervalMinutes = 60 * 24; // 1 день в минутах
             break;
 
         default:
@@ -51,10 +51,11 @@ async function loadEnergyDataForTimeRange(range, objectName = null) {
             return date.toISOString().replace(/\.\d{3}Z$/, '');
         };
 
+
         const params = new URLSearchParams({
             start_date: formatDateForAPI(startDate),
             end_date: formatDateForAPI(now),
-            intervals: intervals
+            interval_minutes: intervalMinutes
         });
 
         if (objectName) {
@@ -62,6 +63,7 @@ async function loadEnergyDataForTimeRange(range, objectName = null) {
         }
 
         const url = `/api/modbus/measurements/energy/?${params.toString()}`;
+        console.log('Fetching energy data with URL:', url);
 
         const response = await fetch(url, {
             headers: { 'Accept': 'application/json' }
@@ -78,17 +80,21 @@ async function loadEnergyDataForTimeRange(range, objectName = null) {
         }
 
         const data = await response.json();
-        // console.log('Energy data received:', data);
+
+        console.log('==== Energy data received ====');
+        console.log('range:', range, 'objectName:', objectName);
+        console.log('raw data:', data);
 
         if (data && data.intervals && data.intervals.length > 0) {
+
+            console.log('Intervals count:', data.intervals.length);
             // Формируем данные для графика
-            const chartData = data.intervals.map(item => ({
-                interval: item.interval_start,
-                solar: item.solar_energy_kwh,
-                load: item.load_energy_kwh,
-                grid: item.grid_energy_kwh,
-                battery: item.battery_energy_kwh
-            }));
+            const chartData = processEnergyDataWithPlaceholders(data);
+
+            data.intervals.forEach((i, idx) => {
+                console.log(idx, i.interval_start, i.solar_energy_kwh, i.load_energy_kwh, i.grid_energy_kwh, i.battery_energy_kwh);
+            });
+
 
             // Рисуем график
             updateBarChart(chartData);
@@ -124,16 +130,27 @@ async function loadEnergyDataForCustomRange(startDate, endDate, objectName = nul
         isLoading = true;
         document.getElementById('chartLoadingOverlay').style.display = 'flex';
 
-        const durationDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
-        let intervals = Math.max(1, Math.ceil(durationDays)); // минимум 1 интервал
+        const durationHours = (endDate - startDate) / (1000 * 60 * 60);
+        let intervalMinutes = 30; // по умолчанию 30 минут
+
+        // Автоматически увеличиваем интервал для больших периодов
+        if (durationHours > 24 * 7) { // больше недели
+            intervalMinutes = 60 * 24; // 1 день
+        } else if (durationHours > 24 * 3) { // больше 3 дней
+            intervalMinutes = 60 * 12; // 12 часов
+        } else if (durationHours > 24) { // больше суток
+            intervalMinutes = 60 * 6; // 6 часов
+        } else if (durationHours > 12) { // больше 12 часов
+            intervalMinutes = 60; // 1 час
+        }
 
         const formatDateForAPI = (date) => date.toISOString().replace(/\.\d{3}Z$/, '');
-        
-        // Формируем параметры для query string
-        const params = new URLSearchParams({
+       
+         // Формируем параметры для query string
+         const params = new URLSearchParams({
             start_date: formatDateForAPI(startDate),
             end_date: formatDateForAPI(endDate),
-            intervals: intervals
+            interval_minutes: intervalMinutes
         });
 
         if (objectName) {
@@ -153,17 +170,18 @@ async function loadEnergyDataForCustomRange(startDate, endDate, objectName = nul
         }
 
         const data = await response.json();
-        console.log('Energy data received:', data);
+
+        console.log('==== Energy data received ====');
+     //   console.log('range:', range, 'objectName:', objectName);
+        console.log('raw data:', data);
 
         if (data && data.intervals && data.intervals.length > 0) {
             // Формируем данные для графика
-            const chartData = data.intervals.map(item => ({
-                interval: item.interval_start,
-                solar: item.solar_energy_kwh,
-                load: item.load_energy_kwh,
-                grid: item.grid_energy_kwh,
-                battery: item.battery_energy_kwh
-            }));
+            const chartData = processEnergyDataWithPlaceholders(data);
+            data.intervals.forEach((i, idx) => {
+                console.log(idx, i.interval_start, i.solar_energy_kwh, i.load_energy_kwh, i.grid_energy_kwh, i.battery_energy_kwh);
+            });
+
 
             // Рисуем график
             updateBarChart(chartData);
@@ -233,35 +251,72 @@ function updateBarChart(chartData) {
 
     const startDate = new Date(chartData[0].interval);
     const endDate = new Date(chartData[chartData.length - 1].interval);
+    const labels = chartData.map(i => formatDateLabel(i.interval, startDate, endDate, 'bar'));
 
-    const labels = chartData.map(d => 
-        formatDateLabel(d.interval, startDate, endDate, 'bar')
-    );
+    // вычисляем опорную высоту для заглушки — небольшой процент от реального максимума
+    let maxVal = 0;
+    chartData.forEach(i => {
+        if (i.has_sufficient_data) {
+            maxVal = Math.max(maxVal,
+                Math.abs(i.solar || 0),
+                Math.abs(i.load || 0),
+                Math.abs(i.grid || 0),
+                Math.abs(i.battery || 0)
+            );
+        }
+    });
+    const placeholderHeight = maxVal > 0 ? Math.max(maxVal * 0.04, 0.1) : 0.1; // минимум 0.1
+
+    // Для реальных данных — оставляем значения, для пропусков — 0
+    const solarData = chartData.map(i => i.has_sufficient_data ? i.solar : 0);
+    const loadData  = chartData.map(i => i.has_sufficient_data ? i.load  : 0);
+    const gridData  = chartData.map(i => i.has_sufficient_data ? i.grid  : 0);
+    const battData  = chartData.map(i => i.has_sufficient_data ? i.battery : 0);
+
+    // Отдельный датасет-заглушка: рисуется только там, где нет данных
+    const placeholderData = chartData.map(i => i.has_sufficient_data ? 0 : placeholderHeight);
 
     energyChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels,
             datasets: [
+                // Заглушки — первый слой (иначе, если поставить в конец, порядок рисования не важен,
+                // т.к. реальные датасеты имеют нули в этих позициях)
+                {
+                    label: 'Нет данных',
+                    data: placeholderData,
+                    backgroundColor: 'rgba(200,200,200,0.6)',
+                    borderColor: 'rgba(150,150,150,0.9)',
+                    borderWidth: 1
+                },
                 {
                     label: 'Солнечная энергия (кВт·ч)',
-                    data: chartData.map(d => d.solar),
-                    backgroundColor: 'rgba(255, 206, 86, 0.7)'
+                    data: solarData,
+                    backgroundColor: 'rgba(255, 206, 86, 0.7)',
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    borderWidth: 1
                 },
                 {
                     label: 'Нагрузка (кВт·ч)',
-                    data: chartData.map(d => d.load),
-                    backgroundColor: 'rgba(75, 192, 192, 1)'
+                    data: loadData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
                 },
                 {
                     label: 'Сеть (кВт·ч)',
-                    data: chartData.map(d => d.grid),
-                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                    data: gridData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
                 },
                 {
                     label: 'Батарея (кВт·ч)',
-                    data: chartData.map(d => d.battery),
-                    backgroundColor: 'rgba(153, 102, 255, 0.7)'
+                    data: battData,
+                    backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
                 }
             ]
         },
@@ -273,16 +328,34 @@ function updateBarChart(chartData) {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return `${context.dataset.label}: ${context.raw.toFixed(2)} кВт·ч`;
+                            const idx = context.dataIndex;
+                            const interval = chartData[idx];
+                            // специальное сообщение для заглушки
+                            if (!interval.has_sufficient_data) {
+                                return `${context.dataset.label}: Нет данных`;
+                            }
+                            const v = context.raw;
+                            return `${context.dataset.label}: ${Number(v).toFixed(2)} кВт·ч`;
                         }
                     }
                 }
             },
             scales: {
-                x: { stacked: true },
+                x: {
+                    stacked: true,
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        callback: function(value, index) {
+                            const interval = chartData[index];
+                            return interval && !interval.has_sufficient_data ? '---' : this.getLabelForValue(value);
+                        }
+                    }
+                },
                 y: {
                     stacked: false,
-                    title: { display: true, text: 'Энергия (кВт·ч)' }
+                    title: { display: true, text: 'Энергия (кВт·ч)' },
+                    beginAtZero: true
                 }
             }
         }
@@ -633,26 +706,62 @@ window.addEventListener('beforeunload', () => {
 });
 
 
-/*
-// Добавляем стили для нового элемента управления
-const style = document.createElement('style');
-style.textContent = `
-    .pages-control {
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+function formatDateLabel(dateString, startDate, endDate, chartType) {
+    const date = new Date(dateString);
+    
+    if (chartType === 'bar') {
+        const duration = endDate - startDate;
+        const days = duration / (1000 * 60 * 60 * 24);
+        
+        if (days <= 1) {
+            // Для периода до 1 дня: показываем часы и минуты
+            return date.toLocaleTimeString('ru-RU', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        } else if (days <= 7) {
+            // Для периода до недели: показываем день и время
+            return date.toLocaleString('ru-RU', { 
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit'
+            });
+        } else {
+            // Для больших периодов: показываем только дату
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit'
+            });
+        }
     }
-    .pages-control label {
-        font-size: 14px;
-        font-weight: bold;
-    }
-    .pages-control select {
-        padding: 5px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-    }
-`;
-document.head.appendChild(style);
+    
+    return date.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+}
 
-*/
+
+
+
+// === Обработка данных от сервера ===
+function processEnergyDataWithPlaceholders(serverData) {
+    if (!serverData || !Array.isArray(serverData.intervals) || serverData.intervals.length === 0) {
+        return [];
+    }
+
+    return serverData.intervals.map(interval => ({
+    
+        interval: interval.interval_start,
+        interval_start: interval.interval_start,
+        solar: interval.solar_energy_kwh != null ? Number(interval.solar_energy_kwh) : 0,
+        load: interval.load_energy_kwh != null ? Number(interval.load_energy_kwh) : 0,
+        grid: interval.grid_energy_kwh != null ? Number(interval.grid_energy_kwh) : 0,
+        battery: interval.battery_energy_kwh != null ? Number(interval.battery_energy_kwh) : 0,
+        measurement_count: interval.measurement_count || 0,
+        has_sufficient_data: Boolean(interval.has_sufficient_data)
+    }));
+}
+
+
+
