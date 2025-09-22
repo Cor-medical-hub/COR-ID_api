@@ -2049,8 +2049,11 @@ class FullDeviceMeasurementCreate(BaseModel):
     # Общая информация о измерении
     measured_at: datetime = Field(..., description="Время измерения")
     object_name: Optional[str] = Field(
-        None, description="ID устройства, если применимо"
+        None, description="Имя устройства, если применимо"
     )
+    energetic_object_id: str = Field(
+        ..., description="ID обьекта"
+    )  
 
     # агрегированные данные
     general_battery_power: float = Field(

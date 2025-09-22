@@ -1011,13 +1011,14 @@ class EnergeticObject(Base):
         nullable=True,
         comment="Карта регистров Modbus (динамическая структура в формате JSON)"
     )
+    is_active = Column(Boolean, default=False, comment="Активен ли фоновый опрос")
 
     # связи
     measurements = relationship("CerboMeasurement", back_populates="energetic_object", cascade="all, delete-orphan")
     schedules = relationship("EnergeticSchedule", back_populates="energetic_object", cascade="all, delete-orphan")
 
-    def __repr__(self):
-        return f"<EnergeticObject(id={self.id}, name='{self.name}')>"
+    # def __repr__(self):
+    #     return f"<EnergeticObject(id={self.id}, name='{self.name}')>"
 
 
 class CerboMeasurement(Base):
