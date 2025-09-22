@@ -21,6 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, relationship, Mapped
 from sqlalchemy.sql.sqltypes import DateTime
 from cor_pass.database.db import engine
+from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
 
@@ -998,21 +999,37 @@ class BloodPressureMeasurement(Base):
     )
 
 
+class EnergeticObject(Base):
+    __tablename__ = "energetic_objects"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False, unique=True, comment="Имя/название объекта")
+    description = Column(String, nullable=True, comment="Описание объекта")
+
+    modbus_registers = Column(
+        JSONB,
+        nullable=True,
+        comment="Карта регистров Modbus (динамическая структура в формате JSON)"
+    )
+
+    # связи
+    measurements = relationship("CerboMeasurement", back_populates="energetic_object", cascade="all, delete-orphan")
+    schedules = relationship("EnergeticSchedule", back_populates="energetic_object", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<EnergeticObject(id={self.id}, name='{self.name}')>"
+
+
 class CerboMeasurement(Base):
     __tablename__ = "cerbo_measurements"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    created_at = Column(
-        DateTime,
-        nullable=False,
-        default=func.now(),
-        comment="Дата и время сохранения записи в БД",
+    energetic_object_id = Column(
+        String(36), ForeignKey("energetic_objects.id"), nullable=False, index=True
     )
-    measured_at = Column(
-        DateTime,
-        nullable=False,
-        comment="Дата и время измерения, полученное с устройства",
-    )
+    created_at = Column(DateTime, nullable=False, default=func.now())
+    measured_at = Column(DateTime, nullable=False, comment="Дата и время измерения")
+
     object_name: Column[str] = Column(String, nullable=True, index=True)
 
     # Данные из battery_status
@@ -1026,8 +1043,14 @@ class CerboMeasurement(Base):
 
     # Данные из solarchargers_status
     solar_total_pv_power: Column[float] = Column(Float, nullable=False)
-    
+
     soc: Column[float] = Column(Float, nullable=True)
+
+    energetic_object = relationship("EnergeticObject", back_populates="measurements")
+
+
+
+
 
     def __repr__(self):
         return (
@@ -1040,51 +1063,31 @@ class EnergeticSchedule(Base):
     __tablename__ = "energetic_schedule"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    energetic_object_id = Column(
+        String(36), ForeignKey("energetic_objects.id"), nullable=False, index=True
+    )
 
     # Параметры времени
-    start_time = Column(
-        Time, nullable=False, comment="Время начала работы режима (ЧЧ:ММ)"
-    )
-    duration = Column(
-        Interval,
-        nullable=False,
-        comment="Продолжительность режима (например, 2 часа 30 минут)",
-    )
-    end_time = Column(
-        Time, nullable=False, comment="Время окончания работы режима (ЧЧ:ММ)"
-    )
+    start_time = Column(Time, nullable=False, comment="Время начала работы режима (ЧЧ:ММ)")
+    duration = Column(Interval, nullable=False, comment="Продолжительность режима")
+    end_time = Column(Time, nullable=False, comment="Время окончания работы режима")
 
     # Параметры работы инвертора
-    grid_feed_w = Column(Integer, nullable=False, comment="Параметр отдачи в сеть (Вт)")
-    battery_level_percent = Column(
-        Integer, nullable=False, comment="Целевой уровень батареи (%)"
-    )
+    grid_feed_w = Column(Integer, nullable=False, comment="Отдача в сеть (Вт)")
+    battery_level_percent = Column(Integer, nullable=False, comment="Целевой уровень батареи (%)")
 
     # Статусы расписания
-    is_active = Column(
-        Boolean,
-        nullable=False,
-        default=False,
-        comment="Флаг: активно ли это расписание",
-    )
-    is_manual_mode = Column(
-        Boolean,
-        nullable=False,
-        default=False,
-        comment="Флаг: находится ли инвертор в ручном режиме",
-    )
-    charge_battery_value = Column(
-        Integer,
-        nullable=False,
-        default=300,
-        comment="заряжать батарею в этом режиме с каким то током",
-    )
+    is_active = Column(Boolean, nullable=False, default=False)
+    is_manual_mode = Column(Boolean, nullable=False, default=False)
+    charge_battery_value = Column(Integer, nullable=False, default=300)
+
+    energetic_object = relationship("EnergeticObject", back_populates="schedules")
 
     def __repr__(self):
         return (
-            f"<EnergeticSchedule(id='{self.id}', "
-            f"start_time={self.start_time}, duration={self.duration}, end_time={self.end_time}, "
-            f"grid_feed_kw={self.grid_feed_w}, battery_level_percent={self.battery_level_percent}, "
+            f"<EnergeticSchedule(id='{self.id}', start_time={self.start_time}, "
+            f"duration={self.duration}, end_time={self.end_time}, "
+            f"grid_feed_w={self.grid_feed_w}, battery_level_percent={self.battery_level_percent}, "
             f"charge_battery_value={self.charge_battery_value}, is_active={self.is_active}, "
             f"is_manual_mode={self.is_manual_mode})>"
         )

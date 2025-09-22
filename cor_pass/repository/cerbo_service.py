@@ -719,6 +719,8 @@ async def get_energy_measurements_service(
 
 
 '''
+
+
 async def get_energy_measurements_service(
     db: AsyncSession,
     object_name: Optional[str],
@@ -729,9 +731,18 @@ async def get_energy_measurements_service(
     if not start_date or not end_date:
         raise ValueError("Необходимо указать start_date и end_date")
 
-    # Округляем начало и конец до ближайшего часа
+  
+ #   rounded_start = start_date.replace(minute=0, second=0, microsecond=0)
+ #   rounded_end = end_date.replace(minute=0, second=0, microsecond=0)
+
+# Округляем: начало вниз до часа, конец вверх до следующего часа
     rounded_start = start_date.replace(minute=0, second=0, microsecond=0)
-    rounded_end = end_date.replace(minute=0, second=0, microsecond=0)
+    if end_date.minute == 0 and end_date.second == 0 and end_date.microsecond == 0:
+        rounded_end = end_date
+    else:
+        rounded_end = (end_date.replace(minute=0, second=0, microsecond=0)
+                       + timedelta(hours=1))
+
     
     # Создаем интервалы
     current_interval_start = rounded_start
