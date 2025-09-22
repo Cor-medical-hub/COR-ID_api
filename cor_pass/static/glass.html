@@ -300,6 +300,7 @@
         glassNewNODE.classList = `glassWrapper ${!fileUrl ? "disabled" : ""}`;
         glassNewNODE.innerHTML = `
             <div class="glassWrapperImg">
+
             </div>
             <div class="glassWrapperText">
                 ${currentGlass.cassette_number} L${currentGlass.glass_number}? ${currentPaint?.short || currentGlass.staining}
@@ -341,6 +342,14 @@
                     const formGroup = new FormData()
                     formGroup.append('file', file)
 
+                    glassNewNODE.querySelector('.glassWrapperImg').innerHTML = (
+                        `
+                        <div class="glassWrapperImgPreloader">
+                            <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><radialGradient id='a12' cx='.66' fx='.66' cy='.3125' fy='.3125' gradientTransform='scale(1.5)'><stop offset='0' stop-color='#6C00FF'></stop><stop offset='.3' stop-color='#6C00FF' stop-opacity='.9'></stop><stop offset='.6' stop-color='#6C00FF' stop-opacity='.6'></stop><stop offset='.8' stop-color='#6C00FF' stop-opacity='.3'></stop><stop offset='1' stop-color='#6C00FF' stop-opacity='0'></stop></radialGradient><circle transform-origin='center' fill='none' stroke='url(#a12)' stroke-width='15' stroke-linecap='round' stroke-dasharray='200 1000' stroke-dashoffset='0' cx='100' cy='100' r='70'><animateTransform type='rotate' attributeName='transform' calcMode='spline' dur='2' values='360;0' keyTimes='0;1' keySplines='0 0 1 1' repeatCount='indefinite'></animateTransform></circle><circle transform-origin='center' fill='none' opacity='.2' stroke='#6C00FF' stroke-width='15' stroke-linecap='round' cx='100' cy='100' r='70'></circle></svg>
+                        </div>
+                        `
+                    )
+
                     return fetch(`${API_BASE_URL}/api/glasses/upload-glass/${currentGlass.id}`, {
                         method: "POST",
                         headers: {
@@ -349,8 +358,24 @@
                         body: formGroup
                     })
                         .then(res => res.json())
-                        .then(() => true)
-                        .catch(() => false)
+                        .then(() => {
+                            fetch(`${API_BASE_URL}/api/glasses/${currentGlass.id}/preview`, {
+                                method: "GET",
+                                headers: {
+                                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                                },
+                            })
+                                .then(res => res.blob())
+                                .then((blob) => {
+                                    glassNewNODE.querySelector('.glassWrapperImg').innerHTML = ""
+                                    const imgNODE = document.createElement('img');
+                                    imgNODE.src = URL.createObjectURL(blob);
+                                    imgNODE.onload = () => URL.revokeObjectURL(imgNODE.src);
+                                    glassNewNODE.querySelector('.glassWrapperImg').append(imgNODE);
+                                })
+                                .f
+                        })
+                        .catch(() => glassNewNODE.querySelector('.glassWrapperImg').innerHTML = "")
                 });
                 document.querySelector('#fileBlock #fileInputSVSGlass').click()
                 return;
