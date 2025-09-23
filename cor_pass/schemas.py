@@ -2177,6 +2177,9 @@ class EnergeticScheduleBase(BaseModel):
 class EnergeticScheduleCreate(EnergeticScheduleBase):
     pass
 
+class EnergeticScheduleCreateForObject(EnergeticScheduleBase):
+    energetic_object_id: str = Field(..., description="ID Энергетического обьекта")
+
 
 class EnergeticScheduleResponse(BaseModel):
 
