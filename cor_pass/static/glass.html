@@ -372,8 +372,8 @@
                                     imgNODE.src = URL.createObjectURL(blob);
                                     imgNODE.onload = () => URL.revokeObjectURL(imgNODE.src);
                                     glassNewNODE.querySelector('.glassWrapperImg').append(imgNODE);
+                                    glassNewNODE.classList.remove('disabled')
                                 })
-                                .f
                         })
                         .catch(() => glassNewNODE.querySelector('.glassWrapperImg').innerHTML = "")
                 });
