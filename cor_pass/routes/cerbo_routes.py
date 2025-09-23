@@ -1,8 +1,8 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from typing import List, Optional
-from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_energetic_object, create_schedule, decode_signed_16, decode_signed_32, delete_energetic_object, delete_schedule, get_all_energetic_objects, get_all_schedules, get_device_measurements_paginated,get_averaged_measurements_service, get_energetic_object,get_energy_measurements_service, get_modbus_client, get_schedule_by_id, register_modbus_error, update_energetic_object, update_schedule
-from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticObjectCreate, EnergeticObjectResponse, EnergeticObjectUpdate, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl
+from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_energetic_object, create_schedule, create_schedule_with_energetic_object_id, decode_signed_16, decode_signed_32, delete_energetic_object, delete_schedule, get_all_energetic_objects, get_all_schedules, get_all_schedules_by_object_id, get_device_measurements_by_object_paginated, get_device_measurements_paginated,get_averaged_measurements_service, get_energetic_object,get_energy_measurements_service, get_modbus_client, get_schedule_by_id, register_modbus_error, update_energetic_object, update_schedule
+from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticObjectCreate, EnergeticObjectResponse, EnergeticObjectUpdate, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleCreateForObject, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from cor_pass.database.db import get_db
@@ -731,6 +731,7 @@ async def write_register(request_data: RegisterWriteRequest, request: Request):
         raise HTTPException(status_code=500, detail="Modbus ошибка")
 
 
+# Добавить energetic object id - done
 
 @router.get(
     "/measurements/",
@@ -766,8 +767,43 @@ async def read_measurements(
         total_pages=total_pages
     )
 
+@router.get(
+    "/v1/measurements/",
+    response_model=PaginatedResponse[CerboMeasurementResponse], 
+    summary="Получить все измерения CerboMeasurement с пагинацией и фильтрацией по энергетическому обьекту",
+    description="Получает список всех измерений с поддержкой пагинации",
+    tags=["Measurements"]
+)
+async def read_measurements(
+    page: int = Query(1, ge=1, description="Номер страницы (начиная с 1)"),
+    page_size: int = Query(10, ge=1, le=1000, description="Количество элементов на странице (от 1 до 1000)"),
+    energetic_object_id: str = Query(..., description="Фильтр по ID объекта"),
+    start_date: Optional[datetime] = Query(None, description="Начальная дата измерения (ISO 8601, например '2023-01-01T00:00:00')"),
+    end_date: Optional[datetime] = Query(None, description="Конечная дата измерения (ISO 8601, например '2023-12-31T23:59:59')"),
+    db: AsyncSession = Depends(get_db)
+):
+    measurements, total_count = await get_device_measurements_by_object_paginated(
+        db=db,
+        page=page,
+        page_size=page_size,
+        energetic_object_id=energetic_object_id,
+        start_date=start_date,
+        end_date=end_date
+    )
 
-    
+    total_pages = ceil(total_count / page_size) if total_count > 0 else 0
+
+    return PaginatedResponse(
+        items=[CerboMeasurementResponse.model_validate(m) for m in measurements],
+        total_count=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages
+    )
+
+
+# Добавить energetic object id ?
+  
 @router.get(
     "/measurements/averaged/",
     response_model=List[CerboMeasurementResponse],
@@ -804,6 +840,8 @@ async def get_averaged_measurements(
 
 
 
+# Добавить energetic object id
+
 @router.get( "/measurements/energy/",
     summary="Энергетический баланс по интервалам",
     description="Считает энергию (кВт·ч) по каждому интервалу времени: солнце, нагрузка, сеть, батарея. "
@@ -830,6 +868,7 @@ async def get_energy_measurements(
 
 
 
+# Добавить energetic object id - done
 
 @router.post("/schedules/create", 
              response_model=EnergeticScheduleResponse, 
@@ -840,6 +879,18 @@ async def create_energetic_schedule(
     db: AsyncSession = Depends(get_db)
 ):
     new_schedule = await create_schedule(db, schedule_data)
+    return new_schedule
+
+
+@router.post("/v1/schedules/create", 
+             response_model=EnergeticScheduleResponse, 
+             status_code=status.HTTP_201_CREATED,
+             tags=["Energetic Shedule CRUD"])
+async def create_energetic_schedule(
+    schedule_data: EnergeticScheduleCreateForObject,
+    db: AsyncSession = Depends(get_db)
+):
+    new_schedule = await create_schedule_with_energetic_object_id(db, schedule_data)
     return new_schedule
 
 
@@ -855,6 +906,8 @@ async def get_energetic_schedule(
     if not schedule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
     return schedule
+
+# Добавить energetic object id - done
 
 @router.get("/schedules/", 
             response_model=List[EnergeticScheduleResponse],
@@ -878,6 +931,33 @@ async def get_all_energetic_schedules_api(
         )
         response.append(schedule)
     return response
+
+
+@router.get("/v1/schedules/", 
+            response_model=List[EnergeticScheduleResponse],
+            tags=["Energetic Shedule CRUD"])
+async def get_all_energetic_schedules_api(
+    energetic_object_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    schedules = await get_all_schedules_by_object_id(db=db, energetic_object_id=energetic_object_id)
+    response = []
+    for schedule in schedules:
+        schedule = EnergeticScheduleResponse(
+            id=schedule.id,
+            start_time=schedule.start_time,
+            duration=schedule.duration,
+            grid_feed_w=schedule.grid_feed_w,
+            battery_level_percent=schedule.battery_level_percent,
+            charge_battery_value=schedule.charge_battery_value,
+            is_active=schedule.is_active,
+            is_manual_mode=schedule.is_manual_mode,
+            end_time=schedule.end_time
+        )
+        response.append(schedule)
+    return response
+
+
 
 @router.put("/schedules/{schedule_id}", 
             response_model=EnergeticScheduleResponse,
