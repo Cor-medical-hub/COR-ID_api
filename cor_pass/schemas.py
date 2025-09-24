@@ -1132,7 +1132,7 @@ class CreatePrintingDevice(BaseModel):
     location: Optional[str] = Field(None, description="Локация")
 
 
-class ResponcePrintingDevice(BaseModel):
+class ResponsePrintingDevice(BaseModel):
     id: str
     device_class: str
     device_identifier: str
