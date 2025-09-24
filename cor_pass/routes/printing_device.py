@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.database.db import get_db
 from cor_pass.schemas import (
     CreatePrintingDevice,
-    ResponcePrintingDevice,
+    ResponsePrintingDevice,
     UpdatePrintingDevice,
 )
 from cor_pass.repository.printing_device import (
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/printing_devices", tags=["Printing Devices"])
 @router.post(
     "/",
     dependencies=[Depends(admin_access)],
-    response_model=ResponcePrintingDevice,
+    response_model=ResponsePrintingDevice,
     status_code=201,
 )
 async def create_new_printing_device(
@@ -57,7 +57,7 @@ async def create_new_printing_device(
 @router.get(
     "/all",
     dependencies=[Depends(admin_access)],
-    response_model=List[ResponcePrintingDevice],
+    response_model=List[ResponsePrintingDevice],
 )
 async def read_printing_devices(
     skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)
@@ -69,7 +69,7 @@ async def read_printing_devices(
 @router.get(
     "/{printing_device_id}",
     dependencies=[Depends(admin_access)],
-    response_model=ResponcePrintingDevice,
+    response_model=ResponsePrintingDevice,
 )
 async def read_printing_device(
     printing_device_id: str, db: AsyncSession = Depends(get_db)
@@ -84,7 +84,7 @@ async def read_printing_device(
 @router.put(
     "/{printing_device_id}",
     dependencies=[Depends(admin_access)],
-    response_model=ResponcePrintingDevice,
+    response_model=ResponsePrintingDevice,
 )
 async def update_printing_device_by_id(
     printing_device_id: str,
