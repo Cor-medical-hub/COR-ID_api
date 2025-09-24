@@ -38,6 +38,7 @@ from cor_pass.config.config import settings
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
+
 @router.get(
     "/get_all", response_model=List[UserDb], dependencies=[Depends(admin_access)]
 )
