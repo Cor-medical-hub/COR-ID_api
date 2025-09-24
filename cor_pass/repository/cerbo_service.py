@@ -6,11 +6,14 @@ from sqlalchemy import UUID, delete, func, select, update
 from typing import Any, Dict, List, Optional, Tuple
 from math import ceil
 
-from cor_pass.database.models import CerboMeasurement, EnergeticSchedule
+from cor_pass.database.models import CerboMeasurement, EnergeticObject, EnergeticSchedule
 from sqlalchemy.ext.asyncio import AsyncSession
 from cor_pass.schemas import (
+    EnergeticObjectCreate,
+    EnergeticObjectUpdate,
     EnergeticScheduleBase,
     EnergeticScheduleCreate,
+    EnergeticScheduleCreateForObject,
     FullDeviceMeasurementCreate,
     FullDeviceMeasurementResponse,
     CerboMeasurementResponse
@@ -239,6 +242,59 @@ async def get_device_measurements_paginated(
     return measurements, total_count
 
 
+async def get_device_measurements_by_object_paginated(
+    db: AsyncSession,
+    page: int = 1,
+    page_size: int = 10,
+    energetic_object_id: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+) -> Tuple[List[CerboMeasurement], int]:
+    """
+    Получает записи измерений инвертора с пагинацией и необязательными фильтрами по ID энергетического обьекта .
+
+    Args:
+        db: Асинхронная сессия базы данных.
+        page: Номер текущей страницы (начиная с 1).
+        page_size: Количество записей на странице.
+        energetic_object_id: Фильтр по ID энергетического объекта.
+        start_date: Необязательный фильтр по начальной дате measured_at.
+        end_date: Необязательный фильтр по конечной дате measured_at.
+
+    Returns:
+        Кортеж, содержащий список объектов CerboMeasurement и общее количество записей.
+    """
+
+    query = select(CerboMeasurement)
+    count_query = select(func.count()).select_from(CerboMeasurement)
+
+    if energetic_object_id:
+        query = query.where(CerboMeasurement.energetic_object_id == energetic_object_id)
+        count_query = count_query.where(CerboMeasurement.energetic_object_id == energetic_object_id)
+
+    if start_date:
+        query = query.where(CerboMeasurement.measured_at >= start_date)
+        count_query = count_query.where(CerboMeasurement.measured_at >= start_date)
+
+    if end_date:
+        query = query.where(CerboMeasurement.measured_at <= end_date)
+        count_query = count_query.where(CerboMeasurement.measured_at <= end_date)
+
+    offset = (page - 1) * page_size
+    query = (
+        query.offset(offset)
+        .limit(page_size)
+        .order_by(CerboMeasurement.measured_at.desc())
+    )
+
+    result = await db.execute(query)
+    measurements = result.scalars().all()
+
+    total_count_result = await db.execute(count_query)
+    total_count = total_count_result.scalar_one()
+
+    return measurements, total_count
+
 async def create_schedule(
     db: AsyncSession, schedule_data: EnergeticScheduleCreate
 ) -> EnergeticSchedule:
@@ -269,6 +325,37 @@ async def create_schedule(
     return db_schedule
 
 
+async def create_schedule_with_energetic_object_id(
+    db: AsyncSession, schedule_data: EnergeticScheduleCreateForObject
+) -> EnergeticSchedule:
+    """
+    Создает новое расписание в базе данных под энергетический обьект.
+    """
+    duration_delta = timedelta(
+        hours=schedule_data.duration_hours, minutes=schedule_data.duration_minutes
+    )
+
+    temp_start_datetime = datetime.combine(
+        datetime.min.date(), schedule_data.start_time
+    )
+    calculated_end_time = (temp_start_datetime + duration_delta).time()
+
+    db_schedule = EnergeticSchedule(
+        start_time=schedule_data.start_time,
+        duration=duration_delta,
+        end_time=calculated_end_time,
+        grid_feed_w=schedule_data.grid_feed_w,
+        battery_level_percent=schedule_data.battery_level_percent,
+        charge_battery_value=schedule_data.charge_battery_value,
+        is_manual_mode=schedule_data.is_manual_mode,
+        energetic_object_id=schedule_data.energetic_object_id
+    )
+    db.add(db_schedule)
+    await db.commit()
+    await db.refresh(db_schedule)
+    return db_schedule
+
+
 async def get_schedule_by_id(
     db: AsyncSession, schedule_id: str
 ) -> Optional[EnergeticSchedule]:
@@ -279,6 +366,16 @@ async def get_schedule_by_id(
         select(EnergeticSchedule).where(EnergeticSchedule.id == schedule_id)
     )
     return result.scalars().first()
+
+
+async def get_all_schedules_by_object_id(db: AsyncSession, energetic_object_id: str) -> List[EnergeticSchedule]:
+    """
+    Получает все расписания (активные и неактивные), отсортированные по времени начала по энергетическому обьекту.
+    """
+    result = await db.execute(
+        select(EnergeticSchedule).where(EnergeticSchedule.energetic_object_id == energetic_object_id).order_by(EnergeticSchedule.start_time)
+    )
+    return result.scalars().all()
 
 
 async def get_all_schedules(db: AsyncSession) -> List[EnergeticSchedule]:
@@ -719,6 +816,8 @@ async def get_energy_measurements_service(
 
 
 '''
+
+
 async def get_energy_measurements_service(
     db: AsyncSession,
     object_name: Optional[str],
@@ -729,9 +828,18 @@ async def get_energy_measurements_service(
     if not start_date or not end_date:
         raise ValueError("Необходимо указать start_date и end_date")
 
-    # Округляем начало и конец до ближайшего часа
+  
+ #   rounded_start = start_date.replace(minute=0, second=0, microsecond=0)
+ #   rounded_end = end_date.replace(minute=0, second=0, microsecond=0)
+
+# Округляем: начало вниз до часа, конец вверх до следующего часа
     rounded_start = start_date.replace(minute=0, second=0, microsecond=0)
-    rounded_end = end_date.replace(minute=0, second=0, microsecond=0)
+    if end_date.minute == 0 and end_date.second == 0 and end_date.microsecond == 0:
+        rounded_end = end_date
+    else:
+        rounded_end = (end_date.replace(minute=0, second=0, microsecond=0)
+                       + timedelta(hours=1))
+
     
     # Создаем интервалы
     current_interval_start = rounded_start
@@ -855,3 +963,42 @@ async def get_energy_measurements_service(
             "battery_energy_total": round(total_battery, 0),
         }
     }
+
+
+# CRUD по энергетическим обьектам / инверторам
+
+async def create_energetic_object(db: AsyncSession, obj_data: EnergeticObjectCreate) -> EnergeticObject:
+    db_obj = EnergeticObject(**obj_data.model_dump())
+    db.add(db_obj)
+    await db.commit()
+    await db.refresh(db_obj)
+    return db_obj
+
+async def get_energetic_object(db: AsyncSession, object_id: str) -> EnergeticObject | None:
+    result = await db.execute(select(EnergeticObject).where(EnergeticObject.id == object_id))
+    return result.scalars().first()
+
+async def get_all_energetic_objects(db: AsyncSession) -> list[EnergeticObject]:
+    result = await db.execute(select(EnergeticObject))
+    return result.scalars().all()
+
+async def update_energetic_object(
+    db: AsyncSession,
+    object_id: str,
+    obj_data: EnergeticObjectUpdate
+) -> EnergeticObject | None:
+    db_obj = await get_energetic_object(db, object_id)
+    if not db_obj:
+        return None
+    update_data = obj_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
+
+    await db.commit()
+    await db.refresh(db_obj)
+    return db_obj
+
+async def delete_energetic_object(db: AsyncSession, object_id: str) -> bool:
+    result = await db.execute(delete(EnergeticObject).where(EnergeticObject.id == object_id))
+    await db.commit()
+    return result.rowcount > 0

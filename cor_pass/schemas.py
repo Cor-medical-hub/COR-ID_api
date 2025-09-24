@@ -1132,7 +1132,7 @@ class CreatePrintingDevice(BaseModel):
     location: Optional[str] = Field(None, description="Локация")
 
 
-class ResponcePrintingDevice(BaseModel):
+class ResponsePrintingDevice(BaseModel):
     id: str
     device_class: str
     device_identifier: str
@@ -2049,8 +2049,11 @@ class FullDeviceMeasurementCreate(BaseModel):
     # Общая информация о измерении
     measured_at: datetime = Field(..., description="Время измерения")
     object_name: Optional[str] = Field(
-        None, description="ID устройства, если применимо"
+        None, description="Имя устройства, если применимо"
     )
+    energetic_object_id: str = Field(
+        ..., description="ID обьекта"
+    )  
 
     # агрегированные данные
     general_battery_power: float = Field(
@@ -2173,6 +2176,9 @@ class EnergeticScheduleBase(BaseModel):
 
 class EnergeticScheduleCreate(EnergeticScheduleBase):
     pass
+
+class EnergeticScheduleCreateForObject(EnergeticScheduleBase):
+    energetic_object_id: str = Field(..., description="ID Энергетического обьекта")
 
 
 class EnergeticScheduleResponse(BaseModel):
@@ -2317,4 +2323,23 @@ class UploadGlassSVSResponse(BaseModel):
     preview_url: str
     scan_url: str
 
+class EnergeticObjectBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    modbus_registers: Optional[dict] = None
+    is_active: bool
 
+class EnergeticObjectCreate(EnergeticObjectBase):
+    pass
+
+class EnergeticObjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    modbus_registers: Optional[dict] = None
+    is_active: Optional[bool] = None
+
+class EnergeticObjectResponse(EnergeticObjectBase):
+    id: str
+
+    class Config:
+        orm_mode = True

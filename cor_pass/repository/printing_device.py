@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from cor_pass.database.models import PrintingDevice
 from cor_pass.schemas import (
     CreatePrintingDevice,
-    ResponcePrintingDevice,
+    ResponsePrintingDevice,
     UpdatePrintingDevice,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +34,7 @@ async def create_printing_device(db: AsyncSession, body: CreatePrintingDevice):
 
 async def get_all_printing_devices(
     skip: int, limit: int, db: AsyncSession
-) -> list[ResponcePrintingDevice]:
+) -> list[ResponsePrintingDevice]:
 
     stmt = select(PrintingDevice).offset(skip).limit(limit)
     result = await db.execute(stmt)
@@ -44,7 +44,7 @@ async def get_all_printing_devices(
 
 async def get_printing_device_by_id(
     uuid: str, db: AsyncSession
-) -> ResponcePrintingDevice | None:
+) -> ResponsePrintingDevice | None:
 
     stmt = select(PrintingDevice).where(PrintingDevice.id == uuid)
     result = await db.execute(stmt)
@@ -54,7 +54,7 @@ async def get_printing_device_by_id(
 
 async def get_printing_device_by_device_identifier(
     device_identifier: str, db: AsyncSession
-) -> ResponcePrintingDevice | None:
+) -> ResponsePrintingDevice | None:
 
     stmt = select(PrintingDevice).where(
         PrintingDevice.device_identifier == device_identifier
@@ -65,7 +65,7 @@ async def get_printing_device_by_device_identifier(
 
 async def get_printing_device_by_device_class(
     device_class: str, db: AsyncSession
-) -> ResponcePrintingDevice | None:
+) -> ResponsePrintingDevice | None:
 
     stmt = select(PrintingDevice).where(
         PrintingDevice.device_class == device_class
