@@ -2340,3 +2340,10 @@ class EnergeticObjectResponse(EnergeticObjectBase):
 
     class Config:
         orm_mode = True
+
+
+class PaginatedBloodPressureResponse(BaseModel):
+    items: List[BloodPressureMeasurementResponse]
+    total: int
+    page: int
+    page_size: int
