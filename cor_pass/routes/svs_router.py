@@ -220,9 +220,10 @@ async def upload_svs_from_storage(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Обрабатывает SVS-файл из хранилища по glass_id, сохраняет его в user_slide_dir.
+    Обрабатывает SVS-файл из хранилища по glass_id и сохраняет его в user_slide_dir.
     """
     try:
+        # Получаем информацию о файле из базы
         db_glass = await get_glass_svs(db=db, glass_id=glass_id)
         if db_glass is None:
             logger.error(f"Стекло или scan_url не найдены для ID {glass_id}")
@@ -231,8 +232,8 @@ async def upload_svs_from_storage(
         user_dir = os.path.join(DICOM_ROOT_DIR, str(current_user.cor_id))
         user_slide_dir = os.path.join(user_dir, "slides")
 
-
-        shutil.rmtree(user_dir, ignore_errors=True)
+        # Создаём директории безопасно (CIFS)
+        os.makedirs(user_dir, exist_ok=True)
         os.makedirs(user_slide_dir, exist_ok=True)
         logger.debug(f"Созданы директории: {user_dir}, {user_slide_dir}")
 
@@ -245,22 +246,22 @@ async def upload_svs_from_storage(
         temp_path = await fetch_file_from_smb(db_glass.scan_url)
         logger.debug(f"SVS-файл загружен во временный файл: {temp_path}")
 
+        valid_svs = 0
+        safe_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        target_path = os.path.join(user_slide_dir, safe_filename)
+
         try:
+            # Проверяем, что файл читается как OpenSlide
             OpenSlide(temp_path)
 
-            safe_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
-            target_path = os.path.join(user_slide_dir, safe_filename)
-
-            # Если файл существует — удаляем
+            # Если файл уже есть, удаляем его
             if os.path.exists(target_path):
                 os.unlink(target_path)
 
-            # Копируем и удаляем временный файл
-            shutil.copy2(temp_path, target_path)
-            os.unlink(temp_path)
-
+            # Перемещаем файл
+            shutil.move(temp_path, target_path)
             logger.info(f"SVS-файл перемещён в: {target_path}")
-            message = f"Загружен файл SVS (1 шт.)"
+            valid_svs += 1
 
         except OpenSlideUnsupportedFormatError:
             logger.error(f"Файл {filename} не является допустимым SVS-форматом")
@@ -275,10 +276,17 @@ async def upload_svs_from_storage(
                 logger.debug(f"Временный файл {temp_path} удалён")
             raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
+        # Очищаем кэш, если есть
         try:
             load_volume.cache_clear()
         except NameError:
             logger.debug("load_volume не определён, кэш не очищается")
+
+        if valid_svs > 0:
+            message = f"Загружен файл SVS (1 шт.)"
+        else:
+            logger.debug(f"Директория {user_dir} не содержит валидных файлов")
+            raise HTTPException(status_code=400, detail="No valid SVS files processed")
 
         return {"message": message}
 
