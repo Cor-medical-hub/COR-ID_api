@@ -32,7 +32,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
         max-size: "10m"
         max-file: "3"
-    command: gunicorn main:app --workers 5 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level info --error-logfile - --access-logfile -
+    command: gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level info --error-logfile - --access-logfile -
     restart: unless-stopped
   # modbus_worker:
   #     build:
