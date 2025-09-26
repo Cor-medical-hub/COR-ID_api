@@ -339,9 +339,10 @@ async def upload_dicom_files(
         user_dicom_dir = user_dir
         user_slide_dir = os.path.join(user_dir, "slides")
 
-        # Чистим старые данные
-        if os.path.exists(user_dicom_dir):
-            shutil.rmtree(user_dicom_dir)
+        # --- безопасное удаление старых данных ---
+        shutil.rmtree(user_dicom_dir, ignore_errors=True)  # не падает, если нет папки
+
+        # --- создание директорий ---
         os.makedirs(user_dicom_dir, exist_ok=True)
         os.makedirs(user_slide_dir, exist_ok=True)
 
@@ -359,17 +360,6 @@ async def upload_dicom_files(
             processed_files += 1
 
             if file_ext == ".svs":
-                try:
-                    # Проверяем что .svs файл действительно читается как OpenSlide
-                    OpenSlide(temp_path)
-                    shutil.move(temp_path, os.path.join(user_slide_dir, file.filename))
-                    logger.info(f"SVS-файл перемещён в: {user_slide_dir}")
-                    valid_svs += 1
-                except OpenSlideUnsupportedFormatError:
-                    os.remove(temp_path)
-                    print(
-                        f"[ERROR] Файл {file.filename} не является допустимым SVS-форматом."
-                    )
                 continue
 
             if file_ext == ".zip":
@@ -386,7 +376,9 @@ async def upload_dicom_files(
                     os.remove(temp_path)
                     continue
 
-        # Проверка DICOM-файлов
+        if not os.path.exists(user_dicom_dir):
+            raise HTTPException(status_code=404, detail="User DICOM directory not found")
+
         dicom_paths = [
             os.path.join(user_dicom_dir, f)
             for f in os.listdir(user_dicom_dir)
@@ -404,7 +396,7 @@ async def upload_dicom_files(
                 os.remove(file_path)
 
         if valid_dicom == 0 and valid_svs == 0:
-            shutil.rmtree(user_dicom_dir)
+            shutil.rmtree(user_dicom_dir, ignore_errors=True)
             raise HTTPException(
                 status_code=400, detail="No valid DICOM or SVS files found."
             )
@@ -418,15 +410,12 @@ async def upload_dicom_files(
         elif valid_dicom > 0 and valid_svs > 0:
             message = f"Загружено {valid_dicom} срезов DICOM и {valid_svs} файл(ов) SVS"
         else:
-            message = (
-                "Файлы загружены, но не удалось распознать ни одного DICOM или SVS."
-            )
+            message = "Файлы загружены, но не удалось распознать ни одного DICOM или SVS."
 
         return {"message": message}
 
     except Exception as e:
         import traceback
-
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
