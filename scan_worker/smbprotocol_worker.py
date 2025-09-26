@@ -53,7 +53,6 @@ class StainingType(enum.Enum):
     OTHAR = "Othar"
 
     def abbr(self) -> str:
-        """Возвращает сокращение для печати"""
         overrides = {
             "H&E": "H&E",
             "PAMS": "PAM",
@@ -61,26 +60,22 @@ class StainingType(enum.Enum):
         }
         if self.value in overrides:
             return overrides[self.value]
-
         parts = self.value.replace("-", " ").replace("'", "").split()
         abbr = "".join(word[0].upper() for word in parts)
         return abbr[:3]
+STAINING_ABBREVIATIONS = [st.abbr() for st in StainingType]
 
-# Генерируем список всех возможных сокращений для окрашиваний
-STAINING_ABBREVIATIONS = [staining.abbr() for staining in StainingType]
-logger.debug(f"Сгенерированные сокращения окрашиваний: {STAINING_ABBREVIATIONS}")
 
-# Обновляем регулярное выражение для парсинга имени файла
 filename_pattern = re.compile(
-    r"^(?P<case_code>S\d{2}R\d{5})"       # case_code (SXXRXXXXX)
-    r"(?P<cassette>[A-Z]\d)"              # cassette (буква + цифра, например B1)
-    r"(?P<hospital>[A-Z]{2})"             # hospital code (ровно 2 буквы)
-    r"(?P<sample>[A-Z])"                  # sample (одна буква, после hospital)
-    r"L(?P<glass_number>\d)"              # L + номер стекла
-    r"(?P<staining>" + "|".join(re.escape(abbr) for abbr in STAINING_ABBREVIATIONS) + ")"  # staining
-    r"(?P<cor_id>[A-Z0-9]+(?:-[A-Z0-9]+)?)"  # cor_id (основная часть + необязательная часть после дефиса)
-    r"\d{4}-\d{2}-\d{2}_\d{2}_\d{2}_\d{2}"  # timestamp pattern (not captured)
-    # r"\.svs$"                             # extension
+    r"^(?P<case_code>S\d{2}R\d{5})"
+    r"(?P<cassette>[A-Z]\d)"
+    r"(?P<hospital>[A-Z]{2})"
+    r"(?P<sample>[A-Z])"
+    r"L(?P<glass_number>\d+)"
+    r"(?P<staining>" + "|".join(STAINING_ABBREVIATIONS) + ")"
+    r"(?P<cor_id>[A-Z0-9]+(?:-[A-Z0-9]+)?)"
+    r"\d{4}-\d{2}-\d{2}_\d{2}_\d{2}_\d{2}"
+    r"\.svs$"
 )
 
 def parse_filename(filename):
@@ -89,7 +84,7 @@ def parse_filename(filename):
     if not m:
         logger.debug(f"Файл {base} не соответствует регулярному выражению: {filename_pattern.pattern}")
         return None
-    parsed = {
+    return {
         "case_code": m.group("case_code"),
         "cassette": m.group("cassette"),
         "hospital": m.group("hospital"),
@@ -98,8 +93,6 @@ def parse_filename(filename):
         "staining": m.group("staining"),
         "cor_id": m.group("cor_id")
     }
-    logger.debug(f"Разобранное имя файла {base}: {parsed}")
-    return parsed
 
 async def fetch_file_from_smb(path: str) -> str:
     loop = asyncio.get_running_loop()
