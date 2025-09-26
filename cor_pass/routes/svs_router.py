@@ -220,22 +220,32 @@ async def upload_svs_from_storage(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Обрабатывает SVS-файл из хранилища по glass_id и сохраняет его в user_slide_dir.
+    Обрабатывает SVS-файл из хранилища по glass_id, сохраняет его в user_slide_dir.
+    Старые SVS-файлы удаляются перед перемещением нового.
     """
     try:
-        # Получаем информацию о файле из базы
         db_glass = await get_glass_svs(db=db, glass_id=glass_id)
         if db_glass is None:
             logger.error(f"Стекло или scan_url не найдены для ID {glass_id}")
             raise HTTPException(status_code=404, detail="Glass or scan URL not found")
 
         user_dir = os.path.join(DICOM_ROOT_DIR, str(current_user.cor_id))
+        user_dicom_dir = user_dir
         user_slide_dir = os.path.join(user_dir, "slides")
 
-        # Создаём директории безопасно (CIFS)
-        os.makedirs(user_dir, exist_ok=True)
+        os.makedirs(user_dicom_dir, exist_ok=True)
         os.makedirs(user_slide_dir, exist_ok=True)
-        logger.debug(f"Созданы директории: {user_dir}, {user_slide_dir}")
+        logger.debug(f"Созданы директории: {user_dicom_dir}, {user_slide_dir}")
+
+
+        for f in os.listdir(user_slide_dir):
+            f_path = os.path.join(user_slide_dir, f)
+            if os.path.isfile(f_path) and f.lower().endswith(".svs"):
+                try:
+                    os.remove(f_path)
+                    logger.debug(f"Удалён старый SVS-файл: {f_path}")
+                except Exception as e:
+                    logger.warning(f"Не удалось удалить файл {f_path}: {e}")
 
         filename = os.path.basename(db_glass.scan_url)
         file_ext = os.path.splitext(filename)[1].lower()
@@ -243,52 +253,33 @@ async def upload_svs_from_storage(
             logger.error(f"Файл {filename} не является SVS-файлом")
             raise HTTPException(status_code=400, detail="File is not an SVS file")
 
+
         temp_path = await fetch_file_from_smb(db_glass.scan_url)
         logger.debug(f"SVS-файл загружен во временный файл: {temp_path}")
 
-        valid_svs = 0
-        safe_filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
-        target_path = os.path.join(user_slide_dir, safe_filename)
-
         try:
-            # Проверяем, что файл читается как OpenSlide
             OpenSlide(temp_path)
-
-            # Если файл уже есть, удаляем его
-            if os.path.exists(target_path):
-                os.unlink(target_path)
-
-            # Перемещаем файл
+            target_path = os.path.join(user_slide_dir, filename)
             shutil.move(temp_path, target_path)
             logger.info(f"SVS-файл перемещён в: {target_path}")
-            valid_svs += 1
-
         except OpenSlideUnsupportedFormatError:
             logger.error(f"Файл {filename} не является допустимым SVS-форматом")
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
-                logger.debug(f"Временный файл {temp_path} удалён")
             raise HTTPException(status_code=400, detail=f"File {filename} is not a valid SVS format")
         except Exception as e:
             logger.error(f"Ошибка при обработке файла {filename}: {str(e)}")
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
-                logger.debug(f"Временный файл {temp_path} удалён")
             raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
-        # Очищаем кэш, если есть
+
         try:
             load_volume.cache_clear()
         except NameError:
             logger.debug("load_volume не определён, кэш не очищается")
 
-        if valid_svs > 0:
-            message = f"Загружен файл SVS (1 шт.)"
-        else:
-            logger.debug(f"Директория {user_dir} не содержит валидных файлов")
-            raise HTTPException(status_code=400, detail="No valid SVS files processed")
-
-        return {"message": message}
+        return {"message": f"Загружен файл SVS (1 шт.)"}
 
     except Exception as e:
         logger.error(f"Ошибка в маршруте /upload/{glass_id}: {str(e)}")
