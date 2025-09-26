@@ -67,7 +67,7 @@ STAINING_ABBREVIATIONS = [st.abbr() for st in StainingType]
 
 
 filename_pattern = re.compile(
-    r"^(?P<case_code>S\d{2}R\d{5})"
+    r"^(?P<case_code>S\d{2}[RBECXSAY]\d{5})"
     r"(?P<cassette>[A-Z]\d)"
     r"(?P<hospital>[A-Z]{2})"
     r"(?P<sample>[A-Z])"
