@@ -80,10 +80,16 @@ filename_pattern = re.compile(
 
 def parse_filename(filename):
     base = os.path.basename(filename)
+
+    # Если расширение не .svs, просто пропускаем
+    if not base.lower().endswith(".svs"):
+        return None
+
     m = filename_pattern.match(base)
     if not m:
         logger.debug(f"Файл {base} не соответствует регулярному выражению: {filename_pattern.pattern}")
         return None
+
     return {
         "case_code": m.group("case_code"),
         "cassette": m.group("cassette"),
