@@ -17,6 +17,8 @@ from cor_pass.database.db import get_db
 import shutil
 from openslide import OpenSlide, OpenSlideUnsupportedFormatError
 
+from cor_pass.services.safe_delete_smb import DICOM_DIR, safe_delete_dir
+
 router = APIRouter(prefix="/svs", tags=["SVS"])
 
 # SVS_ROOT_DIR = "svs_users_data"
@@ -210,6 +212,8 @@ def safe_makedirs(path):
         if e.errno != errno.EEXIST:
             raise
 
+
+
 @router.get(
     "/{glass_id}/svs",
     dependencies=[Depends(auth_service.get_current_user)],
@@ -223,6 +227,7 @@ async def upload_svs_from_storage(
     Обрабатывает SVS-файл из хранилища по glass_id, сохраняет его в user_slide_dir.
     Старые SVS-файлы удаляются перед перемещением нового.
     """
+    safe_delete_dir(DICOM_DIR)
     try:
         db_glass = await get_glass_svs(db=db, glass_id=glass_id)
         if db_glass is None:
