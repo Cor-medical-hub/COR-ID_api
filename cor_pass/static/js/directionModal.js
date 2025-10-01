@@ -388,7 +388,32 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 showErrorAlert('Заповніть обов"язкові поля!')
             }
         })
+    }
+    const scanCaseDirection = (e) => {
+        document.querySelector('#caseDirectionScan')?.addEventListener('click', (e) => {
+            fetch(`${API_BASE_URL}/api/scanner/scan`, {
+                method: "GET",
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    "Content-Type": "application/json"
+                },
+            })
+                .then(res => res.blob())
+                .then(() => {
+                    uploadArea.innerHTML = ""
 
+                    const imgNODE = document.createElement('img');
+
+                    const fileViewerWrapperNODE = document.createElement('div');
+                    fileViewerWrapperNODE.className ='thumb full';
+
+
+                    imgNODE.src = URL.createObjectURL(blob);
+                    imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
+                    fileViewerWrapperNODE.appendChild(imgNODE);
+                    uploadArea.appendChild(fileViewerWrapperNODE);
+                })
+        })
     }
     const dropBoxEventsHandler = () => {
         uploadBox?.addEventListener('click', () => {
@@ -447,6 +472,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
 
     submitCaseDirection();
+    scanCaseDirection();
     dropBoxEventsHandler();
     openDirectionModal();
 })
