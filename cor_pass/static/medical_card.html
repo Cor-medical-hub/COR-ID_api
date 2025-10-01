@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="./css/comments.css">
     <link rel="stylesheet" href="./css/header.css">
     <link rel="stylesheet" href="./css/glass.css">
+    <link rel="stylesheet" href="./css/myCard/general.css">
+    <link rel="stylesheet" href="css/myCard/research.css">
     <link rel="stylesheet" href="./COR_ID_css/modal.css">
 </head>
 <body>
@@ -78,45 +80,340 @@
                 </div>
             </div>
             <div class="bottom">
-                Спеціальності Content
+                <div class="specificMed">
+                    <div class="specificMedItem active">Патоморфологія</div>
+                    <div class="specificMedItem">Ендокринологія</div>
+                    <div class="specificMedItem">Кардіологія</div>
+                    <div class="specificMedItem">Офтальмологія</div>
+                    <div class="specificMedItem">Офтальмологія</div>
+                </div>
             </div>
         </div>
         <div class="middle df fdc">
             <div class="top df aic jcsb">
-                <div>
-                    Glasses
+                <div class="df" style="flex-wrap: nowrap; overflow: auto; width: 100%">
+                    <div class="centralItem">
+                        <p>Останні записи</p>
+                    </div>
+                    <div class="centralItem">
+                        <p>Виписки/Заключення</p>
+                    </div>
+                    <div class="centralItem">
+                        <p>Рецепти/Нутріенти</p>
+                    </div>
+                    <div class="centralItem">
+                        <p>Призначення</p>
+                    </div>
+                    <div class="centralItem">
+                        <p>Захворювання</p>
+                    </div>
+                    <div class="centralItem">
+                        <p>Щеплення</p>
+                    </div>
+                    <div class="centralItem active">
+                        <p>Дослідження</p>
+                    </div>
                 </div>
             </div>
             <div class="bottom df ">
-                Glasses Content
+                <div style="width: 100%">
+                    <div class="researchTop">
+                        <div class="researchTopItem">Інструментальні</div>
+                        <div class="researchTopItem">Лабораторні</div>
+                    </div>
+                    <div class="researchContent">
+                        <div class="researchContentItem">
+                            <div class="researchButton">
+                                <div class="researchButtonText">
+                                    Артериальний тиск / пульс
+                                </div>
+                                <svg class="researchButtonSvg" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12.7241 7.30478L12.7269 7.30793L18.7453 13.7324L18.7499 13.7374L18.7511 13.7388C19.1032 14.134 19.0719 14.722 18.7194 15.0862L18.7167 15.0907L18.7158 15.0917L18.7122 15.0953L18.7114 15.0945C18.3519 15.4883 17.7346 15.4904 17.3434 15.0947L17.3412 15.0924L17.3399 15.0911L17.3377 15.0887L12.0041 9.42728L6.66231 15.0973L6.66086 15.0959C6.49594 15.2915 6.23847 15.3913 5.97981 15.3913C5.45224 15.3913 5 14.9555 5 14.397C5 14.1334 5.09722 13.9014 5.26063 13.7345L5.26438 13.7307L11.3137 7.30662L11.3169 7.30313L11.342 7.27743L11.3527 7.26718L11.3555 7.26448C11.7488 6.90335 12.3668 6.90755 12.7241 7.30478Z" fill="#5B4296"/>
+                                </svg>
+                            </div>
+                            <div class="researchList">
+                                <canvas id="chartContent">
+
+                                </canvas>
+                                <div class="researchListItem">
+                                    <div class="researchListItemSvg">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 3.08876C16.9215 3.08876 20.9112 7.07846 20.9112 12C20.9112 16.9215 16.9215 20.9112 12 20.9112C7.07846 20.9112 3.08876 16.9215 3.08876 12C3.08876 7.07846 7.07846 3.08876 12 3.08876ZM12 22C17.5231 22 22 17.5231 22 12C22 6.47694 17.5231 2 12 2C6.47694 2 2 6.47694 2 12C2 17.5231 6.47694 22 12 22Z" fill="#5B4296"/>
+                                            <path d="M14.1389 15.2663C14.3056 15.269 14.4381 15.3338 14.5276 15.4355C14.6155 15.5355 14.6569 15.6655 14.6571 15.7923C14.6573 15.9192 14.6155 16.0489 14.5276 16.1491C14.4381 16.251 14.3061 16.3164 14.1389 16.3193H9.84858L9.76252 16.3106L9.75189 16.3096V16.3077C9.51202 16.2583 9.33251 16.0475 9.33224 15.7933C9.33224 15.5024 9.56691 15.2664 9.85825 15.2663H14.1389Z" fill="#5B4296"/>
+                                            <path fill-rule="evenodd" clip-rule="evenodd" d="M11.9981 8.42042C12.2892 8.42071 12.5241 8.65657 12.5241 8.9474V10.6695C12.9917 10.8634 13.3335 11.3035 13.3759 11.8308L13.3798 11.942C13.3798 12.7042 12.7604 13.3244 11.9981 13.3247C10.4745 13.3105 10.1052 11.2276 11.4711 10.6705V8.9474C11.4711 8.65623 11.7069 8.42042 11.9981 8.42042ZM12 11.4556C11.7266 11.4556 11.5049 11.6773 11.5049 11.9507C11.505 12.224 11.7266 12.4458 12 12.4458C12.2734 12.4458 12.495 12.224 12.4951 11.9507C12.4951 11.6773 12.2734 11.4556 12 11.4556Z" fill="#5B4296"/>
+                                            <path d="M11.9981 6.28157C15.1193 6.28181 17.6584 8.82072 17.6585 11.942V11.9439C17.6551 12.1109 17.59 12.2431 17.4883 12.3326C17.3882 12.4207 17.2583 12.4631 17.1315 12.4632C17.0049 12.4631 16.8756 12.4206 16.7757 12.3326C16.6744 12.2434 16.6091 12.112 16.6055 11.9459L16.5871 11.6635C16.081 5.83037 7.63809 5.92723 7.38967 11.9459C7.3876 12.2349 7.15365 12.4688 6.86366 12.469H6.85399L6.76794 12.4603L6.75827 12.4593C6.51769 12.4104 6.33669 12.197 6.33669 11.942V11.9052C6.35662 8.80065 8.88891 6.28157 11.9981 6.28157Z" fill="#5B4296"/>
+                                            <path d="M18.8323 12C18.8323 8.22682 15.7732 5.16767 12 5.16767C8.22682 5.16767 5.16767 8.22682 5.16767 12C5.16767 15.7732 8.22682 18.8323 12 18.8323V19.9211C7.6253 19.9211 4.0789 16.3747 4.0789 12C4.0789 7.6253 7.6253 4.0789 12 4.0789C16.3747 4.0789 19.9211 7.6253 19.9211 12C19.9211 16.3747 16.3747 19.9211 12 19.9211V18.8323C15.7732 18.8323 18.8323 15.7732 18.8323 12Z" fill="#5B4296"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="researchListItemTop">
+                                            САТ 130 | ДАТ 88 | Пульс 78
+                                        </div>
+                                        <div class="researchListItemBottom">
+                                            02.09.2025 | 09:41
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="researchListItem">
+                                    <div class="researchListItemSvg">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 3.08876C16.9215 3.08876 20.9112 7.07846 20.9112 12C20.9112 16.9215 16.9215 20.9112 12 20.9112C7.07846 20.9112 3.08876 16.9215 3.08876 12C3.08876 7.07846 7.07846 3.08876 12 3.08876ZM12 22C17.5231 22 22 17.5231 22 12C22 6.47694 17.5231 2 12 2C6.47694 2 2 6.47694 2 12C2 17.5231 6.47694 22 12 22Z" fill="#5B4296"/>
+                                            <path d="M14.1389 15.2663C14.3056 15.269 14.4381 15.3338 14.5276 15.4355C14.6155 15.5355 14.6569 15.6655 14.6571 15.7923C14.6573 15.9192 14.6155 16.0489 14.5276 16.1491C14.4381 16.251 14.3061 16.3164 14.1389 16.3193H9.84858L9.76252 16.3106L9.75189 16.3096V16.3077C9.51202 16.2583 9.33251 16.0475 9.33224 15.7933C9.33224 15.5024 9.56691 15.2664 9.85825 15.2663H14.1389Z" fill="#5B4296"/>
+                                            <path fill-rule="evenodd" clip-rule="evenodd" d="M11.9981 8.42042C12.2892 8.42071 12.5241 8.65657 12.5241 8.9474V10.6695C12.9917 10.8634 13.3335 11.3035 13.3759 11.8308L13.3798 11.942C13.3798 12.7042 12.7604 13.3244 11.9981 13.3247C10.4745 13.3105 10.1052 11.2276 11.4711 10.6705V8.9474C11.4711 8.65623 11.7069 8.42042 11.9981 8.42042ZM12 11.4556C11.7266 11.4556 11.5049 11.6773 11.5049 11.9507C11.505 12.224 11.7266 12.4458 12 12.4458C12.2734 12.4458 12.495 12.224 12.4951 11.9507C12.4951 11.6773 12.2734 11.4556 12 11.4556Z" fill="#5B4296"/>
+                                            <path d="M11.9981 6.28157C15.1193 6.28181 17.6584 8.82072 17.6585 11.942V11.9439C17.6551 12.1109 17.59 12.2431 17.4883 12.3326C17.3882 12.4207 17.2583 12.4631 17.1315 12.4632C17.0049 12.4631 16.8756 12.4206 16.7757 12.3326C16.6744 12.2434 16.6091 12.112 16.6055 11.9459L16.5871 11.6635C16.081 5.83037 7.63809 5.92723 7.38967 11.9459C7.3876 12.2349 7.15365 12.4688 6.86366 12.469H6.85399L6.76794 12.4603L6.75827 12.4593C6.51769 12.4104 6.33669 12.197 6.33669 11.942V11.9052C6.35662 8.80065 8.88891 6.28157 11.9981 6.28157Z" fill="#5B4296"/>
+                                            <path d="M18.8323 12C18.8323 8.22682 15.7732 5.16767 12 5.16767C8.22682 5.16767 5.16767 8.22682 5.16767 12C5.16767 15.7732 8.22682 18.8323 12 18.8323V19.9211C7.6253 19.9211 4.0789 16.3747 4.0789 12C4.0789 7.6253 7.6253 4.0789 12 4.0789C16.3747 4.0789 19.9211 7.6253 19.9211 12C19.9211 16.3747 16.3747 19.9211 12 19.9211V18.8323C15.7732 18.8323 18.8323 15.7732 18.8323 12Z" fill="#5B4296"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="researchListItemTop">
+                                            САТ 130 | ДАТ 88 | Пульс 78
+                                        </div>
+                                        <div class="researchListItemBottom">
+                                            02.09.2025 | 09:41
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="researchButton">
+                                <div class="researchButtonText">
+                                    Рівень глюкози в крові
+                                </div>
+                                <svg class="researchButtonSvg" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12.7241 7.30478L12.7269 7.30793L18.7453 13.7324L18.7499 13.7374L18.7511 13.7388C19.1032 14.134 19.0719 14.722 18.7194 15.0862L18.7167 15.0907L18.7158 15.0917L18.7122 15.0953L18.7114 15.0945C18.3519 15.4883 17.7346 15.4904 17.3434 15.0947L17.3412 15.0924L17.3399 15.0911L17.3377 15.0887L12.0041 9.42728L6.66231 15.0973L6.66086 15.0959C6.49594 15.2915 6.23847 15.3913 5.97981 15.3913C5.45224 15.3913 5 14.9555 5 14.397C5 14.1334 5.09722 13.9014 5.26063 13.7345L5.26438 13.7307L11.3137 7.30662L11.3169 7.30313L11.342 7.27743L11.3527 7.26718L11.3555 7.26448C11.7488 6.90335 12.3668 6.90755 12.7241 7.30478Z" fill="#5B4296"/>
+                                </svg>
+                            </div>
+
+                            <div class="researchList">
+                                <div class="researchListItem">
+                                    <div class="researchListItemSvg">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="9.34001" cy="13.1667" r="0.666667" fill="#5B4296"/>
+                                            <circle cx="14.673" cy="13.1667" r="0.666667" fill="#5B4296"/>
+                                            <circle cx="12.0065" cy="13.1667" r="0.666667" fill="#5B4296"/>
+                                            <path d="M16.0063 5.16602H8.00635V10.4993H16.0063V5.16602Z" stroke="#5B4296" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M13.34 15.834H10.6733V22.5007H13.34V15.834Z" stroke="#5B4296" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M16.0065 2.5H8.00651C7.29927 2.5 6.62099 2.78095 6.12089 3.28105C5.6208 3.78115 5.33984 4.45942 5.33984 5.16667V17.1667C5.33984 17.8739 5.6208 18.5522 6.12089 19.0523C6.62099 19.5524 7.29927 19.8333 8.00651 19.8333H10.6732C10.6732 19.4797 10.8137 19.1406 11.0637 18.8905C11.3137 18.6405 11.6529 18.5 12.0065 18.5C12.3601 18.5 12.6993 18.6405 12.9493 18.8905C13.1994 19.1406 13.3398 19.4797 13.3398 19.8333H16.0065C16.7138 19.8333 17.392 19.5524 17.8921 19.0523C18.3922 18.5522 18.6732 17.8739 18.6732 17.1667V5.16667C18.6732 4.45942 18.3922 3.78115 17.8921 3.28105C17.392 2.78095 16.7138 2.5 16.0065 2.5Z" stroke="#5B4296" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="researchListItemTop">
+                                            6,5 mm/l
+                                        </div>
+                                        <div class="researchListItemBottom">
+                                            02.09.2025 | 09:41
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="researchListItem">
+                                    <div class="researchListItemSvg">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="9.34001" cy="13.1667" r="0.666667" fill="#5B4296"/>
+                                            <circle cx="14.673" cy="13.1667" r="0.666667" fill="#5B4296"/>
+                                            <circle cx="12.0065" cy="13.1667" r="0.666667" fill="#5B4296"/>
+                                            <path d="M16.0063 5.16602H8.00635V10.4993H16.0063V5.16602Z" stroke="#5B4296" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M13.34 15.834H10.6733V22.5007H13.34V15.834Z" stroke="#5B4296" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M16.0065 2.5H8.00651C7.29927 2.5 6.62099 2.78095 6.12089 3.28105C5.6208 3.78115 5.33984 4.45942 5.33984 5.16667V17.1667C5.33984 17.8739 5.6208 18.5522 6.12089 19.0523C6.62099 19.5524 7.29927 19.8333 8.00651 19.8333H10.6732C10.6732 19.4797 10.8137 19.1406 11.0637 18.8905C11.3137 18.6405 11.6529 18.5 12.0065 18.5C12.3601 18.5 12.6993 18.6405 12.9493 18.8905C13.1994 19.1406 13.3398 19.4797 13.3398 19.8333H16.0065C16.7138 19.8333 17.392 19.5524 17.8921 19.0523C18.3922 18.5522 18.6732 17.8739 18.6732 17.1667V5.16667C18.6732 4.45942 18.3922 3.78115 17.8921 3.28105C17.392 2.78095 16.7138 2.5 16.0065 2.5Z" stroke="#5B4296" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="researchListItemTop">
+                                            6,5 mm/l
+                                        </div>
+                                        <div class="researchListItemBottom">
+                                            02.09.2025 | 09:41
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="right">
             <div class="df fdc">
                 <div class="commentsWrapper df fdc" style="height: 100%">
-                    <div class="commentsWrapperTop">
-                        Патогістологічний висновок
+                    <div class="commentsWrapperTop df aic jcc" style="min-height: 60px">
+                        Персональні дані
                     </div>
-
+                    <div class="personalInfo">
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">СOR-ID:</div>
+                            <div class="personalInfoBlockValue">159RLHD9P-1978М</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">ПІБ:</div>
+                            <div class="personalInfoBlockValue">Іванова Катерина Віталіївна</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Дата народження:</div>
+                            <div class="personalInfoBlockValue">15.01.1990 (34р)</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Стать:</div>
+                            <div class="personalInfoBlockValue">Жіноча</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div  class="df fdc">
                 <div class="commentsWrapper df fdc" style="height: 100%">
                     <div class="commentsWrapperTop">
-                        Мікроопис
+                        Физиологічні параметри
                     </div>
-
+                    <div class="personalInfo">
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Зріст (см):</div>
+                            <div class="personalInfoBlockValue">176</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Вага (кг):</div>
+                            <div class="personalInfoBlockValue">60</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Тиск (SYS/DIA):</div>
+                            <div class="personalInfoBlockValue">120/85</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Пульс (уд/хв):</div>
+                            <div class="personalInfoBlockValue">76</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Цукор (ммоль/л):</div>
+                            <div class="personalInfoBlockValue">5</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Сатурація (%):</div>
+                            <div class="personalInfoBlockValue">98</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div  class="df fdc">
+                <div class="commentsWrapper df fdc" style="height: 100%">
+                    <div class="commentsWrapperTop">
+                        Контактна інформація
+                    </div>
+                    <div class="personalInfo">
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Email:</div>
+                            <div class="personalInfoBlockValue">ekaterina@gmail.com</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Телефон:</div>
+                            <div class="personalInfoBlockValue">+380 (98) 849 08 23</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Тиск (SYS/DIA):</div>
+                            <div class="personalInfoBlockValue">120/85</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Місто народження:</div>
+                            <div class="personalInfoBlockValue">шо-то там</div>
+                        </div>
+                        <div class="personalInfoBlock">
+                            <div class="personalInfoBlockKey">Адреса проживання:</div>
+                            <div class="personalInfoBlockValue">шо-то там</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<script src="./js/chartJs.js"></script>
+<script src="./js/chartJsAnnotation.js"></script>
 <script src="./COR_ID_Js/general_fun.js"></script>
 <script src="./js/general.js"></script>
 <script src="./js/alert.js"></script>
 <script>
     const PATIENT_COR_ID = new URLSearchParams(window.location.search).get('userCorId')
+
+    const getChart = () => {
+        const ctx = document.getElementById('chartContent');
+        Chart.register(window['chartjs-plugin-annotation']);
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', "Нд"],
+                datasets: [
+                    {
+                        label: 'Пульс',
+                        data: [61, 68, 77, 65, 60, 68, 60],
+                        borderColor: "#ED1064",
+                        backgroundColor: "white",
+                        pointStyle: 'circle',
+                        pointRadius: 5,
+                    },
+                    {
+                        label: 'ДАТ',
+                        data: [95, 80, 85, 102, 96, 99, 95],
+                        borderColor: "#25B6FF",
+                        backgroundColor: "white",
+                        pointStyle: 'circle',
+                        pointRadius: 5,
+                    },
+                    {
+                        label: 'САТ',
+                        data: [105, 130, 128, 145, 130, 136, 131],
+                        borderColor: "#3927E8",
+                        backgroundColor: "white",
+                        pointStyle: 'circle',
+                        pointRadius: 5,
+                    }
+                ]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    title: {
+                        display: false,
+                    },
+                    annotation: {
+                        annotations: {
+                            box1: {
+                                type: 'line',
+                                xMin: 0.5,
+                                xMax: 0.5,
+                                yMin: 60,
+                                yMax: 150,
+                                backgroundColor: '#323238',
+                                borderDash: [5, 5]
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#B1A1DA',   // text color
+                            font: {
+                                size: 14,
+                            },
+                        },
+                        grid: {
+                            display: false   // hides vertical grid lines
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#B1A1DA',   // text color
+                            font: {
+                                size: 14,
+                            },
+                        },
+                        grid: {
+                            display: false   // hides horizontal grid lines
+                        }
+                    }
+                },
+            },
+        });
+    }
 
     const switchRole = () => {
         document.querySelector('.role-toggle .role-btn:not(.active)').addEventListener('click', (e) => {
@@ -161,6 +458,7 @@
     document.addEventListener("DOMContentLoaded", (event) => {
         goToTab()
         switchRole()
+        getChart()
     });
 </script>
 </body>
