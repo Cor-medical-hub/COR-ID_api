@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 },
             })
                 .then(res => res.blob())
-                .then(() => {
+                .then((blob) => {
                     uploadArea.innerHTML = ""
 
                     const imgNODE = document.createElement('img');
