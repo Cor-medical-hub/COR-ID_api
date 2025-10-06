@@ -2319,6 +2319,9 @@ class FeedbackRatingScheema(BaseModel):
 class FeedbackProposalsScheema(BaseModel):
     proposal: str = Field(...,min_length=2,max_length=800, description="Предложения")
 
+class UploadGlassSVSResponse(BaseModel):
+    preview_url: str
+    scan_url: str
 
 class EnergeticObjectBase(BaseModel):
     name: str

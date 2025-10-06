@@ -15,7 +15,8 @@ from cor_pass.schemas import (
     DeleteGlassesResponse,
     Glass as GlassModelScheema,
     GlassCreate,
-    GlassPrinting
+    GlassPrinting,
+    UploadGlassSVSResponse
 )
 from cor_pass.repository import glass as glass_service
 from typing import List, Optional
@@ -160,7 +161,8 @@ async def get_glass_preview(glass_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/upload-glass/{glass_id}",
-    dependencies=[Depends(doctor_access)])
+    dependencies=[Depends(doctor_access)],
+    response_model=Optional[UploadGlassSVSResponse])
 async def upload_glass_file(
     glass_id: str,
     file: UploadFile,
@@ -204,8 +206,12 @@ async def upload_glass_file(
         glass.scan_url = smb_full_path
         glass.preview_url = preview_path
         await db.commit()
+        response = UploadGlassSVSResponse(
+            preview_url=preview_path,
+            scan_url=smb_full_path
+        )
 
-        return {"scan_url": smb_full_path, "preview_url": preview_path}
+        return response
 
     except Exception as e:
         logger.exception(f"Ошибка при загрузке SVS: {e}")
