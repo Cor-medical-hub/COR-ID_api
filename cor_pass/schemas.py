@@ -2350,3 +2350,151 @@ class PaginatedBloodPressureResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+# схемы для лекарств
+class OralMedicine(BaseModel):
+    """Пероральный способ — требует дозу и единицу измерения."""
+    intake_method: Literal["Перорально"]
+    dosage: float = Field(..., description="Дозировка препарата")
+    unit: str = Field(..., description="Одиница измерения (мг, мл и т.д.)")
+    concentration: Optional[float] = None
+    volume: Optional[float] = None
+
+
+class OintmentMedicine(BaseModel):
+    """Мази / свечи — требуют концентрацию."""
+    intake_method: Literal["Мази/свечи"]
+    concentration: float = Field(..., description="Концентрация активного вещества (%)")
+    dosage: Optional[float] = None
+    unit: Optional[str] = None
+    volume: Optional[float] = None
+
+
+class SolutionMedicine(BaseModel):
+    """Растворы, внутривенно, внутримышечно — требуют концентрацию и объем."""
+    intake_method: Literal["Внутривенно", "Внутримышечно", "Растворы"]
+    concentration: float = Field(..., description="Концентрация раствора (%)")
+    volume: float = Field(..., description="Объем раствора (мл)")
+    dosage: Optional[float] = None
+    unit: Optional[str] = None
+
+
+
+
+class MedicineBase(BaseModel):
+    name: str = Field(..., description="Название препарата")
+    active_substance: Optional[str] = Field(None, description="Действующее вещество")
+
+
+    method_data: Union[OralMedicine, OintmentMedicine, SolutionMedicine]
+
+    class Config:
+        orm_mode = True
+
+
+
+
+class MedicineCreate(MedicineBase):
+    pass
+
+
+class MedicineUpdate(MedicineBase):
+    name: Optional[str] = None
+
+
+
+
+class MedicineScheduleBase(BaseModel):
+    start_date: date
+    duration_days: Optional[int] = Field(None, description="Длительность приема")
+    times_per_day: Optional[int] = Field(None, description="Кратность в день")
+    intake_times: Optional[str] = Field(None, description="Список времён приёма через запятую")
+    interval_minutes: Optional[int] = Field(None, description="Интервал между приемами")
+    notes: Optional[str] = Field(None, description="Заметка")
+
+
+class MedicineScheduleCreate(MedicineScheduleBase):
+    medicine_id: str
+
+
+class MedicineScheduleUpdate(MedicineScheduleBase):
+    pass
+
+
+
+
+class MedicineScheduleRead(MedicineScheduleBase):
+    id: str
+    medicine_id: str
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class MedicineRead(MedicineBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    schedules: Optional[List[MedicineScheduleRead]] = []
+
+    class Config:
+        orm_mode = True
+
+
+# схемы для аптечек
+
+
+class FirstAidKitBase(BaseModel):
+    name: str = Field(..., description="Название аптечки")
+    description: Optional[str] = None
+
+
+
+class FirstAidKitCreate(FirstAidKitBase):
+    pass
+
+
+class FirstAidKitUpdate(FirstAidKitBase):
+    name: Optional[str] = None
+
+
+
+
+class FirstAidKitItemBase(BaseModel):
+    medicine_id: str
+    quantity: Optional[int] = 1
+    expiration_date: Optional[date] = None
+
+
+class FirstAidKitItemCreate(FirstAidKitItemBase):
+    first_aid_kit_id: str
+
+
+class FirstAidKitItemUpdate(FirstAidKitItemBase):
+    pass
+
+
+class FirstAidKitItemRead(FirstAidKitItemBase):
+    id: str
+    created_at: datetime
+    medicine: Optional[MedicineRead]
+
+    class Config:
+        orm_mode = True
+
+
+
+
+class FirstAidKitRead(FirstAidKitBase):
+    id: str
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+    medicines: Optional[List[FirstAidKitItemRead]] = []
+
+    class Config:
+        orm_mode = True

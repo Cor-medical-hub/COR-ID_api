@@ -254,6 +254,13 @@ class User(Base):
         "ECGMeasurement", back_populates="user", cascade="all, delete-orphan"
     )
 
+    first_aid_kits = relationship(
+    "FirstAidKit", back_populates="user", cascade="all, delete-orphan"
+)
+    medicine_schedules = relationship(
+        "MedicineSchedule", back_populates="user", cascade="all, delete-orphan"
+    )
+
     # Индексы
     __table_args__ = (
         Index("idx_users_email", "email"),
@@ -1124,5 +1131,121 @@ class DoctorSignatureSession(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime,nullable=False,default=func.now())
 
+
+
+# Аптечка
+
+class FirstAidKit(Base):
+    __tablename__ = "first_aid_kits"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    user_cor_id = Column(String(36), ForeignKey("users.cor_id", ondelete="CASCADE"), nullable=False)
+
+    created_at = Column(DateTime, nullable=False, default=func.now())
+    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+
+
+    medicines = relationship(
+        "FirstAidKitItem", back_populates="first_aid_kit", cascade="all, delete-orphan"
+    )
+    user = relationship("User", back_populates="first_aid_kits")
+
+
+    __table_args__ = (Index("idx_first_aid_kits_user_cor_id", "user_cor_id"),)
+
+
+# Лекарство
+
+class Medicine(Base):
+    __tablename__ = "medicines"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(255), nullable=False)
+    active_substance = Column(String(255), nullable=True)
+
+    intake_method = Column(String(100), nullable=True)  # перорально, подкожно и т.д.
+
+    # Разные типы параметров в зависимости от метода
+    dosage = Column(Float, nullable=True)        # для перорального
+    unit = Column(String(50), nullable=True)     # мг, мл и т.д.
+    concentration = Column(Float, nullable=True) # для мазей и растворов
+    volume = Column(Float, nullable=True)        # для растворов
+
+    created_at = Column(DateTime, nullable=False, default=func.now())
+    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+
+    created_by = Column(String(100), nullable=False)
+
+
+    schedules = relationship(
+        "MedicineSchedule", back_populates="medicine", cascade="all, delete-orphan"
+    )
+    first_aid_kits = relationship(
+        "FirstAidKitItem", back_populates="medicine", cascade="all, delete-orphan"
+    )
+
+
+    __table_args__ = (Index("idx_medicines_name", "name"),)
+
+
+# Наполнение аптечки
+
+class FirstAidKitItem(Base):
+    __tablename__ = "first_aid_kit_items"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    first_aid_kit_id = Column(
+        String(36), ForeignKey("first_aid_kits.id", ondelete="CASCADE"), nullable=False
+    )
+    medicine_id = Column(
+        String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=False
+    )
+    quantity = Column(Integer, default=1, nullable=False)
+    expiration_date = Column(Date, nullable=True)
+
+    created_at = Column(DateTime, nullable=False, default=func.now())
+
+
+    first_aid_kit = relationship("FirstAidKit", back_populates="medicines")
+    medicine = relationship("Medicine", back_populates="first_aid_kits")
+
+
+    __table_args__ = (
+        Index("idx_first_aid_kit_items_kit_id", "first_aid_kit_id"),
+        Index("idx_first_aid_kit_items_medicine_id", "medicine_id"),
+    )
+
+
+# Расписание приема
+
+class MedicineSchedule(Base):
+    __tablename__ = "medicine_schedules"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    medicine_id = Column(
+        String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=False
+    )
+    user_cor_id = Column(String(36), ForeignKey("users.cor_id", ondelete="CASCADE"), nullable=False)
+
+    start_date = Column(Date, nullable=False)
+    duration_days = Column(Integer, nullable=True)
+    times_per_day = Column(Integer, nullable=True)
+    intake_times = Column(String(255), nullable=True)  
+    interval_minutes = Column(Integer, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, nullable=False, default=func.now())
+    updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
+
+
+    medicine = relationship("Medicine", back_populates="schedules")
+    user = relationship("User", back_populates="medicine_schedules")
+
+    __table_args__ = (
+        Index("idx_medicine_schedules_user_cor_id", "user_cor_id"),
+        Index("idx_medicine_schedules_medicine_id", "medicine_id"),
+    )
 
 # Base.metadata.create_all(bind=engine)
