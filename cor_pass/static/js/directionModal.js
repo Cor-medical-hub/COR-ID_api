@@ -391,7 +391,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
     const scanCaseDirection = (e) => {
         document.querySelector('#caseDirectionScan')?.addEventListener('click', (e) => {
-            fetch(`${API_BASE_URL}/api/scanner/scan`, {
+            fetch(`${API_BASE_URL}POST/api/cases/${currentReferralId}/scan-and-attach`, {
                 method: "GET",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -399,19 +399,28 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 },
             })
                 .then(res => res.blob())
-                .then((blob) => {
-                    uploadArea.innerHTML = ""
+                .then((file) => {
+                    if(file?.file_url){
+                        fetch(`${API_BASE_URL}/api${file.file_url}`, {
+                            method: "GET",
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                            },
+                        })
+                            .then(response => response.blob())
+                            .then(blob => {
+                                uploadArea.innerHTML = ""
 
-                    const imgNODE = document.createElement('img');
+                                const imgNODE = document.createElement('img');
+                                const fileViewerWrapperNODE = document.createElement('div');
+                                fileViewerWrapperNODE.className ='thumb full';
 
-                    const fileViewerWrapperNODE = document.createElement('div');
-                    fileViewerWrapperNODE.className ='thumb full';
-
-
-                    imgNODE.src = URL.createObjectURL(blob);
-                    imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
-                    fileViewerWrapperNODE.appendChild(imgNODE);
-                    uploadArea.appendChild(fileViewerWrapperNODE);
+                                imgNODE.src = URL.createObjectURL(blob);
+                                imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
+                                fileViewerWrapperNODE.appendChild(imgNODE);
+                                uploadArea.appendChild(fileViewerWrapperNODE);
+                            })
+                    }
                 })
         })
     }
