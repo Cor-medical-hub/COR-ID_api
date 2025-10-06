@@ -4660,7 +4660,7 @@ async def print_case_QR_data(
         return {"success": True, "printer_response": "Делаем вид что принтер напечатал"}
     device = await get_printing_device_by_device_class(db=db, device_class="StickerPrinter")
     printer_ip = device.ip_address
-    printer_port = device.port
+    printer_port = "9100"
 
     # patient_cor_id=db_case.patient_id
     case_code=db_case.case_code
