@@ -1,8 +1,10 @@
+import base64
 from datetime import datetime
 import io
 from typing import Optional
+import uuid
 from click import File
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -271,18 +273,25 @@ async def upload_referral_attachment(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    **Загрузка прикрепленного файла для направления**\n
-    Позволяет загрузить до 5 файлов (PDF/изображения) к существующему направлению.
+    Привязка отсканированного документа (блоба) к направлению.
+    Принимает файл через multipart/form-data.
     """
-    db_attachment = await case_service.upload_attachment(db, referral_id, file)
-    return ReferralAttachmentResponse(
-        id=db_attachment.id,
-        filename=db_attachment.filename,
-        content_type=db_attachment.content_type,
-        file_url=router.url_path_for(
-            "get_referral_attachment", attachment_id=db_attachment.id
-        ),
-    )
+    try:
+        db_attachment = await case_service.upload_attachment(db, referral_id, file)
+        return ReferralAttachmentResponse(
+            id=db_attachment.id,
+            filename=db_attachment.filename,
+            content_type=db_attachment.content_type,
+            file_url=router.url_path_for(
+                "get_referral_attachment", attachment_id=db_attachment.id
+            ),
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке вложения: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ошибка загрузки вложения",
+        )
 
 
 USERNAME = None                  # если  с паролем 
@@ -293,6 +302,8 @@ async def get_client():
     if USERNAME and PASSWORD:
         return httpx.AsyncClient(auth=(USERNAME, PASSWORD))
     return httpx.AsyncClient()
+
+
 
 @router.post(
     "/{referral_id}/scan-and-attach",
@@ -307,6 +318,8 @@ async def scan_and_attach_referral(
     **Сканирование и прикрепление документа к направлению**
     Сканирует изображение через eSCL и сохраняет как вложение.
     Работает только локально.
+
+    Устарел, использовать только для отладки
     """
     scan_settings = """<?xml version="1.0" encoding="UTF-8"?>
     <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03">
@@ -377,6 +390,82 @@ async def scan_and_attach_referral(
             "get_referral_attachment", attachment_id=db_attachment.id
         ),
     )
+
+
+@router.post(
+    "/scan-referral",
+    dependencies=[Depends(doctor_access)],
+)
+async def scan_and_attach_referral(
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Сканирование документа направления.
+    Возвращает блоб изображения (image/jpeg) с метаданными в заголовках.
+    """
+    scan_settings = """<?xml version="1.0" encoding="UTF-8"?>
+    <scan:ScanSettings xmlns:scan="http://schemas.hp.com/imaging/escl/2011/05/03">
+      <scan:InputSource>Platen</scan:InputSource>
+      <scan:DocumentFormat>image/jpeg</scan:DocumentFormat>
+      <scan:ColorMode>RGB24</scan:ColorMode>
+      <scan:XResolution>300</scan:XResolution>
+      <scan:YResolution>300</scan:YResolution>
+    </scan:ScanSettings>
+    """
+
+    if not settings.smb_enabled:
+        logger.debug("Сканирование недоступно")
+        raise HTTPException(
+            status_code=status.HTTP_202_ACCEPTED,
+            detail="You are not in the Lab now / can not scan referral",
+        )
+
+    device = await get_printing_device_by_device_class(db=db, device_class="scanner_docs")
+    if not device:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сканер не найден в системе",
+        )
+
+    async with await get_client() as client:
+        try:
+            r = await client.post(
+                f"http://{device.ip_address}:8080/eSCL/ScanJobs",
+                content=scan_settings,
+                headers={"Content-Type": "application/xml"},
+                timeout=20,
+            )
+            r.raise_for_status()
+            job_url = r.headers.get("Location")
+            if not job_url:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Сканер не вернул Location",
+                )
+
+            doc = await client.get(
+                f"http://{device.ip_address}:8080{job_url}/NextDocument"
+            )
+            doc.raise_for_status()
+            image_bytes = doc.content
+
+            filename = f"scan_{uuid.uuid4()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpeg"
+            return Response(
+                content=image_bytes,
+                media_type="image/jpeg",
+                headers={
+                    "Content-Disposition": f"attachment; filename={filename}",
+                    "X-Filename": filename,
+                    "X-Content-Type": "image/jpeg"
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при обращении к сканеру: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ошибка сканирования",
+            )
 
 @router.get("/attachments/{attachment_id}", dependencies=[Depends(doctor_access)])
 async def get_referral_attachment(
