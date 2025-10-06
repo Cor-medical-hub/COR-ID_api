@@ -391,8 +391,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
     const scanCaseDirection = (e) => {
         document.querySelector('#caseDirectionScan')?.addEventListener('click', (e) => {
-            fetch(`${API_BASE_URL}/api/scanner/scan`, {
-                method: "GET",
+            fetch(`${API_BASE_URL}/api/cases/scan-referral`, {
+                method: "POST",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     "Content-Type": "application/json"
