@@ -1,5 +1,6 @@
 from datetime import datetime
 import io
+from typing import Optional
 from click import File
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -465,7 +466,7 @@ async def print_all_case_glasses(
 @router.patch(
     "/{case_id}/print_cassettes",
     dependencies=[Depends(doctor_access)],
-    response_model=CaseDetailsResponse,
+    response_model=Optional[CaseDetailsResponse],
 )
 async def print_all_case_cassettes(
     case_id: str, data: GeneralPrinting,
@@ -485,17 +486,22 @@ async def print_all_case_cassettes(
 @router.patch(
     "/{case_id}/print_qr",
     dependencies=[Depends(doctor_access)],
-    response_model=CaseDetailsResponse,
+    response_model=Optional[CaseDetailsResponse],
 )
 async def print_case_qr(
-    case_id: str, printing: bool = False, db: AsyncSession = Depends(get_db)
+    case_id: str, request: Request, printing: bool = False, db: AsyncSession = Depends(get_db)
 ):
     """
-    Печатает все кассеты кейса
+    Печатает QR с кейсом
     """
-    db_case = await case_service.print_case_qr(
-        db=db, case_id=case_id, printing=printing
-    )
+    db_case = await case_service.get_single_case_by_case_id(db, case_id)
     if db_case is None:
         raise HTTPException(status_code=404, detail="Case not found")
-    return db_case
+    
+    print_result = await case_service.print_case_QR_data(db=db, db_case=db_case, request=request)
+    if print_result and print_result.get("success"):
+        new_case_status = await case_service.print_case_qr(
+        db=db, case_id=case_id, printing=printing
+    )
+        if new_case_status:
+            return new_case_status

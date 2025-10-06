@@ -11,6 +11,8 @@ from cor_pass.repository.cassette import print_cassette_data
 from cor_pass.repository.glass import print_glass_data
 from cor_pass.repository.lawyer import get_doctor
 from cor_pass.repository.patient import get_patient_by_corid
+from cor_pass.repository.printing_device import get_printing_device_by_device_class
+from cor_pass.routes.printer import EthernetPrinter
 from cor_pass.schemas import (
     Case as CaseModelScheema,
     CaseCloseResponse,
@@ -530,6 +532,13 @@ async def get_single_case_by_case_code(db: AsyncSession, case_code: str) -> db_m
     """Асинхронно получает информацию о кейсе по его case_code, включая связанные банки."""
     result = await db.execute(
         select(db_models.Case).where(db_models.Case.case_code == case_code)
+    )
+    return result.scalar_one_or_none()
+
+async def get_single_case_by_case_id(db: AsyncSession, case_id: str) -> db_models.Case | None:
+    """Асинхронно получает информацию о кейсе по его case_id."""
+    result = await db.execute(
+        select(db_models.Case).where(db_models.Case.id == case_id)
     )
     return result.scalar_one_or_none()
 
@@ -4637,3 +4646,35 @@ async def _update_ancestor_statuses_from_cassette(
     await db.refresh(cassette)
     await db.refresh(sample)
     await db.refresh(case)
+
+
+async def print_case_QR_data(
+    db_case: db_models.Case, db: AsyncSession, request: Request
+):
+    logger.debug(request.base_url)
+    if request.base_url == "http://dev-corid.cor-medical.ua/":
+        logger.debug("Тестовая печать успешна")
+        return {"success": True, "printer_response": "Делаем вид что принтер напечатал"}
+    if request.base_url == "http://localhost:8000/":
+        logger.debug("Тестовая печать на локальном хосте успешна")
+        return {"success": True, "printer_response": "Делаем вид что принтер напечатал"}
+    device = await get_printing_device_by_device_class(db=db, device_class="StickerPrinter")
+    printer_ip = device.ip_address
+    printer_port = device.port
+
+    # patient_cor_id=db_case.patient_id
+    case_code=db_case.case_code
+
+    printing_data=case_code
+    printing_protocol="ZPL"
+    timeout=10
+
+    printer = EthernetPrinter(host=printer_ip, port=printer_port, timeout=timeout)
+    success = printer.print_barcode(data=printing_data, protocol=printing_protocol)
+    if success:
+        return {
+            "success": True,
+            "status": "ok" if success else "error",
+            "protocol": printing_protocol,
+            "printer_ip": printer_ip,
+        }
