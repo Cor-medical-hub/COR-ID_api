@@ -2363,9 +2363,9 @@ class OralMedicine(BaseModel):
 
 
 class OintmentMedicine(BaseModel):
-    """Мазі / свічі — требуют концентрацию."""
-    intake_method: Literal["Мазі/свічі"]
-    concentration: float = Field(..., description="Концентрация активной речовини (%)")
+    """Мази / свечи — требуют концентрацию."""
+    intake_method: Literal["Мази/свечи"]
+    concentration: float = Field(..., description="Концентрация активного вещества (%)")
     dosage: Optional[float] = None
     unit: Optional[str] = None
     volume: Optional[float] = None
@@ -2373,8 +2373,8 @@ class OintmentMedicine(BaseModel):
 
 class SolutionMedicine(BaseModel):
     """Растворы, внутривенно, внутримышечно — требуют концентрацию и объем."""
-    intake_method: Literal["Внутрішньовенно", "Внутрішньом’язово", "Розчини"]
-    concentration: float = Field(..., description="Концентрация розчину (%)")
+    intake_method: Literal["Внутривенно", "Внутримышечно", "Растворы"]
+    concentration: float = Field(..., description="Концентрация раствора (%)")
     volume: float = Field(..., description="Объем раствора (мл)")
     dosage: Optional[float] = None
     unit: Optional[str] = None
@@ -2383,10 +2383,10 @@ class SolutionMedicine(BaseModel):
 
 
 class MedicineBase(BaseModel):
-    name: str = Field(..., description="Назва препарату або діючої речовини")
-    active_substance: Optional[str] = Field(None, description="Діюча речовина")
+    name: str = Field(..., description="Название препарата")
+    active_substance: Optional[str] = Field(None, description="Действующее вещество")
 
-    # Вариант с объединением всех подтипов
+
     method_data: Union[OralMedicine, OintmentMedicine, SolutionMedicine]
 
     class Config:
