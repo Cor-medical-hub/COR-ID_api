@@ -87,7 +87,7 @@ def parse_filename(filename):
 
     m = filename_pattern.match(base)
     if not m:
-        logger.debug(f"Файл {base} не соответствует регулярному выражению: {filename_pattern.pattern}")
+        # logger.debug(f"Файл {base} не соответствует регулярному выражению: {filename_pattern.pattern}")
         return None
 
     return {
@@ -226,11 +226,11 @@ async def save_file_to_smb_manual(data: BytesIO, path: str) -> None:
 
 def list_files_in_folder(conn, share, folder_path):
     files = []
-    logger.debug(f"Сканируем папку: {share}/{folder_path}")
+    # logger.debug(f"Сканируем папку: {share}/{folder_path}")
     try:
         entries = conn.listPath(share, folder_path)
         folder_contents = [entry.filename for entry in entries if entry.filename not in ['.', '..']]
-        logger.info(f"Содержимое папки {share}/{folder_path}: {folder_contents}")
+        # logger.info(f"Содержимое папки {share}/{folder_path}: {folder_contents}")
         for entry in entries:
             if entry.filename in [".", ".."]:
                 continue
@@ -296,14 +296,14 @@ async def update_scan_urls():
         current_path = ""
         for part in path_parts:
             current_path = f"{current_path}/{part}".lstrip("/")
-            logger.debug(f"Проверка папки: {SMB_SHARE}/{current_path}")
+            # logger.debug(f"Проверка папки: {SMB_SHARE}/{current_path}")
             try:
                 entries = conn.listPath(SMB_SHARE, current_path)
-                logger.info(f"Содержимое папки {SMB_SHARE}/{current_path}: {[entry.filename for entry in entries if entry.filename not in ['.', '..']]}")
+                # logger.info(f"Содержимое папки {SMB_SHARE}/{current_path}: {[entry.filename for entry in entries if entry.filename not in ['.', '..']]}")
                 for entry in entries:
                     if entry.filename in [".", ".."]:
                         continue
-                    logger.debug(f"Права для {entry.filename}: isDirectory={entry.isDirectory}, read={entry.isReadOnly is False}")
+                    # logger.debug(f"Права для {entry.filename}: isDirectory={entry.isDirectory}, read={entry.isReadOnly is False}")
             except Exception as e:
                 logger.error(f"Ошибка при сканировании папки {SMB_SHARE}/{current_path}: {str(e)}")
                 if "Unable to open directory" in str(e):
@@ -320,7 +320,8 @@ async def update_scan_urls():
 
     smb_files = await asyncio.to_thread(sync_scan)
     for file in smb_files:
-        logger.debug(f"Обнаружен файл: {file}")
+        pass
+        # logger.debug(f"Обнаружен файл: {file}")
 
     async with AsyncSessionLocal() as session:
         try:
@@ -342,7 +343,7 @@ async def update_scan_urls():
         for glass in glasses:
             if glass.scan_url and glass.preview_url:
                 skipped += 1
-                logger.debug(f"[SKIP] Стекло {glass.id} уже имеет scan_url: {glass.scan_url} и preview_url: {glass.preview_url}")
+                # logger.debug(f"[SKIP] Стекло {glass.id} уже имеет scan_url: {glass.scan_url} и preview_url: {glass.preview_url}")
                 continue
 
             case_code = glass.cassette.sample.case.case_code
@@ -352,7 +353,7 @@ async def update_scan_urls():
             staining = glass.staining.abbr() if glass.staining else None
             cor_id = glass.cassette.sample.case.patient_id
 
-            logger.debug(f"Проверяем стекло {glass.id}: case_code={case_code}, sample={sample_number}, cassette={cassette_number}, glass_number={glass_number}, staining={staining}, cor_id={cor_id}")
+            # logger.debug(f"Проверяем стекло {glass.id}: case_code={case_code}, sample={sample_number}, cassette={cassette_number}, glass_number={glass_number}, staining={staining}, cor_id={cor_id}")
 
             for file in smb_files:
                 info = parse_filename(file)
@@ -362,7 +363,7 @@ async def update_scan_urls():
                 # Учитываем, что cassette_number в базе данных может быть длиннее, но нам нужна только последняя буква + цифра
                 cassette_last = cassette_number[-2:] if cassette_number and len(cassette_number) >= 2 else None
 
-                logger.debug(f"Сравниваем с файлом {file}: {info}")
+                # logger.debug(f"Сравниваем с файлом {file}: {info}")
 
                 if (
                     info["case_code"] == case_code and
