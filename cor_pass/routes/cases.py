@@ -587,7 +587,10 @@ async def print_case_qr(
     if db_case is None:
         raise HTTPException(status_code=404, detail="Case not found")
     
-    print_result = await case_service.print_case_QR_data(db=db, db_case=db_case, request=request)
+    print_result = await case_service.print_case_code_data(db=db, db_case=db_case, request=request) # Case code
+
+    # print_result = await case_service.print_case_QR_data(db=db, db_case=db_case, request=request) # QR
+
     if print_result and print_result.get("success"):
         new_case_status = await case_service.print_case_qr(
         db=db, case_id=case_id, printing=printing
