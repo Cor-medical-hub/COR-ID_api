@@ -4678,3 +4678,34 @@ async def print_case_QR_data(
             "protocol": printing_protocol,
             "printer_ip": printer_ip,
         }
+    
+async def print_case_code_data(
+    db_case: db_models.Case, db: AsyncSession, request: Request
+):
+    logger.debug(request.base_url)
+    if request.base_url == "http://dev-corid.cor-medical.ua/":
+        logger.debug("Тестовая печать успешна")
+        return {"success": True, "printer_response": "Делаем вид что принтер напечатал"}
+    if request.base_url == "http://localhost:8000/":
+        logger.debug("Тестовая печать на локальном хосте успешна")
+        return {"success": True, "printer_response": "Делаем вид что принтер напечатал"}
+    device = await get_printing_device_by_device_class(db=db, device_class="StickerPrinter")
+    printer_ip = device.ip_address
+    printer_port = 9100
+
+    # patient_cor_id=db_case.patient_id
+    case_code=db_case.case_code
+
+    printing_data=case_code
+    printing_protocol="ZPL"
+    timeout=10
+
+    printer = EthernetPrinter(host=printer_ip, port=printer_port, timeout=timeout)
+    success = printer.print_protocol(text=printing_data, protocol=printing_protocol)
+    if success:
+        return {
+            "success": True,
+            "status": "ok" if success else "error",
+            "protocol": printing_protocol,
+            "printer_ip": printer_ip,
+        }
