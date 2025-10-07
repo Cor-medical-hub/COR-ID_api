@@ -12,6 +12,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
     let uploadedFiles = []
     let currentReferralId = null
 
+    function getExtensionFromBlob(blob) {
+        const mime = blob.type;
+
+        // Simple mapping
+        const mimeToExt = {
+            "image/jpeg": "jpg",
+            "image/png": "png",
+            "image/gif": "gif",
+            "application/pdf": "pdf",
+            "text/plain": "txt",
+            "application/json": "json",
+        };
+
+        return mimeToExt[mime] || "";
+    }
+
     const initUploadArea = () => {
         uploadArea.innerHTML = (
             `<div class="upload-box" id="uploadBox" tabindex="0">
@@ -412,6 +428,16 @@ document.addEventListener("DOMContentLoaded", (event) => {
                     imgNODE.onload=()=> URL.revokeObjectURL(imgNODE.src);
                     fileViewerWrapperNODE.appendChild(imgNODE);
                     uploadArea.appendChild(fileViewerWrapperNODE);
+
+
+                    console.log(blob, "blob")
+                    console.log(blob.type, "blob")
+                    const file = new File([blob], `scan-${new Date().getTime()}.${getExtensionFromBlob(blob)}`, {
+                        type: blob.type || "application/octet-stream",
+                        lastModified: Date.now(),
+                    });
+
+                    uploadedFiles = [...uploadedFiles, file]
                 })
         })
     }
