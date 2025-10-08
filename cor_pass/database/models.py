@@ -1232,8 +1232,9 @@ class MedicineSchedule(Base):
     start_date = Column(Date, nullable=False)
     duration_days = Column(Integer, nullable=True)
     times_per_day = Column(Integer, nullable=True)
-    intake_times = Column(String(255), nullable=True)  
+    intake_times = Column(JSONB, nullable=True)
     interval_minutes = Column(Integer, nullable=True)
+    symptomatically = Column(Boolean, nullable=True)
     notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime, nullable=False, default=func.now())
