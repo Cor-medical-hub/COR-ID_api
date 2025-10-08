@@ -5,6 +5,7 @@ from pydantic import (
     Field,
     EmailStr,
     PositiveInt,
+    ValidationInfo,
     computed_field,
     field_validator,
     model_validator,
@@ -2353,31 +2354,45 @@ class PaginatedBloodPressureResponse(BaseModel):
 
 
 # схемы для лекарств
+
+class UnitEnum(str, Enum):
+    MG = "mg"
+    G = "g"
+    MCG = "mcg"
+    ML = "ml"
+    L = "l"
+    IU = "iu"
+    MG_ML = "mg/ml"
+    PERCENT = "%"
+    MG_M2 = "mg/m2"
+
+
 class OralMedicine(BaseModel):
     """Пероральный способ — требует дозу и единицу измерения."""
-    intake_method: Literal["Перорально"]
+    intake_method: Literal["Oral"]
     dosage: float = Field(..., description="Дозировка препарата")
-    unit: str = Field(..., description="Одиница измерения (мг, мл и т.д.)")
+    unit: UnitEnum = Field(..., description="Одиница измерения (мг, мл и т.д.)")
     concentration: Optional[float] = None
     volume: Optional[float] = None
 
 
+
 class OintmentMedicine(BaseModel):
     """Мази / свечи — требуют концентрацию."""
-    intake_method: Literal["Мази/свечи"]
+    intake_method: Literal["Ointment/suppositories"]
     concentration: float = Field(..., description="Концентрация активного вещества (%)")
     dosage: Optional[float] = None
-    unit: Optional[str] = None
+    unit: Optional[UnitEnum] = None
     volume: Optional[float] = None
 
 
 class SolutionMedicine(BaseModel):
     """Растворы, внутривенно, внутримышечно — требуют концентрацию и объем."""
-    intake_method: Literal["Внутривенно", "Внутримышечно", "Растворы"]
+    intake_method: Literal["Intravenous", "Intramuscularly", "Solutions"]
     concentration: float = Field(..., description="Концентрация раствора (%)")
     volume: float = Field(..., description="Объем раствора (мл)")
     dosage: Optional[float] = None
-    unit: Optional[str] = None
+    unit: Optional[UnitEnum] = None
 
 
 
@@ -2405,13 +2420,68 @@ class MedicineUpdate(MedicineBase):
 
 
 
+# class MedicineScheduleBase(BaseModel):
+#     start_date: date
+#     duration_days: Optional[int] = Field(None, description="Длительность приема")
+#     times_per_day: Optional[int] = Field(None, description="Кратность в день: 1 раз / 2 раза / 3 раза в день")
+#     intake_times: Optional[List[time]] = Field(None, description="Список времён приёма через запятую: 21:00 / 9:00 / и тд")
+#     interval_minutes: Optional[int] = Field(None, description="Интервал между приемами")
+#     notes: Optional[str] = Field(None, description="Заметка")
+
+
 class MedicineScheduleBase(BaseModel):
     start_date: date
     duration_days: Optional[int] = Field(None, description="Длительность приема")
-    times_per_day: Optional[int] = Field(None, description="Кратность в день")
-    intake_times: Optional[str] = Field(None, description="Список времён приёма через запятую")
-    interval_minutes: Optional[int] = Field(None, description="Интервал между приемами")
+    times_per_day: Optional[int] = Field(
+        None, description="Кратность в день: 1 раз / 2 раза / 3 раза в день"
+    )
+    intake_times: Optional[List[time]] = Field(
+        None, description="Список времён приёма: 21:00, 9:00 и т.д."
+    )
+    interval_minutes: Optional[int] = Field(
+        None, description="Интервал между приёмами в минутах"
+    )
+    symptomatically: Optional[bool] = Field(False, description="Симптоматический приём")
     notes: Optional[str] = Field(None, description="Заметка")
+
+
+    @field_validator("intake_times")
+    @classmethod
+    def validate_intake_times(cls, v: Optional[List[time]], info: ValidationInfo):
+        data = info.data or {}  
+        times_per_day = data.get("times_per_day")
+
+        if times_per_day is not None and v is not None:
+            if len(v) != times_per_day:
+                raise ValueError(
+                    f"Количество вхождений часов приема ({len(v)}) должно соответствовать количеству приёмов в день({times_per_day})"
+                )
+
+        # Если times_per_day не указано, но intake_times есть — выставляем автоматически
+        if v is not None and times_per_day is None:
+            data["times_per_day"] = len(v)
+
+        return v
+
+
+    @field_validator("times_per_day")
+    @classmethod
+    def validate_times_per_day(cls, v: Optional[int]):
+        if v is not None and v <= 0:
+            raise ValueError("Количество приемов должно быть больше нуля")
+        return v
+
+    @model_validator(mode="after")
+    def validate_schedule_logic(self):
+        if self.intake_times and self.interval_minutes:
+            raise ValueError(
+                "Нельзя одновременно указывать и времена приема, и интервал между ними"
+            )
+        if not self.intake_times and not self.interval_minutes:
+            raise ValueError(
+                "Нужно указать либо конкретные времена приема, либо интервал между ними"
+            )
+        return self
 
 
 class MedicineScheduleCreate(MedicineScheduleBase):
@@ -2427,7 +2497,7 @@ class MedicineScheduleUpdate(MedicineScheduleBase):
 class MedicineScheduleRead(MedicineScheduleBase):
     id: str
     medicine_id: str
-    user_id: str
+    # user_cor_id: str
     created_at: datetime
     updated_at: datetime
 
@@ -2439,7 +2509,7 @@ class MedicineRead(MedicineBase):
     id: str
     created_at: datetime
     updated_at: datetime
-    schedules: Optional[List[MedicineScheduleRead]] = []
+    schedules: Optional[List[MedicineScheduleBase]] = []
 
     class Config:
         orm_mode = True
@@ -2498,3 +2568,8 @@ class FirstAidKitRead(FirstAidKitBase):
 
     class Config:
         orm_mode = True
+
+
+class SupportReportScheema(BaseModel):
+    product_name: str = Field(...,min_length=2,max_length=20, description="Название продукта")
+    report_text: str = Field(...,min_length=2,max_length=800, description="Текст ошибки")
