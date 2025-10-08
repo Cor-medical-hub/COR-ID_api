@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -6,6 +7,7 @@ from cor_pass.database.db import get_db
 from cor_pass.database.models import User
 from cor_pass.schemas import (
     MedicineCreate,
+    MedicineScheduleBase,
     MedicineUpdate,
     MedicineRead,
     MedicineScheduleCreate,
@@ -16,8 +18,9 @@ from cor_pass.schemas import (
 )
 from cor_pass.repository.medicine import (
     create_medicine,
-    get_user_medicines,
+    deserialize_intake_times,
     get_medicine_by_id,
+    get_user_medicines_with_schedules,
     update_medicine,
     delete_medicine,
     create_medicine_schedule,
@@ -30,7 +33,7 @@ router = APIRouter(prefix="/medicines", tags=["Medicines"])
 
 
 @router.post(
-    "/",
+    "/create",
     response_model=MedicineRead,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(user_access)],
@@ -49,11 +52,11 @@ async def create_new_medicine(
 
     # Собираем method_data обратно в нужный подтип для ответа
     method_map = {
-        "Перорально": OralMedicine,
-        "Мазі/свічі": OintmentMedicine,
-        "Внутрішньовенно": SolutionMedicine,
-        "Внутрішньом’язово": SolutionMedicine,
-        "Розчини": SolutionMedicine,
+        "Oral": OralMedicine,
+        "Ointment/suppositories": OintmentMedicine,
+        "Intravenous": SolutionMedicine,
+        "Intramuscularly": SolutionMedicine,
+        "Solutions": SolutionMedicine,
     }
 
     method_cls = method_map.get(new_medicine.intake_method)
@@ -94,16 +97,16 @@ async def get_my_medicines(
     """
     Возвращает список всех медикаментов текущего пользователя.
     """
-    medicines = await get_user_medicines(db=db, user=current_user)
+    medicines = await get_user_medicines_with_schedules(db=db, user=current_user)
     result = []
 
     for med in medicines:
         method_map = {
-            "Перорально": OralMedicine,
-            "Мазі/свічі": OintmentMedicine,
-            "Внутрішньовенно": SolutionMedicine,
-            "Внутрішньом’язово": SolutionMedicine,
-            "Розчини": SolutionMedicine,
+        "Oral": OralMedicine,
+        "Ointment/suppositories": OintmentMedicine,
+        "Intravenous": SolutionMedicine,
+        "Intramuscularly": SolutionMedicine,
+        "Solutions": SolutionMedicine,
         }
 
         method_cls = method_map.get(med.intake_method)
@@ -118,6 +121,23 @@ async def get_my_medicines(
             if method_cls
             else None
         )
+        shedules_list = []
+        for schedule in med.schedules:
+            if schedule.intake_times:
+                schedule.intake_times = [
+                    datetime.strptime(t, "%H:%M").time()
+                    for t in schedule.intake_times
+                ]
+            shedules_list.append(MedicineScheduleBase(
+                start_date=schedule.start_date,
+                duration_days=schedule.duration_days,
+                times_per_day=schedule.times_per_day,
+                intake_times=schedule.intake_times,
+                interval_minutes=schedule.interval_minutes,
+                symptomatically=schedule.symptomatically,
+                notes=schedule.notes
+                
+            ))
 
         result.append(
             MedicineRead(
@@ -128,6 +148,7 @@ async def get_my_medicines(
                 created_by=med.created_by,
                 created_at=med.created_at,
                 updated_at=med.updated_at,
+                schedules=shedules_list
             )
         )
 
@@ -156,11 +177,11 @@ async def update_medicine_info(
     updated = await update_medicine(db=db, medicine=medicine, body=body)
 
     method_map = {
-        "Перорально": OralMedicine,
-        "Мазі/свічі": OintmentMedicine,
-        "Внутрішньовенно": SolutionMedicine,
-        "Внутрішньом’язово": SolutionMedicine,
-        "Розчини": SolutionMedicine,
+        "Oral": OralMedicine,
+        "Ointment/suppositories": OintmentMedicine,
+        "Intravenous": SolutionMedicine,
+        "Intramuscularly": SolutionMedicine,
+        "Solutions": SolutionMedicine,
     }
     method_cls = method_map.get(updated.intake_method)
     method_data = (
@@ -174,6 +195,23 @@ async def update_medicine_info(
         if method_cls
         else None
     )
+    shedules_list = []
+    for schedule in medicine.schedules:
+        if schedule.intake_times:
+            schedule.intake_times = [
+                datetime.strptime(t, "%H:%M").time()
+                for t in schedule.intake_times
+            ]
+        shedules_list.append(MedicineScheduleBase(
+            start_date=schedule.start_date,
+            duration_days=schedule.duration_days,
+            times_per_day=schedule.times_per_day,
+            intake_times=schedule.intake_times,
+            interval_minutes=schedule.interval_minutes,
+            symptomatically=schedule.symptomatically,
+            notes=schedule.notes
+            
+        ))
 
     response = MedicineRead(
         id=updated.id,
@@ -183,6 +221,7 @@ async def update_medicine_info(
         created_by=updated.created_by,
         created_at=updated.created_at,
         updated_at=updated.updated_at,
+        schedules=shedules_list
     )
     return response
 
@@ -226,22 +265,29 @@ async def create_schedule(
     """
     Создает новое расписание приёма медикамента для пользователя.
     """
+    medicine = await get_medicine_by_id(db=db, medicine_id=body.medicine_id)
+    if not medicine:
+        raise HTTPException(status_code=404, detail="Медикамент не найден")
+    if medicine.schedules:
+        raise HTTPException(status_code=400, detail="Расписание уже создано")
     new_schedule = await create_medicine_schedule(db=db, body=body, user=current_user)
     return new_schedule
 
 
-@router.get(
-    "/schedules/my",
-    response_model=List[MedicineScheduleRead],
-    dependencies=[Depends(user_access)],
-    summary="Получить все расписания медикаментов текущего пользователя",
-)
-async def get_my_schedules(
-    current_user: User = Depends(auth_service.get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Возвращает список всех расписаний медикаментов текущего пользователя.
-    """
-    schedules = await get_user_schedules(db=db, user=current_user)
-    return schedules
+# @router.get(
+#     "/schedules/my",
+#     response_model=List[MedicineScheduleRead],
+#     dependencies=[Depends(user_access)],
+#     summary="Получить все расписания медикаментов текущего пользователя",
+# )
+# async def get_my_schedules(
+#     current_user: User = Depends(auth_service.get_current_user),
+#     db: AsyncSession = Depends(get_db),
+# ):
+#     """
+#     Возвращает список всех расписаний медикаментов текущего пользователя.
+#     """
+#     schedules = await get_user_schedules(db=db, user=current_user)
+#     for schedule in schedules:
+#         schedule.intake_times = deserialize_intake_times(schedule.intake_times)
+#     return schedules
