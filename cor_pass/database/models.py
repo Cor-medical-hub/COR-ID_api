@@ -1249,4 +1249,57 @@ class MedicineSchedule(Base):
         Index("idx_medicine_schedules_medicine_id", "medicine_id"),
     )
 
+
+class OphthalmologicalPrescription(Base):
+    __tablename__ = "ophthalmological_prescription"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    patient_id = Column(String(36), index=True)
+    
+    # OD
+    od_sph = Column(Float, nullable=False)
+    od_cyl = Column(Float, nullable=False)
+    od_ax = Column(Float, nullable=False)
+    od_prism = Column(Float, nullable=False)
+    od_base = Column(String(50), nullable=False)
+    od_add = Column(Float, nullable=False)
+
+
+    # OS
+    os_sph = Column(Float, nullable=False)
+    os_cyl = Column(Float, nullable=False)
+    os_ax = Column(Float, nullable=False)
+    os_prism = Column(Float, nullable=False)
+    os_base = Column(String(50), nullable=False)
+    os_add = Column(Float, nullable=False)
+
+    glasses_purpose = Column(String(50), nullable=False)
+    glasses_type = Column(String(50), nullable=False)
+
+    created_at = Column(DateTime, nullable=False, default=func.now())
+    expires_at = Column(DateTime, nullable=False, default=func.now())
+
+    note = Column(String(350), nullable=False)
+
+
+
+
+class ReportSignature(Base):
+    __tablename__ = "ophthalmological_prescription_signature"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    ophthalmological_prescription_id = Column(
+        String(36), ForeignKey("ophthalmological_prescription.id"), nullable=True, unique=True
+    )
+    doctor_id = Column(String(36), ForeignKey("doctors.id"), nullable=False)
+    doctor_signature_id = Column(
+        String(36), ForeignKey("doctor_signatures.id"), nullable=True
+    )
+    signed_at = Column(DateTime, default=func.now())
+
+    # Связи
+    # doctor_diagnosis_entry = relationship("DoctorDiagnosis", back_populates="signature")
+    # doctor = relationship("Doctor")
+    # doctor_signature = relationship("DoctorSignature")
+
 # Base.metadata.create_all(bind=engine)
