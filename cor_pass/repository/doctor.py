@@ -31,6 +31,7 @@ from cor_pass.repository.person import get_user_by_corid
 from cor_pass.schemas import (
     DoctorCreate,
     DoctorSignatureResponse,
+    DoctorSignatureResponseWithName,
     GetAllPatientsResponce,
     PatientDecryptedResponce,
     PatientResponseForGetPatients,
@@ -746,7 +747,7 @@ async def get_doctor_signature_by_id(
     db: AsyncSession,
     signature_id: str,
     router: APIRouter,
-) -> DoctorSignatureResponse:
+) -> DoctorSignatureResponseWithName:
     """
     Получает одну подпись врача по ID и возвращает вместе с ФИО врача.
     """
@@ -765,16 +766,16 @@ async def get_doctor_signature_by_id(
 
     sig, first_name, last_name = record
 
-    return DoctorSignatureResponse(
-        id=sig.id,
+    return DoctorSignatureResponseWithName(
+        # id=sig.id,
         doctor_id=sig.doctor_id,
-        signature_name=sig.signature_name,
+        # signature_name=sig.signature_name,
         signature_scan_data=router.url_path_for(
             "get_signature_attachment", signature_id=sig.id
         ),
         signature_scan_type=sig.signature_scan_type,
-        is_default=sig.is_default,
-        created_at=sig.created_at,
+        # is_default=sig.is_default,
+        # created_at=sig.created_at,
         doctor_first_name=first_name,
         doctor_last_name=last_name,
     )

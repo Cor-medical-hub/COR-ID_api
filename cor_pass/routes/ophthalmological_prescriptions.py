@@ -10,6 +10,7 @@ from cor_pass.repository.lawyer import get_doctor
 from cor_pass.schemas import (
     InitiateSignatureResponse,
     OphthalmologicalPrescriptionCreate,
+    OphthalmologicalPrescriptionReadWithSigning,
     OphthalmologicalPrescriptionUpdate,
     OphthalmologicalPrescriptionRead,
 )
@@ -20,6 +21,7 @@ from cor_pass.services.auth import auth_service
 from cor_pass.database.db import get_db
 from cor_pass.repository.ophthalmological_prescription import (
     create_ophthalmological_prescription,
+    get_prescription_by_patient_new,
     get_prescriptions_by_patient,
     get_prescription_by_id,
     update_prescription,
@@ -106,9 +108,9 @@ async def initiate_prescription_signing(
 
 @router.get(
     "/patient/{patient_id}",
-    response_model=List[OphthalmologicalPrescriptionRead],
+    response_model=List[OphthalmologicalPrescriptionReadWithSigning],
     dependencies=[Depends(user_access)],
-    summary="Получить рецепты пациента",
+    summary="Получить рецепты пациента (с информацией о враче и подписи)",
 )
 async def get_patient_prescriptions_route(
     patient_id: str,
@@ -116,12 +118,30 @@ async def get_patient_prescriptions_route(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Возвращает все офтальмологические рецепты пациента
+    Возвращает все офтальмологические рецепты пациента вместе с информацией
+    о подписи и враче (если подпись есть).
     """
-    prescriptions = await get_prescriptions_by_patient(db=db, patient_id=patient_id)
-    signature_info = await get_doctor_signature_by_id(db=db, signature_id=prescriptions[0].doctor_signature_id, router=doctor_router)
-    logger.debug(signature_info)
-    return prescriptions
+    prescriptions = await get_prescription_by_patient_new(db=db, patient_id=patient_id)
+    response_list: list[OphthalmologicalPrescriptionReadWithSigning] = []
+
+    for presc in prescriptions:
+        doctor_signature_info = None
+        if presc.doctor_signature_id:
+            try:
+                doctor_signature_info = await get_doctor_signature_by_id(
+                    db=db, signature_id=presc.doctor_signature_id, router=doctor_router
+                )
+            except HTTPException:
+                doctor_signature_info = None
+
+        response_list.append(
+            OphthalmologicalPrescriptionReadWithSigning(
+                ophthalmological_prescription=presc,
+                doctor_signing_info=doctor_signature_info,
+            )
+        )
+
+    return response_list
 
 
 
