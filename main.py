@@ -54,7 +54,8 @@ from cor_pass.routes import (
     scanner_router,
     medicines,
     first_aid_kits,
-    support
+    support,
+    ophthalmological_prescriptions
 )
 from cor_pass.config.config import settings
 from cor_pass.services.ip2_location import initialize_ip2location
@@ -305,6 +306,7 @@ app.include_router(scanner_router.router, prefix="/api")
 app.include_router(medicines.router, prefix="/api")
 app.include_router(first_aid_kits.router, prefix="/api")
 app.include_router(support.router, prefix="/api")
+app.include_router(ophthalmological_prescriptions.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(

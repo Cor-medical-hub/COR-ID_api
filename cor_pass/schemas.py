@@ -11,7 +11,7 @@ from pydantic import (
     model_validator,
 )
 from typing import Generic, List, Literal, Optional, TypeVar, Union
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 
 from cor_pass.database.models import (
     AccessLevel,
@@ -2573,3 +2573,62 @@ class FirstAidKitRead(FirstAidKitBase):
 class SupportReportScheema(BaseModel):
     product_name: str = Field(...,min_length=2,max_length=20, description="Название продукта")
     report_text: str = Field(...,min_length=2,max_length=800, description="Текст ошибки")
+
+
+
+
+class OphthalmologicalPrescriptionBase(BaseModel):
+    # Параметры правого глаза (OD)
+    od_sph: Optional[float] = Field(None, description="Sph правого глаза")
+    od_cyl: Optional[float] = Field(None, description="Cyl правого глаза")
+    od_ax: Optional[float] = Field(None, description="Ax правого глаза")
+    od_prism: Optional[float] = Field(None, description="Prism правого глаза")
+    od_base: Optional[str] = Field(None, description="Base правого глаза (Up / Down / In / Out)")
+    od_add: Optional[float] = Field(None, description="Add правого глаза")
+
+    # Параметры левого глаза (OS)
+    os_sph: Optional[float] = Field(None, description="Sph левого глаза")
+    os_cyl: Optional[float] = Field(None, description="Cyl левого глаза")
+    os_ax: Optional[float] = Field(None, description="Ax левого глаза")
+    os_prism: Optional[float] = Field(None, description="Prism левого глаза")
+    os_base: Optional[str] = Field(None, description="Base левого глаза (Up / Down / In / Out)")
+    os_add: Optional[float] = Field(None, description="Add левого глаза")
+
+    # Общие параметры
+    glasses_purpose: Literal["glasses_for_reading", "glasses_for_distance", "glasses_for_constant_wear"]
+    glasses_type: Literal["monofocal_glasses", "bifocal_glasses", "multifocal_glasses"]
+
+    issue_date: Optional[datetime] = Field(...)
+    term_months: Optional[int] = Field(None, description="Срок действия рецепта в месяцах")
+    note: Optional[str] = Field(None, description="Заметки")
+
+    @field_validator("od_base", "os_base")
+    @classmethod
+    def validate_base_direction(cls, v):
+        allowed = {"Up", "Down", "In", "Out", None}
+        if v not in allowed:
+            raise ValueError("Base должен быть одним из: Up, Down, In, Out")
+        return v
+
+
+
+class OphthalmologicalPrescriptionCreate(OphthalmologicalPrescriptionBase):
+    patient_id: str
+    doctor_signature_id: Optional[str] = None
+
+
+class OphthalmologicalPrescriptionUpdate(OphthalmologicalPrescriptionBase):
+    pass
+
+
+class OphthalmologicalPrescriptionRead(OphthalmologicalPrescriptionBase):
+    id: str
+    patient_id: str
+    expires_at: Optional[datetime] = None
+    doctor_signature_id: Optional[str] = None
+    signed_at: Optional[datetime] = None
+    issue_date: datetime
+
+    class Config:
+        orm_mode = True
+
