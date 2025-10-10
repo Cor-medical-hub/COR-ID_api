@@ -1,3 +1,4 @@
+from datetime import timedelta
 import enum
 import uuid
 from sqlalchemy import (
@@ -1125,7 +1126,8 @@ class DoctorSignatureSession(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     session_token = Column(String, unique=True, nullable=False)
     doctor_cor_id = Column(String(36), nullable=False)
-    diagnosis_id = Column(String(36), nullable=False)
+    diagnosis_id = Column(String(36), nullable=True)
+    ophthalmological_prescription_id = Column(String(36), nullable=True)
     doctor_signature_id = Column(String(36), nullable=True)
     status = Column(String, default="pending")  # pending/approved/rejected/expired
     expires_at = Column(DateTime(timezone=True), nullable=False)
@@ -1248,5 +1250,54 @@ class MedicineSchedule(Base):
         Index("idx_medicine_schedules_user_cor_id", "user_cor_id"),
         Index("idx_medicine_schedules_medicine_id", "medicine_id"),
     )
+
+# Рецепт на очки
+
+class OphthalmologicalPrescription(Base):
+    __tablename__ = "ophthalmological_prescriptions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    patient_id = Column(String(36), index=True, nullable=False)
+
+    # ---------- правый глаз (OD) ----------
+    od_sph = Column(Float, nullable=True)
+    od_cyl = Column(Float, nullable=True)
+    od_ax = Column(Float, nullable=True)
+    od_prism = Column(Float, nullable=True)
+    od_base = Column(String(10), nullable=True)
+    od_add = Column(Float, nullable=True)
+
+    # ---------- левый глаз (OS) ----------
+    os_sph = Column(Float, nullable=True)
+    os_cyl = Column(Float, nullable=True)
+    os_ax = Column(Float, nullable=True)
+    os_prism = Column(Float, nullable=True)
+    os_base = Column(String(10), nullable=True)
+    os_add = Column(Float, nullable=True)
+
+    # ---------- Общие параметры ----------
+    glasses_purpose = Column(String(50), nullable=False)
+    glasses_type = Column(String(50), nullable=False)
+
+    issue_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    term_months = Column(Float, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+
+    note = Column(Text, nullable=True)
+
+    doctor_signature_id = Column(
+        String(36), ForeignKey("doctor_signatures.id", ondelete="SET NULL"), nullable=True
+    )
+    signed_at = Column(DateTime(timezone=True), nullable=True)
+
+    doctor_signature = relationship("DoctorSignature", lazy="joined")
+
+    def set_expiration(self):
+        if self.term_months:
+            self.expires_at = self.issue_date + timedelta(days=30 * self.term_months)
+        else:
+            self.expires_at = self.issue_date + timedelta(days=90)
+
+
 
 # Base.metadata.create_all(bind=engine)

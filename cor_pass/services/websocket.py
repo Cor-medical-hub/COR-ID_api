@@ -124,7 +124,8 @@ async def expire_sessions_task(db_factory):
 
 
 # Доп функции для сессий подписания 
-DEEP_LINK_SCHEME = "coreid://sign" 
+# DEEP_LINK_SCHEME = "coreid://sign" 
+DEEP_LINK_SCHEME = "coridapp://open" 
 SESSION_TTL_MINUTES = 15
 
 

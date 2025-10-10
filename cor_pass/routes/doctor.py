@@ -22,6 +22,7 @@ from typing import List, Optional
 from cor_pass.database.db import get_db
 from cor_pass.database.models import (
     DoctorSignatureSession,
+    OphthalmologicalPrescription,
     PatientClinicStatus,
     PatientStatus,
     User,
@@ -863,7 +864,7 @@ async def add_signature_to_report_route(
     await db.commit()
 
     await case_service.change_case_status_after_signing(db=db, diagnosis_entry_id=diagnosis_entry_id)
-    deep_link = f"{DEEP_LINK_SCHEME}?session_token={session_token}"
+    deep_link = f"{DEEP_LINK_SCHEME}?email={user.email}&sessionToken={session_token}"
 
     return InitiateSignatureResponse(
         session_token=session_token,
@@ -1218,18 +1219,31 @@ async def approve_signature(body: ActionRequest, db: AsyncSession = Depends(get_
         await db.commit()
         await _broadcast_status(sess.session_token, "expired")
         raise HTTPException(status_code=410, detail="Session expired")
+    
     if body.status == SessionLoginStatus.approved.value.lower():
         sess.status = "approved"
         await db.commit()
-        response = await case_service.add_diagnosis_signature(
-        db=db,
-        diagnosis_entry_id=sess.diagnosis_id,
-        doctor_id=doctor.doctor_id,
-        doctor_signature_id=sess.doctor_signature_id,
-        router=router,
-    )
-        await case_service.auto_close_case_service(db=db, diagnosis_entry_id=sess.diagnosis_id, current_doctor=doctor.doctor_id)
-        await _broadcast_status(sess.session_token, "approved")
+        # Если это офтальмологический рецепт
+        if sess.ophthalmological_prescription_id:
+            prescription = await db.get(OphthalmologicalPrescription, sess.ophthalmological_prescription_id)
+            if prescription:
+                prescription.doctor_signature_id = sess.doctor_signature_id
+                prescription.signed_at = datetime.now(timezone.utc)
+                await db.commit()
+                await _broadcast_status(sess.session_token, "approved")
+
+        # Если это диагноз (старый сценарий)
+        elif sess.diagnosis_id:
+            response = await case_service.add_diagnosis_signature(
+                db=db,
+                diagnosis_entry_id=sess.diagnosis_id,
+                doctor_id=doctor.doctor_id,
+                doctor_signature_id=sess.doctor_signature_id,
+                router=router,
+            )
+            await case_service.auto_close_case_service(db=db, diagnosis_entry_id=sess.diagnosis_id, current_doctor=doctor.doctor_id)
+            await _broadcast_status(sess.session_token, "approved")
+
         return {"status": "approved"}
     else:
         sess.status = "rejected"

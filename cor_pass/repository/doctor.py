@@ -741,6 +741,44 @@ async def get_doctor_signatures(
     return response_signatures
 
 
+
+async def get_doctor_signature_by_id(
+    db: AsyncSession,
+    signature_id: str,
+    router: APIRouter,
+) -> DoctorSignatureResponse:
+    """
+    Получает одну подпись врача по ID и возвращает вместе с ФИО врача.
+    """
+    result = await db.execute(
+        select(DoctorSignature, Doctor.first_name, Doctor.last_name)
+        .join(Doctor, Doctor.id == DoctorSignature.doctor_id)
+        .where(DoctorSignature.id == signature_id)
+    )
+    record = result.first()
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Doctor signature not found",
+        )
+
+    sig, first_name, last_name = record
+
+    return DoctorSignatureResponse(
+        id=sig.id,
+        doctor_id=sig.doctor_id,
+        signature_name=sig.signature_name,
+        signature_scan_data=router.url_path_for(
+            "get_signature_attachment", signature_id=sig.id
+        ),
+        signature_scan_type=sig.signature_scan_type,
+        is_default=sig.is_default,
+        created_at=sig.created_at,
+        doctor_first_name=first_name,
+        doctor_last_name=last_name,
+    )
+
 async def set_default_doctor_signature(
     db: AsyncSession, doctor_id: str, signature_id: str, router: APIRouter
 ) -> List[DoctorSignatureResponse]:
