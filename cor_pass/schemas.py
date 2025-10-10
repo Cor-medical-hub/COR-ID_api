@@ -10,7 +10,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing import Generic, List, Literal, Optional, TypeVar, Union
+from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
 from datetime import datetime, time, timedelta, timezone
 
 from cor_pass.database.models import (
@@ -2632,3 +2632,7 @@ class OphthalmologicalPrescriptionRead(OphthalmologicalPrescriptionBase):
     class Config:
         orm_mode = True
 
+
+class WSMessageBase(BaseModel):
+    session_token: str
+    data: Dict[str, Any]
