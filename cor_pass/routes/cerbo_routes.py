@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket
 from typing import List, Optional
 from cor_pass.database.models import User
 from cor_pass.repository.cerbo_service import BATTERY_ID, ESS_UNIT_ID, INVERTER_ID, REGISTERS, create_energetic_object, create_schedule, create_schedule_with_energetic_object_id, decode_signed_16, decode_signed_32, delete_energetic_object, delete_schedule, get_all_energetic_objects, get_all_schedules, get_all_schedules_by_object_id, get_device_measurements_by_object_paginated, get_device_measurements_paginated,get_averaged_measurements_service, get_energetic_object,get_energy_measurements_service, get_modbus_client, get_schedule_by_id, register_modbus_error, update_energetic_object, update_schedule
-from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticObjectCreate, EnergeticObjectResponse, EnergeticObjectUpdate, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleCreateForObject, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl
+from cor_pass.schemas import CerboMeasurementResponse, DVCCMaxChargeCurrentRequest, EnergeticObjectCreate, EnergeticObjectResponse, EnergeticObjectUpdate, EnergeticScheduleBase, EnergeticScheduleCreate, EnergeticScheduleCreateForObject, EnergeticScheduleResponse, EssAdvancedControl, GridLimitUpdate, InverterPowerPayload, PaginatedResponse, RegisterWriteRequest, VebusSOCControl, WSMessageBase
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from cor_pass.database.db import get_db
@@ -12,7 +12,7 @@ from loguru import logger
 from cor_pass.repository import person as repository_person
 from cor_pass.services.auth import auth_service
 from cor_pass.services.websocket_events_manager import websocket_events_manager
-
+from cor_pass.database.redis_db import redis_client
 
 ERROR_THRESHOLD = 9
 error_count = 0
@@ -1057,4 +1057,34 @@ async def websocket_device_endpoint(websocket: WebSocket, session_id: str, db: A
     except Exception as e:
         print(f"Device {session_id} error: {e}")
         await websocket_events_manager.disconnect(connection_id)
+
+
+@router.post(
+    "/send_some_message",
+    tags=["Websocket Energetic"],
+    status_code=status.HTTP_200_OK,
+    summary="Отправить сообщение на устройство по WebSocket",
+)
+async def send_some_message(
+    message: WSMessageBase,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Отправляет JSON-сообщение на устройство, идентифицированное по session_token, через WebSocket.
+    """
+
+    connection_id = await redis_client.get(f"ws:session:{message.session_token}")
+    if not connection_id:
+        raise HTTPException(status_code=404, detail="Сессия не найдена или устройство не подключено")
+
+    try:
+        await websocket_events_manager.send_to_session(
+            session_id=message.session_token,
+            event_data=message.data
+        )
+        return {"detail": "Сообщение успешно отправлено"}
+    except Exception as e:
+        logger.error(f"Ошибка при отправке сообщения: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Ошибка при отправке сообщения: {str(e)}")
+    
 

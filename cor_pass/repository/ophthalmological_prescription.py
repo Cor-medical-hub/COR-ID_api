@@ -6,6 +6,7 @@ from typing import List, Optional
 from cor_pass.database.models import OphthalmologicalPrescription, User
 from cor_pass.schemas import (
     OphthalmologicalPrescriptionCreate,
+    OphthalmologicalPrescriptionRead,
     OphthalmologicalPrescriptionUpdate,
 )
 
@@ -65,6 +66,25 @@ async def get_prescriptions_by_patient(
     )
     return result.scalars().all()
 
+async def get_prescription_by_patient_new(
+    db: AsyncSession,
+    patient_id: str,
+) -> list[OphthalmologicalPrescriptionRead]:
+    """
+    Возвращает все рецепты пациента, отсортированные по дате выдачи.
+    """
+    result = await db.execute(
+        select(OphthalmologicalPrescription)
+        .where(OphthalmologicalPrescription.patient_id == patient_id)
+        .order_by(OphthalmologicalPrescription.issue_date.desc())
+    )
+    prescriptions = result.scalars().all()
+
+    response = [
+        OphthalmologicalPrescriptionRead.model_validate(p, from_attributes=True)
+        for p in prescriptions
+    ]
+    return response
 
 async def get_prescription_by_id(
     db: AsyncSession,

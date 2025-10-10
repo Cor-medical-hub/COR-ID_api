@@ -10,7 +10,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from typing import Generic, List, Literal, Optional, TypeVar, Union
+from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
 from datetime import datetime, time, timedelta, timezone
 
 from cor_pass.database.models import (
@@ -1390,6 +1390,16 @@ class DoctorSignatureResponse(DoctorSignatureBase):
     class Config:
         from_attributes = True
 
+class DoctorSignatureResponseWithName(BaseModel):
+    doctor_first_name: Optional[str] = None
+    doctor_last_name: Optional[str] = None
+    doctor_id: str
+    signature_scan_data: Optional[str] = None
+    signature_scan_type: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 
 class ReportSignatureSchema(BaseModel):
     id: str
@@ -2632,3 +2642,10 @@ class OphthalmologicalPrescriptionRead(OphthalmologicalPrescriptionBase):
     class Config:
         orm_mode = True
 
+class OphthalmologicalPrescriptionReadWithSigning(BaseModel):
+    ophthalmological_prescription: OphthalmologicalPrescriptionRead
+    doctor_signing_info: DoctorSignatureResponseWithName
+
+class WSMessageBase(BaseModel):
+    session_token: str
+    data: Dict[str, Any]

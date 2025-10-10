@@ -852,6 +852,7 @@ async def add_signature_to_report_route(
     session_token = uuid.uuid4().hex
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=SESSION_TTL_MINUTES)
     doctor = await get_doctor(doctor_id=user.cor_id, db=db)
+    signing = True
     sess = DoctorSignatureSession(
         session_token=session_token,
         doctor_cor_id=doctor.doctor_id,
@@ -864,7 +865,7 @@ async def add_signature_to_report_route(
     await db.commit()
 
     await case_service.change_case_status_after_signing(db=db, diagnosis_entry_id=diagnosis_entry_id)
-    deep_link = f"{DEEP_LINK_SCHEME}?email={user.email}&sessionToken={session_token}"
+    deep_link = f"{DEEP_LINK_SCHEME}?email={user.email}&sessionToken={session_token}&signing={signing}"
 
     return InitiateSignatureResponse(
         session_token=session_token,
